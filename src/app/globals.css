@@ -1,0 +1,722 @@
+@import "tailwindcss";
+
+:root,
+[data-theme="blush"] {
+  /* Бело-розовая «девчачья» тема — текст почти чёрный */
+  --background: #fff6f8;
+  --foreground: #1a1014;
+  --muted: #4a3038;
+  --card: #ffffff;
+  --line: rgba(214, 120, 148, 0.28);
+  --accent: #e85a8c;
+  --accent-hot: #d63f74;
+  --accent-soft: rgba(232, 90, 140, 0.14);
+  --blush: #e11d48;
+  --blush-soft: rgba(225, 29, 72, 0.12);
+  --sidebar: #ffe8ef;
+  --glow: rgba(232, 90, 140, 0.2);
+  --ink-soft: #2a181e;
+  --user-bubble: #ffd6e3;
+  --on-accent: #ffffff;
+  --surface-elevated: #fff0f4;
+  --overlay: rgba(80, 30, 50, 0.28);
+  --chip-bg: #fff0f4;
+  --chip-fg: #1a1014;
+  --scrollbar: #f0b8c8;
+  --body-a: rgba(255, 182, 203, 0.55);
+  --body-b: rgba(255, 214, 228, 0.7);
+  --radius-panel: 1.75rem;
+  --radius-card: 1.25rem;
+  --radius-control: 0.75rem;
+  --scheme: light;
+}
+
+[data-theme="dark"] {
+  /* Тёмный iOS glass */
+  --background: #000000;
+  --foreground: #f5f5f7;
+  --muted: #98989f;
+  --card: #1c1c1e;
+  --line: rgba(255, 255, 255, 0.12);
+  --accent: #32d7af;
+  --accent-hot: #2bc4a0;
+  --accent-soft: rgba(50, 215, 175, 0.14);
+  --blush: #ff453a;
+  --blush-soft: rgba(255, 69, 58, 0.16);
+  --sidebar: #000000;
+  --glow: rgba(50, 215, 175, 0.18);
+  --ink-soft: #e8e8ed;
+  --user-bubble: #2c2c2e;
+  --on-accent: #ffffff;
+  --surface-elevated: #121214;
+  --overlay: rgba(0, 0, 0, 0.45);
+  --chip-bg: #0d0d0d;
+  --chip-fg: #ffffff;
+  --scrollbar: #3a3a3c;
+  --body-a: rgba(50, 215, 175, 0.12);
+  --body-b: rgba(64, 120, 255, 0.14);
+  --scheme: dark;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-card: var(--card);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-hot: var(--accent-hot);
+  --color-accent-soft: var(--accent-soft);
+  --color-blush: var(--blush);
+  --color-blush-soft: var(--blush-soft);
+  --color-sidebar: var(--sidebar);
+  --color-user-bubble: var(--user-bubble);
+  --color-on-accent: var(--on-accent);
+  --color-surface-elevated: var(--surface-elevated);
+  --font-sans: var(--font-nunito);
+  --font-display: var(--font-fraunces);
+}
+
+html {
+  background: var(--background);
+  color: var(--foreground);
+  color-scheme: var(--scheme);
+}
+
+body {
+  background:
+    radial-gradient(ellipse at 12% -8%, var(--body-a), transparent 48%),
+    radial-gradient(ellipse at 92% 6%, var(--body-b), transparent 44%),
+    radial-gradient(ellipse at 50% 100%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 55%),
+    var(--background);
+  color: var(--foreground);
+  font-family: var(--font-nunito), system-ui, sans-serif;
+  letter-spacing: -0.01em;
+  min-height: 100%;
+}
+
+/* Бумажная зернистость поверх фона */
+body::before {
+  content: "";
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.35;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+}
+
+[data-theme="dark"] body::before {
+  opacity: 0.12;
+  mix-blend-mode: soft-light;
+}
+
+.font-display {
+  font-family: var(--font-fraunces), var(--font-nunito), Georgia, serif;
+  letter-spacing: -0.02em;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::selection {
+  background: rgba(50, 215, 175, 0.35);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar);
+  border-radius: 999px;
+}
+
+@keyframes maya-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes maya-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes maya-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes maya-slide-left {
+  from {
+    opacity: 0;
+    transform: translateX(-18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes maya-slide-right {
+  from {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes maya-drawer-in {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes maya-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes maya-pulse-line {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scaleX(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+@keyframes maya-typing {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}
+
+.maya-rise {
+  animation: maya-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.maya-rise-delay {
+  animation: maya-rise 0.65s cubic-bezier(0.22, 1, 0.36, 1) 0.08s both;
+}
+
+.maya-page {
+  animation: maya-rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.maya-msg-in {
+  animation: maya-scale-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.maya-msg-user {
+  animation: maya-slide-right 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.maya-msg-ai {
+  animation: maya-slide-left 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.maya-brand-line {
+  transform-origin: left center;
+  animation: maya-pulse-line 3.2s ease-in-out infinite;
+}
+
+.maya-drawer {
+  animation: maya-drawer-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.maya-backdrop {
+  animation: maya-backdrop-in 0.28s ease-out both;
+}
+
+.maya-item {
+  animation: maya-rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.maya-panel {
+  animation: maya-scale-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes maya-sheet-up {
+  from {
+    opacity: 0;
+    transform: translateY(28%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes maya-sheet-down {
+  from {
+    opacity: 0;
+    transform: translateY(-18%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes maya-chart-draw {
+  from {
+    stroke-dashoffset: 800;
+    opacity: 0.35;
+  }
+  to {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+
+@keyframes maya-chart-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.08;
+    transform: scale(1.55);
+  }
+}
+
+.maya-sheet {
+  animation: maya-sheet-up 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.maya-sheet-top {
+  animation: maya-sheet-down 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-origin: top center;
+}
+
+.maya-diary-open {
+  opacity: 0;
+  transform: scale(0.92) rotateX(12deg);
+  transform-origin: top center;
+  transition:
+    opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.maya-diary-open-on {
+  opacity: 1;
+  transform: scale(1) rotateX(0deg);
+}
+
+.maya-diary-offer {
+  animation: maya-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  box-shadow: 0 0 0 0 rgba(50, 215, 175, 0.35);
+  animation:
+    maya-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both,
+    maya-diary-glow 1.8s ease-out 0.3s 2;
+}
+
+@keyframes maya-diary-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(50, 215, 175, 0);
+  }
+  40% {
+    box-shadow: 0 0 0 6px rgba(50, 215, 175, 0.18);
+  }
+}
+
+.maya-log-toast {
+  opacity: 0;
+  transform: translateY(-14px) scale(0.96);
+  transition:
+    opacity 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.maya-log-toast-on {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.maya-log-toast-out {
+  opacity: 0;
+  transform: translateY(-12px) scale(0.97);
+  transition:
+    opacity 0.32s ease,
+    transform 0.32s ease;
+}
+
+.maya-log-toast-bar {
+  width: 100%;
+  transform-origin: left center;
+  animation: maya-log-toast-progress 5.2s linear forwards;
+}
+
+@keyframes maya-log-toast-progress {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+.maya-hud-grid {
+  opacity: 0.16;
+  background-image:
+    linear-gradient(rgba(50, 215, 175, 0.35) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(50, 215, 175, 0.35) 1px, transparent 1px);
+  background-size: 18px 18px;
+  mask-image: radial-gradient(ellipse at 30% 0%, black 20%, transparent 70%);
+}
+
+.maya-hud-scan {
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(50, 215, 175, 0.07) 50%,
+    transparent 100%
+  );
+  background-size: 100% 220%;
+  animation: maya-hud-scan 2.8s linear infinite;
+  opacity: 0.55;
+}
+
+@keyframes maya-hud-scan {
+  from {
+    background-position: 0 -40%;
+  }
+  to {
+    background-position: 0 140%;
+  }
+}
+
+.maya-hud-pulse {
+  box-shadow: 0 0 0 0 rgba(50, 215, 175, 0.7);
+  animation: maya-hud-pulse 1.4s ease-out infinite;
+}
+
+@keyframes maya-hud-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(50, 215, 175, 0.55);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(50, 215, 175, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(50, 215, 175, 0);
+  }
+}
+
+.maya-caret {
+  display: inline-block;
+  margin-left: 1px;
+  animation: maya-caret-blink 0.85s step-end infinite;
+}
+
+@keyframes maya-caret-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+.maya-chart-draw polyline {
+  stroke-dasharray: 800;
+  animation: maya-chart-draw 0.9s ease-out 0.15s both;
+}
+
+.maya-chart-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: maya-chart-pulse 1.4s ease-out infinite;
+}
+
+.maya-typing span {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin: 0 2px;
+  border-radius: 999px;
+  background: currentColor;
+  animation: maya-typing 1.1s ease-in-out infinite;
+}
+
+.maya-typing span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.maya-typing span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes maya-mic-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 8px transparent;
+  }
+}
+
+.maya-mic-live {
+  animation: maya-mic-pulse 1.2s ease-out infinite;
+}
+
+@keyframes maya-noise-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 40%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 10px transparent;
+  }
+}
+
+.maya-noise-pulse {
+  animation: maya-noise-pulse 1.6s ease-out infinite;
+}
+
+.maya-noise-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--line);
+  outline: none;
+}
+
+.maya-noise-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--accent);
+  border: 2px solid var(--card);
+  cursor: pointer;
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.maya-noise-range::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--accent);
+  border: 2px solid var(--card);
+  cursor: pointer;
+}
+
+/* —— Скетч / прорисовка —— */
+@keyframes maya-draw-stroke {
+  from {
+    stroke-dashoffset: 1;
+    opacity: 0.2;
+  }
+  to {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+
+@keyframes maya-float-soft {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1deg);
+  }
+  50% {
+    transform: translateY(-7px) rotate(1.5deg);
+  }
+}
+
+@keyframes maya-drift {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate(4px, -6px) rotate(-2deg);
+  }
+}
+
+@keyframes maya-twinkle {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.08);
+  }
+}
+
+.maya-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: maya-draw-stroke 1.4s ease-out both;
+}
+
+.maya-draw-delay {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: maya-draw-stroke 1.6s ease-out 0.2s both;
+}
+
+.maya-float {
+  animation: maya-float-soft 5.5s ease-in-out infinite;
+}
+
+.maya-drift {
+  animation: maya-drift 7s ease-in-out infinite;
+}
+
+.maya-drift-delay {
+  animation: maya-drift 8.5s ease-in-out 1.2s infinite;
+}
+
+.maya-twinkle {
+  animation: maya-twinkle 2.8s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.maya-twinkle-delay {
+  animation: maya-twinkle 3.4s ease-in-out 0.6s infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.maya-ink-splatter {
+  background: radial-gradient(
+    circle at 40% 40%,
+    color-mix(in srgb, var(--accent) 22%, transparent),
+    transparent 68%
+  );
+  filter: blur(2px);
+}
+
+.maya-sketch-frame {
+  position: relative;
+  isolation: isolate;
+}
+
+.maya-sketch-frame::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent),
+    inset 0 0 40px color-mix(in srgb, var(--accent) 6%, transparent);
+  opacity: 0.9;
+}
+
+.maya-chat-paper {
+  background:
+    linear-gradient(
+      165deg,
+      color-mix(in srgb, var(--card) 92%, var(--accent-soft)) 0%,
+      var(--card) 45%,
+      color-mix(in srgb, var(--card) 94%, #ffe8ef) 100%
+    );
+}
+
+[data-theme="dark"] .maya-chat-paper {
+  background: linear-gradient(
+    165deg,
+    color-mix(in srgb, var(--card) 90%, var(--accent-soft)) 0%,
+    var(--card) 100%
+  );
+}
+
+a,
+button,
+[role="button"] {
+  transition:
+    transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease,
+    opacity 0.2s ease,
+    filter 0.2s ease;
+}
+
+button:not(:disabled):active,
+a:active,
+[role="button"]:active {
+  transform: scale(0.97);
+}
+
+button:not(:disabled):hover,
+[role="button"]:hover {
+  filter: brightness(1.02);
+}
+
+input,
+textarea,
+select {
+  color-scheme: var(--scheme);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.25s ease,
+    background-color 0.2s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
