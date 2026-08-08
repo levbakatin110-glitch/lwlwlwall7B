@@ -23,7 +23,6 @@ export function emptyJournals(): Record<string, JournalEntry[]> {
 export function emptyChildProfile(partial?: Partial<ChildProfile>): ChildProfile {
   const id = partial?.id || uid();
   return {
-    id,
     name: "",
     namePending: false,
     photoData: undefined,
