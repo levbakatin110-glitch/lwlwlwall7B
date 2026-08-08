@@ -42,7 +42,9 @@ class NoiseEngine {
   subscribe(fn: Listener) {
     this.listeners.add(fn);
     fn(this.snapshot());
-    return () => this.listeners.delete(fn);
+    return () => {
+      this.listeners.delete(fn);
+    };
   }
 
   snapshot(): EngineState {
