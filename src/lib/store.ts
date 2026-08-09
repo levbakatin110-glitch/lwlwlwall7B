@@ -79,12 +79,17 @@ type AppState = {
   subscription: SubscriptionState;
   /** Счётчик бесплатных ИИ-сообщений за день */
   aiChatUsage: AiChatUsage;
+  /** Почта аккаунта (после подтверждения кодом) */
+  accountEmail: string | null;
+  emailVerified: boolean;
 
   setProfile: (profile: ChildProfile) => void;
   setPendingChatPrompt: (prompt: string | null) => void;
   dismissDiaryHint: (id: string) => void;
   setTheme: (theme: "dark" | "blush") => void;
   setDietPlan: (plan: DietPlan | null) => void;
+  setAccountEmail: (email: string) => void;
+  clearAccountEmail: () => void;
   activateSubscription: (planId: PaidPlanId) => void;
   clearSubscription: () => void;
   /** Списать 1 бесплатный запрос. false = лимит исчерпан */
@@ -218,6 +223,8 @@ export const useAppStore = create<AppState>()(
       opsErrors: [],
       subscription: emptySubscription(),
       aiChatUsage: emptyAiUsage(),
+      accountEmail: null,
+      emailVerified: false,
 
       setPendingChatPrompt: (prompt) => set({ pendingChatPrompt: prompt }),
       dismissDiaryHint: (id) => {
@@ -227,6 +234,13 @@ export const useAppStore = create<AppState>()(
       },
       setTheme: (theme) => set({ theme }),
       setDietPlan: (plan) => set({ dietPlan: plan }),
+      setAccountEmail: (email) =>
+        set({
+          accountEmail: email.trim().toLowerCase(),
+          emailVerified: true,
+        }),
+      clearAccountEmail: () =>
+        set({ accountEmail: null, emailVerified: false }),
       activateSubscription: (planId) =>
         set({ subscription: activatePaidPlan(planId) }),
       clearSubscription: () =>
@@ -610,12 +624,16 @@ export const useAppStore = create<AppState>()(
         opsErrors: state.opsErrors,
         subscription: state.subscription,
         aiChatUsage: state.aiChatUsage,
+        accountEmail: state.accountEmail,
+        emailVerified: state.emailVerified,
       }),
       onRehydrateStorage: () => (state) => {
         if (!state) return;
         if (!state.opsErrors) state.opsErrors = [];
         if (!state.subscription) state.subscription = emptySubscription();
         if (!state.aiChatUsage) state.aiChatUsage = emptyAiUsage();
+        if (state.accountEmail === undefined) state.accountEmail = null;
+        if (state.emailVerified == null) state.emailVerified = false;
         // просроченная подписка → free
         if (
           state.subscription.planId !== "free" &&

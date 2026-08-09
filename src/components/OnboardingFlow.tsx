@@ -18,7 +18,8 @@ import {
   SketchSprig,
 } from "@/components/illustrations/MayaSketch";
 
-const STEPS = 4;
+const STEPS_FIRST = 5;
+const STEPS_ADD = 4;
 
 type Draft = {
   name: string;
@@ -110,16 +111,27 @@ export function OnboardingFlow({
   const addJournalEntry = useAppStore((s) => s.addJournalEntry);
   const completeOnboarding = useAppStore((s) => s.completeOnboarding);
   const childrenCount = useAppStore((s) => s.children.length);
+  const setAccountEmail = useAppStore((s) => s.setAccountEmail);
+  const accountEmail = useAppStore((s) => s.accountEmail);
+  const emailVerified = useAppStore((s) => s.emailVerified);
 
+  const lastStep = mode === "first" ? STEPS_FIRST - 1 : STEPS_ADD - 1;
   const [step, setStep] = useState(mode === "add" ? 1 : 0);
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [savedInSession, setSavedInSession] = useState(0);
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [codeSent, setCodeSent] = useState(false);
+  const [emailBusy, setEmailBusy] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [emailOk, setEmailOk] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const isFirstSave = useRef(mode === "first");
 
   const progress = useMemo(() => step + 1, [step]);
+  const totalProgress = mode === "first" ? STEPS_FIRST : STEPS_ADD;
 
   function patch(p: Partial<Draft>) {
     setDraft((d) => ({ ...d, ...p }));
@@ -214,11 +226,16 @@ export function OnboardingFlow({
 
   function goNext() {
     if (step === 1 && !validateStep2()) return;
-    setStep((s) => Math.min(STEPS - 1, s + 1));
+    if (mode === "first" && step === 3 && !emailOk && !emailVerified) {
+      setEmailError("Сначала подтвердите почту кодом из письма");
+      return;
+    }
+    setStep((s) => Math.min(lastStep, s + 1));
   }
 
   function goBack() {
     setErrors({});
+    setEmailError(null);
     if (mode === "add" && step <= 1) {
       onClose?.();
       return;
@@ -226,7 +243,58 @@ export function OnboardingFlow({
     setStep((s) => Math.max(0, s - 1));
   }
 
+  async function sendCode() {
+    setEmailError(null);
+    const trimmed = email.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      setEmailError("Укажите нормальную почту");
+      return;
+    }
+    setEmailBusy(true);
+    try {
+      const res = await fetch("/api/auth/send-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: trimmed }),
+      });
+      const data = (await res.json()) as { error?: string };
+      if (!res.ok) throw new Error(data.error || "Не удалось отправить код");
+      setCodeSent(true);
+    } catch (e) {
+      setEmailError(e instanceof Error ? e.message : "Ошибка отправки");
+    } finally {
+      setEmailBusy(false);
+    }
+  }
+
+  async function verifyCode() {
+    setEmailError(null);
+    const trimmed = email.trim().toLowerCase();
+    setEmailBusy(true);
+    try {
+      const res = await fetch("/api/auth/verify-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: trimmed, code }),
+      });
+      const data = (await res.json()) as { error?: string; email?: string };
+      if (!res.ok) throw new Error(data.error || "Неверный код");
+      setAccountEmail(data.email || trimmed);
+      setEmailOk(true);
+      setStep(4);
+    } catch (e) {
+      setEmailError(e instanceof Error ? e.message : "Ошибка проверки");
+    } finally {
+      setEmailBusy(false);
+    }
+  }
+
   async function finish(andAddAnother: boolean) {
+    if (mode === "first" && !emailOk && !emailVerified) {
+      setEmailError("Нужна подтверждённая почта");
+      setStep(3);
+      return;
+    }
     setSaving(true);
     try {
       persistDraft();
@@ -258,7 +326,7 @@ export function OnboardingFlow({
 
       <div className="relative mx-auto flex h-full w-full max-w-lg flex-col px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-[max(0.75rem,env(safe-area-inset-top))]">
         <div className="mb-5 flex gap-1.5">
-          {Array.from({ length: STEPS }).map((_, i) => (
+          {Array.from({ length: totalProgress }).map((_, i) => (
             <div
               key={i}
               className={`h-1 flex-1 rounded-full transition-colors ${
@@ -279,7 +347,7 @@ export function OnboardingFlow({
             </button>
           )}
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">
-            шаг {progress} из {STEPS}
+            шаг {progress} из {totalProgress}
           </p>
         </div>
 
@@ -500,7 +568,101 @@ export function OnboardingFlow({
             </div>
           )}
 
-          {step === 3 && (
+          {mode === "first" && step === 3 && (
+            <div className="maya-rise flex h-full flex-col justify-center py-6">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-accent">
+                Регистрация
+              </p>
+              <h1 className="font-display mt-3 text-3xl font-semibold tracking-tight">
+                Ваша почта
+              </h1>
+              <p className="mt-3 text-sm leading-relaxed text-muted">
+                Пришлём код подтверждения — так сохранится аккаунт и подписка.
+              </p>
+
+              {(emailOk || emailVerified) && (
+                <p className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm">
+                  Почта подтверждена
+                  {accountEmail ? `: ${accountEmail}` : ""}
+                </p>
+              )}
+
+              {!(emailOk || emailVerified) && (
+                <div className="mt-6 space-y-3">
+                  <label className="block">
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+                      Email
+                    </span>
+                    <input
+                      type="email"
+                      autoComplete="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@mail.ru"
+                      className="mt-1 w-full rounded-xl border border-line bg-card/70 px-3 py-3 text-sm outline-none focus:border-accent/50"
+                    />
+                  </label>
+
+                  {codeSent && (
+                    <label className="block">
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+                        Код из письма
+                      </span>
+                      <input
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        value={code}
+                        onChange={(e) =>
+                          setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+                        }
+                        placeholder="6 цифр"
+                        className="mt-1 w-full rounded-xl border border-line bg-card/70 px-3 py-3 text-sm tracking-[0.2em] outline-none focus:border-accent/50"
+                      />
+                    </label>
+                  )}
+
+                  {emailError && (
+                    <p className="text-sm text-[color-mix(in_oklab,var(--blush)_80%,#900)]">
+                      {emailError}
+                    </p>
+                  )}
+
+                  {!codeSent ? (
+                    <button
+                      type="button"
+                      disabled={emailBusy}
+                      onClick={() => void sendCode()}
+                      className="w-full rounded-2xl bg-accent py-3.5 text-sm font-semibold text-[#ffffff] disabled:opacity-50"
+                    >
+                      {emailBusy ? "Отправляю…" : "Получить код"}
+                    </button>
+                  ) : (
+                    <div className="space-y-2">
+                      <button
+                        type="button"
+                        disabled={emailBusy || code.length < 6}
+                        onClick={() => void verifyCode()}
+                        className="w-full rounded-2xl bg-accent py-3.5 text-sm font-semibold text-[#ffffff] disabled:opacity-50"
+                      >
+                        {emailBusy ? "Проверяю…" : "Подтвердить"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={emailBusy}
+                        onClick={() => void sendCode()}
+                        className="w-full text-sm text-muted underline"
+                      >
+                        Отправить код ещё раз
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {((mode === "first" && step === 4) ||
+            (mode === "add" && step === 3)) && (
             <div className="maya-rise flex h-full flex-col justify-center py-6">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-accent">
                 Готово
@@ -512,6 +674,9 @@ export function OnboardingFlow({
                 Можно сразу добавить ещё одного ребёнка — у каждого будут свои
                 дневники, гардероб и чат.
               </p>
+              {accountEmail && (
+                <p className="mt-2 text-xs text-muted">Аккаунт: {accountEmail}</p>
+              )}
               <p className="mt-4 text-xs text-muted">
                 Сейчас в Мае детей: {childrenCount}
                 {savedInSession > 0
@@ -523,7 +688,8 @@ export function OnboardingFlow({
         </div>
 
         <div className="shrink-0 space-y-2 pt-2">
-          {step < 3 ? (
+          {step < lastStep &&
+          !(mode === "first" && step === 3 && !(emailOk || emailVerified)) ? (
             <button
               type="button"
               onClick={goNext}
@@ -531,7 +697,21 @@ export function OnboardingFlow({
             >
               {step === 0 ? "Начать" : "Далее"}
             </button>
-          ) : (
+          ) : null}
+
+          {mode === "first" &&
+            step === 3 &&
+            (emailOk || emailVerified) && (
+              <button
+                type="button"
+                onClick={goNext}
+                className="w-full rounded-2xl bg-accent py-3.5 text-sm font-semibold text-[#ffffff] hover:bg-accent-hot"
+              >
+                Далее
+              </button>
+            )}
+
+          {step === lastStep && (
             <>
               <button
                 type="button"
