@@ -3,9 +3,11 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { ChatChart } from "@/components/ChatChart";
 import { ChatNewsFeed } from "@/components/ChatNewsFeed";
+import { HomeWeatherCard } from "@/components/HomeWeatherCard";
 import { JournalEntryChip } from "@/components/JournalEntryChip";
 import { LogPreviewSheet, type LogPreviewData } from "@/components/LogPreviewSheet";
 import { CHAT_PROMPTS } from "@/components/TipsCarousel";
+import { VpnHintBanner } from "@/components/VpnHintBanner";
 import { WeatherWidget } from "@/components/WeatherWidget";
 import {
   SketchBackdrop,
@@ -32,7 +34,7 @@ import { useRouter } from "next/navigation";
 
 function isOutfitIntent(text: string) {
   const t = text.toLowerCase();
-  return /одеть|надеть|прогул|гулять|погод|улиц|что.*нос|гардероб|комбинезон|куртк/.test(
+  return /одеть|надеть|прогул|гулять|погод|улиц|что.*нос|гардероб|комбинезон|куртк|холодно|жарко|дожд|снег|температур/.test(
     t,
   );
 }
@@ -93,6 +95,8 @@ export function ChatView() {
     latitude: number;
     longitude: number;
   } | null>(null);
+  const [geoPending, setGeoPending] = useState(true);
+  const [vpnSuspect, setVpnSuspect] = useState(false);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -103,19 +107,31 @@ export function ChatView() {
   const voiceBaseRef = useRef("");
 
   function requestPhoneLocation() {
-    if (!navigator.geolocation) return;
-    // Сбрасываем старые координаты (могли остаться с VPN)
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setGeoPending(false);
+      return;
+    }
+    // На http:// (не localhost) Chrome часто запрещает GPS
+    if (typeof window !== "undefined" && !window.isSecureContext) {
+      setGeoPending(false);
+      setCoords(null);
+      return;
+    }
     setCoords(null);
+    setGeoPending(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setCoords({
           latitude: pos.coords.latitude,
           longitude: pos.coords.longitude,
         });
+        setGeoPending(false);
       },
-      () => {},
+      () => {
+        setGeoPending(false);
+        setCoords(null);
+      },
       {
-        // maximumAge: 0 — не брать кэш браузера (иначе «Нидерланды» с VPN)
         enableHighAccuracy: true,
         maximumAge: 0,
         timeout: 20000,
@@ -639,6 +655,21 @@ export function ChatView() {
             ref={listRef}
             className="relative flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4"
           >
+            <div className="shrink-0 space-y-2">
+              <HomeWeatherCard
+                coords={coords}
+                geoPending={geoPending}
+                compact={!empty}
+                onRequestLocation={requestPhoneLocation}
+                onVpnSuspect={setVpnSuspect}
+              />
+              <VpnHintBanner
+                coords={coords}
+                city={profile.city}
+                forceShow={vpnSuspect}
+              />
+            </div>
+
             {empty && (
               <div className="relative m-auto max-w-md py-6 text-center maya-rise">
                 <SketchBackdrop />
