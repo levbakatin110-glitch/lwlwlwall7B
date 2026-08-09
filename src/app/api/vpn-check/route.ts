@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { distanceKm, LOCATION_MISMATCH_KM } from "@/lib/geo";
-import { clientIpFromHeaders, lookupIpGeo } from "@/lib/ip-geo";
+import { clientIpFromRequest, lookupIpGeo } from "@/lib/ip-geo";
 
 export const runtime = "nodejs";
 
@@ -11,7 +11,7 @@ export const runtime = "nodejs";
 export async function GET(req: NextRequest) {
   const lat = Number(req.nextUrl.searchParams.get("lat"));
   const lon = Number(req.nextUrl.searchParams.get("lon"));
-  const ip = clientIpFromHeaders(req.headers);
+  const ip = clientIpFromRequest(req);
   const ipGeo = await lookupIpGeo(ip);
 
   let vpnSuspect = false;

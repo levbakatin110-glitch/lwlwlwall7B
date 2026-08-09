@@ -684,7 +684,14 @@ export const useAppStore = create<AppState>()(
           state.activeChildId = child.id;
           state.profile = { ...child, id: child.id };
           Object.assign(state, spaceSlice(space));
-          if (state.onboardingDone == null) state.onboardingDone = true;
+          if (state.onboardingDone == null) {
+            // пустой профиль → показать анкету; иначе не трогаем старых
+            const empty =
+              !state.profile?.name?.trim() &&
+              !state.profile?.birthDate &&
+              !(state.messages?.length > 0);
+            state.onboardingDone = !empty;
+          }
         }
 
         // если имя уже есть — убрать «ещё не выбрали»

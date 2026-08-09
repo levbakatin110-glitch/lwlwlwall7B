@@ -1,5 +1,7 @@
 /** Геолокация по IP (запасной вариант, когда GPS в браузере недоступен). */
 
+import type { NextRequest } from "next/server";
+
 export type IpGeo = {
   latitude: number;
   longitude: number;
@@ -14,6 +16,16 @@ export function clientIpFromHeaders(headers: Headers): string {
   if (xf) return xf.split(",")[0]!.trim();
   const real = headers.get("x-real-ip");
   if (real) return real.trim();
+  const cf = headers.get("cf-connecting-ip");
+  if (cf) return cf.trim();
+  return "";
+}
+
+export function clientIpFromRequest(req: Request | NextRequest): string {
+  const fromHeaders = clientIpFromHeaders(req.headers);
+  if (fromHeaders) return fromHeaders;
+  const maybeIp = (req as NextRequest & { ip?: string | null }).ip;
+  if (typeof maybeIp === "string" && maybeIp && maybeIp !== "::1") return maybeIp;
   return "";
 }
 
@@ -28,9 +40,11 @@ export async function lookupIpGeo(ip: string): Promise<IpGeo | null> {
     return null;
   }
 
+  const clean = ip.startsWith("::ffff:") ? ip.slice(7) : ip;
+
   try {
     const res = await fetch(
-      `http://ip-api.com/json/${encodeURIComponent(ip)}?fields=status,lat,lon,city,country,proxy,hosting`,
+      `http://ip-api.com/json/${encodeURIComponent(clean)}?fields=status,lat,lon,city,country,proxy,hosting`,
       { cache: "no-store" },
     );
     if (!res.ok) return null;

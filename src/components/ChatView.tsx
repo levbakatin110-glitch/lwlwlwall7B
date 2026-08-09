@@ -109,12 +109,14 @@ export function ChatView() {
   function requestPhoneLocation() {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
       setGeoPending(false);
+      void fallbackIpLocation();
       return;
     }
     // На http:// (не localhost) Chrome часто запрещает GPS
     if (typeof window !== "undefined" && !window.isSecureContext) {
       setGeoPending(false);
       setCoords(null);
+      void fallbackIpLocation();
       return;
     }
     setCoords(null);
@@ -130,6 +132,7 @@ export function ChatView() {
       () => {
         setGeoPending(false);
         setCoords(null);
+        void fallbackIpLocation();
       },
       {
         enableHighAccuracy: true,
@@ -137,6 +140,69 @@ export function ChatView() {
         timeout: 20000,
       },
     );
+  }
+
+  async function fallbackIpLocation() {
+    try {
+      // 1) наш сервер по IP клиента
+      const res = await fetch("/api/geo-ip", { cache: "no-store" });
+      if (res.ok) {
+        const data = (await res.json()) as {
+          ok?: boolean;
+          latitude?: number;
+          longitude?: number;
+          city?: string | null;
+        };
+        if (
+          data.ok &&
+          Number.isFinite(data.latitude) &&
+          Number.isFinite(data.longitude)
+        ) {
+          setCoords({
+            latitude: data.latitude!,
+            longitude: data.longitude!,
+          });
+          if (data.city?.trim()) {
+            const current = useAppStore.getState().profile;
+            if (!current.city?.trim()) {
+              useAppStore
+                .getState()
+                .setProfile({ ...current, city: data.city.trim() });
+            }
+          }
+          return;
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+
+    try {
+      // 2) публичный API прямо из браузера (видит IP телефона)
+      const res = await fetch("https://get.geojs.io/v1/ip/geo.json", {
+        cache: "no-store",
+      });
+      if (!res.ok) return;
+      const data = (await res.json()) as {
+        latitude?: string;
+        longitude?: string;
+        city?: string;
+        region?: string;
+      };
+      const latitude = Number(data.latitude);
+      const longitude = Number(data.longitude);
+      if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
+      setCoords({ latitude, longitude });
+      const place = (data.city || data.region || "").trim();
+      if (place) {
+        const current = useAppStore.getState().profile;
+        if (!current.city?.trim()) {
+          useAppStore.getState().setProfile({ ...current, city: place });
+        }
+      }
+    } catch {
+      /* ignore */
+    }
   }
 
   useEffect(() => {

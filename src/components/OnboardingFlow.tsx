@@ -17,6 +17,7 @@ import {
   SketchMaya,
   SketchSprig,
 } from "@/components/illustrations/MayaSketch";
+import { EmailGate } from "@/components/EmailGate";
 
 const STEPS_FIRST = 5;
 const STEPS_ADD = 4;
@@ -515,7 +516,8 @@ export function OnboardingFlow({
                   Ещё чуть-чуть
                 </h1>
                 <p className="mt-1.5 text-sm text-muted">
-                  Дата рождения — для норм роста. Город — для погоды и «что надеть».
+                  Дата рождения — для норм роста. Город определим сами по
+                  местоположению — вручную не нужно.
                 </p>
               </div>
 
@@ -558,13 +560,6 @@ export function OnboardingFlow({
                   ))}
                 </div>
               </div>
-
-              <LineField
-                label="Город"
-                value={draft.city}
-                onChange={(city) => patch({ city })}
-                placeholder="Москва"
-              />
             </div>
           )}
 
@@ -740,6 +735,7 @@ export function OnboardingFlow({
 /** Ждёт persist и показывает онбординг новым пользователям */
 export function OnboardingGate({ children }: { children: React.ReactNode }) {
   const onboardingDone = useAppStore((s) => s.onboardingDone);
+  const emailVerified = useAppStore((s) => s.emailVerified);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -758,6 +754,11 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
 
   if (!onboardingDone) {
     return <OnboardingFlow mode="first" />;
+  }
+
+  // Анкету прошли раньше без почты — всё равно требуем регистрацию
+  if (!emailVerified) {
+    return <EmailGate>{children}</EmailGate>;
   }
 
   return <>{children}</>;

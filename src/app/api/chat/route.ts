@@ -1,5 +1,5 @@
 import { buildSystemPrompt, type ClientChatPayload } from "@/lib/ai-context";
-import { clientIpFromHeaders, lookupIpGeo } from "@/lib/ip-geo";
+import { clientIpFromRequest, lookupIpGeo } from "@/lib/ip-geo";
 import { chatModel, createOpenAI } from "@/lib/openai";
 import { pushServerOpsError } from "@/lib/ops-log";
 import { encodeWeatherHeader, resolveWeather } from "@/lib/weather";
@@ -39,10 +39,16 @@ export async function POST(req: Request) {
       coords &&
       Number.isFinite(coords.latitude) &&
       Number.isFinite(coords.longitude);
-    if (!hasCoords && !body.profile?.city?.trim()) {
-      const ipGeo = await lookupIpGeo(clientIpFromHeaders(req.headers));
+    if (!hasCoords) {
+      const ipGeo = await lookupIpGeo(clientIpFromRequest(req));
       if (ipGeo) {
         coords = { latitude: ipGeo.latitude, longitude: ipGeo.longitude };
+        if (!body.profile?.city?.trim() && ipGeo.city && body.profile) {
+          body = {
+            ...body,
+            profile: { ...body.profile, city: ipGeo.city },
+          };
+        }
       }
     }
 

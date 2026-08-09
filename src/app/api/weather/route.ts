@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { clientIpFromHeaders, lookupIpGeo } from "@/lib/ip-geo";
+import { clientIpFromRequest, lookupIpGeo } from "@/lib/ip-geo";
 import { resolveWeather } from "@/lib/weather";
 
 export const runtime = "nodejs";
@@ -13,9 +13,8 @@ export async function GET(req: NextRequest) {
       ? { latitude: lat, longitude: lon }
       : null;
 
-  // Нет GPS и нет города — пробуем город/координаты по IP (на http:// GPS часто запрещён)
-  if (!coords && !city) {
-    const ipGeo = await lookupIpGeo(clientIpFromHeaders(req.headers));
+  if (!coords) {
+    const ipGeo = await lookupIpGeo(clientIpFromRequest(req));
     if (ipGeo) {
       coords = { latitude: ipGeo.latitude, longitude: ipGeo.longitude };
     }
@@ -45,9 +44,7 @@ export async function GET(req: NextRequest) {
     },
     {
       headers: {
-        "Cache-Control": coords && (Number.isFinite(lat) || !city)
-          ? "no-store"
-          : "public, max-age=120",
+        "Cache-Control": "no-store",
       },
     },
   );
