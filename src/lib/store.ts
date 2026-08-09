@@ -57,6 +57,8 @@ type AppState = {
   theme: "dark" | "blush";
   /** одноразовая миграция на розовый дефолт */
   themeDefaultV2?: boolean;
+  /** одноразовая: дефолтные разделы больше не навязываются при каждой загрузке */
+  modulesDefaultsSeededV1?: boolean;
   /** План диеты мамы (общий) */
   dietPlan: DietPlan | null;
   /** Лог ошибок чата / API для админки */
@@ -561,6 +563,7 @@ export const useAppStore = create<AppState>()(
         demoWardrobeSeeded: state.demoWardrobeSeeded,
         theme: state.theme,
         themeDefaultV2: state.themeDefaultV2,
+        modulesDefaultsSeededV1: state.modulesDefaultsSeededV1,
         dietPlan: state.dietPlan,
         opsErrors: state.opsErrors,
       }),
@@ -641,17 +644,27 @@ export const useAppStore = create<AppState>()(
         const next = [...(state.enabledModules ?? [])].filter(
           (id) => (id as string) !== "outfit",
         );
-        for (const mid of defaults) {
-          if (!next.includes(mid)) next.push(mid);
-        }
-        // диета — подключаем всем существующим пространствам
-        for (const sid of Object.keys(state.childSpaces ?? {})) {
-          const space = state.childSpaces[sid];
-          if (!space) continue;
-          if (!space.enabledModules.includes("diet")) {
-            space.enabledModules = [...space.enabledModules, "diet"];
+        // Один раз: досеять дефолты / диету. Дальше пользователь может отключать —
+        // при следующей загрузке разделы НЕ возвращаются сами.
+        let seededDefaults = false;
+        if (!state.modulesDefaultsSeededV1) {
+          for (const mid of defaults) {
+            if (!next.includes(mid)) next.push(mid);
           }
-          if (!space.journals.diet) space.journals.diet = [];
+          for (const sid of Object.keys(state.childSpaces ?? {})) {
+            const space = state.childSpaces[sid];
+            if (!space) continue;
+            let mods = [...space.enabledModules].filter(
+              (id) => (id as string) !== "outfit",
+            );
+            for (const mid of defaults) {
+              if (!mods.includes(mid)) mods.push(mid);
+            }
+            space.enabledModules = mods;
+            if (!space.journals.diet) space.journals.diet = [];
+          }
+          state.modulesDefaultsSeededV1 = true;
+          seededDefaults = true;
         }
         if (!state.journals?.diet) {
           state.journals = { ...(state.journals ?? {}), diet: [] };
@@ -730,6 +743,7 @@ export const useAppStore = create<AppState>()(
           }
         }
         if (
+          seededDefaults ||
           next.length !== (state.enabledModules?.length ?? 0) ||
           (state.enabledModules as string[] | undefined)?.includes("outfit")
         ) {

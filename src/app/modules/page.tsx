@@ -253,7 +253,11 @@ export default function ModulesPage() {
           return (
             <li
               key={mod.id}
-              className="maya-item flex flex-col gap-3 rounded-2xl border border-line bg-card/70 p-4 sm:flex-row sm:items-center sm:justify-between"
+              className={`maya-item flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between ${
+                on
+                  ? "border-line bg-card/70"
+                  : "border-line/70 bg-card/40 opacity-70"
+              }`}
               style={{ animationDelay: `${i * 45}ms` }}
             >
               <div className="flex gap-3">
@@ -261,13 +265,17 @@ export default function ModulesPage() {
                 <div>
                   <p className="font-medium">{mod.title}</p>
                   <p className="mt-1 text-sm text-muted">{mod.description}</p>
-                  {on && (
+                  {on ? (
                     <Link
                       href={`/m/${mod.id}`}
                       className="mt-2 inline-block text-sm text-accent underline"
                     >
                       Открыть журнал
                     </Link>
+                  ) : (
+                    <p className="mt-2 text-xs text-muted">
+                      Выключен — в меню слева не показывается
+                    </p>
                   )}
                 </div>
               </div>
