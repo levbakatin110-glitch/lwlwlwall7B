@@ -14,9 +14,18 @@ export default function ProfilePage() {
   const setProfile = useAppStore((s) => s.setProfile);
   const switchChild = useAppStore((s) => s.switchChild);
   const removeChild = useAppStore((s) => s.removeChild);
+  const accountEmail = useAppStore((s) => s.accountEmail);
+  const emailVerified = useAppStore((s) => s.emailVerified);
+  const setAccountEmail = useAppStore((s) => s.setAccountEmail);
   const [form, setForm] = useState<ChildProfile>(profile);
   const [saved, setSaved] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [codeSent, setCodeSent] = useState(false);
+  const [emailBusy, setEmailBusy] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [emailMsg, setEmailMsg] = useState<string | null>(null);
 
   useEffect(() => {
     setForm(
@@ -25,6 +34,58 @@ export default function ProfilePage() {
         : profile,
     );
   }, [profile]);
+
+  async function sendCode() {
+    setEmailError(null);
+    setEmailMsg(null);
+    const trimmed = email.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      setEmailError("Укажите нормальную почту");
+      return;
+    }
+    setEmailBusy(true);
+    try {
+      const res = await fetch("/api/auth/send-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: trimmed }),
+      });
+      const data = (await res.json()) as { error?: string };
+      if (!res.ok) throw new Error(data.error || "Не удалось отправить код");
+      setCodeSent(true);
+      setEmailMsg("Код отправлен — проверьте почту");
+    } catch (e) {
+      setEmailError(e instanceof Error ? e.message : "Ошибка");
+    } finally {
+      setEmailBusy(false);
+    }
+  }
+
+  async function verifyCode() {
+    setEmailError(null);
+    setEmailMsg(null);
+    setEmailBusy(true);
+    try {
+      const res = await fetch("/api/auth/verify-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          code,
+        }),
+      });
+      const data = (await res.json()) as { error?: string; email?: string };
+      if (!res.ok) throw new Error(data.error || "Неверный код");
+      setAccountEmail(data.email || email.trim().toLowerCase());
+      setEmailMsg("Почта привязана");
+      setCodeSent(false);
+      setCode("");
+    } catch (e) {
+      setEmailError(e instanceof Error ? e.message : "Ошибка");
+    } finally {
+      setEmailBusy(false);
+    }
+  }
 
   function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -62,6 +123,78 @@ export default function ProfilePage() {
         Можно вести нескольких детей. У каждого — свои дневники, гардероб и чат с
         Маей.
       </p>
+
+      <div className="mt-6 rounded-2xl border border-line bg-card/70 p-4">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+          Аккаунт · почта
+        </p>
+        {emailVerified && accountEmail ? (
+          <p className="mt-2 text-sm text-foreground">
+            Привязана: <span className="font-medium">{accountEmail}</span>
+          </p>
+        ) : (
+          <div className="mt-3 space-y-3">
+            <p className="text-sm text-muted">
+              Привяжите почту — для входа и подписки.
+            </p>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@mail.ru"
+              className="w-full rounded-xl border border-line bg-background px-3 py-2.5 text-sm"
+            />
+            {codeSent && (
+              <input
+                inputMode="numeric"
+                value={code}
+                onChange={(e) =>
+                  setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+                }
+                placeholder="Код из письма"
+                className="w-full rounded-xl border border-line bg-background px-3 py-2.5 text-sm tracking-[0.15em]"
+              />
+            )}
+            {emailError && (
+              <p className="text-sm text-red-600 dark:text-red-300">{emailError}</p>
+            )}
+            {emailMsg && (
+              <p className="text-sm text-emerald-700 dark:text-emerald-300">
+                {emailMsg}
+              </p>
+            )}
+            {!codeSent ? (
+              <button
+                type="button"
+                disabled={emailBusy}
+                onClick={() => void sendCode()}
+                className="rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+              >
+                {emailBusy ? "Отправляю…" : "Получить код"}
+              </button>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  disabled={emailBusy || code.length < 6}
+                  onClick={() => void verifyCode()}
+                  className="rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+                >
+                  {emailBusy ? "Проверяю…" : "Подтвердить"}
+                </button>
+                <button
+                  type="button"
+                  disabled={emailBusy}
+                  onClick={() => void sendCode()}
+                  className="rounded-xl border border-line px-4 py-2.5 text-sm"
+                >
+                  Ещё раз
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       <div className="mt-5 flex gap-2 overflow-x-auto pb-1">
         {children.map((c) => {
