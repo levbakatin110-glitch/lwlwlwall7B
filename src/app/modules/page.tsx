@@ -5,6 +5,7 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { IconBadge, MayaIcon } from "@/components/icons/MayaIcon";
 import { OPTIONAL_MODULES, MODULE_BY_ID } from "@/lib/modules";
+import { isSubscriptionActive } from "@/lib/subscription";
 import { useAppStore } from "@/lib/store";
 import type { ModuleBlueprint, ModuleId } from "@/lib/types";
 
@@ -26,6 +27,11 @@ export default function ModulesPage() {
   async function design(e: FormEvent) {
     e.preventDefault();
     if (!prompt.trim()) return;
+    if (!isSubscriptionActive(useAppStore.getState().subscription)) {
+      setError("Создание своих дневников — в подписке.");
+      router.push("/pricing");
+      return;
+    }
     setLoading(true);
     setError(null);
     setBlueprint(null);
@@ -75,7 +81,13 @@ export default function ModulesPage() {
         {!showForm ? (
           <button
             type="button"
-            onClick={() => setShowForm(true)}
+            onClick={() => {
+              if (!isSubscriptionActive(useAppStore.getState().subscription)) {
+                router.push("/pricing");
+                return;
+              }
+              setShowForm(true);
+            }}
             className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-accent/40 bg-accent-soft/40 px-4 py-4 text-sm font-medium text-accent hover:bg-accent-soft"
           >
             <MayaIcon name="spark" size={16} />

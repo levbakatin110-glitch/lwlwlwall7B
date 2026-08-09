@@ -18,6 +18,12 @@ import { inferDiaryOffer } from "@/lib/diary-offer";
 import { inferLogDraftsFromUserText, looksLikeDiaryFact, mergeDiaryDrafts } from "@/lib/log-fallback";
 import { MODULE_BY_ID } from "@/lib/modules";
 import { summarizeEntryFields } from "@/lib/module-schema";
+import {
+  canSendAiChat,
+  FREE_CHAT_LIMIT,
+  freeChatRemaining,
+  isSubscriptionActive,
+} from "@/lib/subscription";
 import { useAppStore } from "@/lib/store";
 import type { ModuleBlueprint, ModuleId, WeatherSnapshot } from "@/lib/types";
 import { decodeWeatherHeader } from "@/lib/weather";
@@ -67,6 +73,12 @@ export function ChatView() {
   const addJournalEntry = useAppStore((s) => s.addJournalEntry);
   const enableModule = useAppStore((s) => s.enableModule);
   const pushOpsError = useAppStore((s) => s.pushOpsError);
+  const subscription = useAppStore((s) => s.subscription);
+  const aiChatUsage = useAppStore((s) => s.aiChatUsage);
+  const consumeAiChatQuota = useAppStore((s) => s.consumeAiChatQuota);
+  const refundAiChatQuota = useAppStore((s) => s.refundAiChatQuota);
+  const premium = isSubscriptionActive(subscription);
+  const chatLeft = freeChatRemaining(subscription, aiChatUsage);
 
   const pendingChatPrompt = useAppStore((s) => s.pendingChatPrompt);
   const setPendingChatPrompt = useAppStore((s) => s.setPendingChatPrompt);
@@ -220,6 +232,21 @@ export function ChatView() {
   async function send() {
     const text = input.trim();
     if (!text || pending) return;
+
+    const gate = canSendAiChat(subscription, aiChatUsage);
+    if (!gate.ok) {
+      setError(
+        `На сегодня лимит бесплатных сообщений (${FREE_CHAT_LIMIT}). Завтра снова или оформите подписку.`,
+      );
+      return;
+    }
+    if (!consumeAiChatQuota()) {
+      setError(
+        `На сегодня лимит бесплатных сообщений (${FREE_CHAT_LIMIT}). Завтра снова или оформите подписку.`,
+      );
+      return;
+    }
+
     setInput("");
     setError(null);
 
@@ -440,6 +467,7 @@ export function ChatView() {
         });
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Неизвестная ошибка";
+        refundAiChatQuota();
         pushOpsError({
           source: "chat",
           message: msg,
@@ -474,6 +502,13 @@ export function ChatView() {
     prompt: string,
     titleHint?: string,
   ) {
+    if (!isSubscriptionActive(useAppStore.getState().subscription)) {
+      setError(
+        "Создание своих дневников — в подписке. Готовые разделы (сон, ГВ, смеси…) бесплатны.",
+      );
+      router.push("/pricing");
+      return;
+    }
     setBusyId(messageId);
     setError(null);
     try {
@@ -543,6 +578,11 @@ export function ChatView() {
     moduleId: string,
     instruction: string,
   ) {
+    if (!isSubscriptionActive(useAppStore.getState().subscription)) {
+      setError("Изменение дневников через ИИ — в подписке.");
+      router.push("/pricing");
+      return;
+    }
     const mod = useAppStore.getState().customModules.find((m) => m.id === moduleId);
     if (!mod) {
       setError("Раздел не найден");
@@ -841,6 +881,27 @@ export function ChatView() {
           {error && (
             <p className="mx-4 mb-2 shrink-0 rounded-xl border border-blush/40 bg-blush-soft px-3 py-2 text-sm">
               {error}
+              {!premium && chatLeft === 0 && (
+                <>
+                  {" "}
+                  <Link href="/pricing" className="font-semibold underline">
+                    Подписка
+                  </Link>
+                </>
+              )}
+            </p>
+          )}
+
+          {!premium && chatLeft != null && (
+            <p className="mx-4 mb-1.5 shrink-0 text-[11px] text-muted">
+              Бесплатно сегодня:{" "}
+              <span className="font-medium text-foreground">
+                {chatLeft} из {FREE_CHAT_LIMIT}
+              </span>
+              {" · "}
+              <Link href="/pricing" className="text-accent underline">
+                безлимит
+              </Link>
             </p>
           )}
 

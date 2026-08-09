@@ -22,6 +22,18 @@ import {
 } from "./ops-log";
 import { OPTIONAL_MODULES } from "./modules";
 import type { DietPlan } from "./diet-types";
+import {
+  activatePaidPlan,
+  emptyAiUsage,
+  emptySubscription,
+  FREE_CHAT_LIMIT,
+  isSubscriptionActive,
+  localToday,
+  normalizeAiUsage,
+  type AiChatUsage,
+  type PaidPlanId,
+  type SubscriptionState,
+} from "./subscription";
 import type {
   ChatMessage,
   ChildProfile,
@@ -63,12 +75,21 @@ type AppState = {
   dietPlan: DietPlan | null;
   /** Лог ошибок чата / API для админки */
   opsErrors: OpsErrorLog[];
+  /** Подписка (пока без платёжки — активация в приложении) */
+  subscription: SubscriptionState;
+  /** Счётчик бесплатных ИИ-сообщений за день */
+  aiChatUsage: AiChatUsage;
 
   setProfile: (profile: ChildProfile) => void;
   setPendingChatPrompt: (prompt: string | null) => void;
   dismissDiaryHint: (id: string) => void;
   setTheme: (theme: "dark" | "blush") => void;
   setDietPlan: (plan: DietPlan | null) => void;
+  activateSubscription: (planId: PaidPlanId) => void;
+  clearSubscription: () => void;
+  /** Списать 1 бесплатный запрос. false = лимит исчерпан */
+  consumeAiChatQuota: () => boolean;
+  refundAiChatQuota: () => void;
   setMemoryStory: (story: MemoryStory | null) => void;
   toggleModule: (id: ModuleId) => void;
   enableModule: (id: ModuleId) => void;
@@ -195,6 +216,8 @@ export const useAppStore = create<AppState>()(
       themeDefaultV2: true,
       dietPlan: null,
       opsErrors: [],
+      subscription: emptySubscription(),
+      aiChatUsage: emptyAiUsage(),
 
       setPendingChatPrompt: (prompt) => set({ pendingChatPrompt: prompt }),
       dismissDiaryHint: (id) => {
@@ -204,6 +227,25 @@ export const useAppStore = create<AppState>()(
       },
       setTheme: (theme) => set({ theme }),
       setDietPlan: (plan) => set({ dietPlan: plan }),
+      activateSubscription: (planId) =>
+        set({ subscription: activatePaidPlan(planId) }),
+      clearSubscription: () =>
+        set({ subscription: emptySubscription() }),
+      consumeAiChatQuota: () => {
+        if (isSubscriptionActive(get().subscription)) return true;
+        const today = localToday();
+        const usage = normalizeAiUsage(get().aiChatUsage, today);
+        if (usage.count >= FREE_CHAT_LIMIT) return false;
+        set({ aiChatUsage: { date: today, count: usage.count + 1 } });
+        return true;
+      },
+      refundAiChatQuota: () => {
+        if (isSubscriptionActive(get().subscription)) return;
+        const today = localToday();
+        const usage = normalizeAiUsage(get().aiChatUsage, today);
+        if (usage.count <= 0) return;
+        set({ aiChatUsage: { date: today, count: usage.count - 1 } });
+      },
       pushOpsError: (entry) => {
         const row = makeOpsError(entry);
         set({ opsErrors: trimOpsErrors([row, ...(get().opsErrors ?? [])]) });
@@ -566,10 +608,21 @@ export const useAppStore = create<AppState>()(
         modulesDefaultsSeededV1: state.modulesDefaultsSeededV1,
         dietPlan: state.dietPlan,
         opsErrors: state.opsErrors,
+        subscription: state.subscription,
+        aiChatUsage: state.aiChatUsage,
       }),
       onRehydrateStorage: () => (state) => {
         if (!state) return;
         if (!state.opsErrors) state.opsErrors = [];
+        if (!state.subscription) state.subscription = emptySubscription();
+        if (!state.aiChatUsage) state.aiChatUsage = emptyAiUsage();
+        // просроченная подписка → free
+        if (
+          state.subscription.planId !== "free" &&
+          !isSubscriptionActive(state.subscription)
+        ) {
+          state.subscription = emptySubscription();
+        }
 
         // Миграция со старого формата (один profile без children)
         const legacy = state as AppState & { profile?: ChildProfile };
