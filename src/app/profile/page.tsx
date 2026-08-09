@@ -124,6 +124,16 @@ export default function ProfilePage() {
         Маей.
       </p>
 
+      <a
+        href="/register"
+        className="mt-4 flex w-full items-center justify-center rounded-2xl bg-accent py-3.5 text-sm font-semibold text-white"
+      >
+        Регистрация по почте →
+      </a>
+      <p className="mt-1 text-center text-[11px] text-muted">
+        или откройте /register
+      </p>
+
       <div className="mt-6 rounded-2xl border border-line bg-card/70 p-4">
         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
           Аккаунт · почта

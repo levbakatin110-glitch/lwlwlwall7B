@@ -29,6 +29,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     );
   }
 
+  // Регистрация — на весь экран, без сайдбара
+  if (pathname === "/register") {
+    return (
+      <>
+        <ThemeSync />
+        <div className="min-h-dvh bg-background text-foreground">{children}</div>
+      </>
+    );
+  }
+
   return (
     <OnboardingGate>
       <ThemeSync />
