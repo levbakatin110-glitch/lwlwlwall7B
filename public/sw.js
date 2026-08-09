@@ -1,18 +1,17 @@
-/* Minimal service worker — нужно для «Установить» на Android */
-const CACHE = "maya-shell-v1";
-const PRECACHE = ["/", "/icons/icon-192.png", "/icons/icon-512.png"];
+/* Не кэшируем JS/CSS Next — иначе на телефоне вечно старая Мая */
+const CACHE = "maya-shell-v5";
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE).then((cache) => cache.addAll(PRECACHE)).then(() => self.skipWaiting()),
-  );
+  self.skipWaiting();
+  event.waitUntil(caches.delete(CACHE).catch(() => undefined));
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))),
-    ).then(() => self.clients.claim()),
+    caches
+      .keys()
+      .then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
+      .then(() => self.clients.claim()),
   );
 });
 
@@ -23,18 +22,6 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
 
-  // API и чат — всегда сеть
-  if (url.pathname.startsWith("/api/")) return;
-
-  event.respondWith(
-    fetch(req)
-      .then((res) => {
-        const copy = res.clone();
-        if (res.ok && (url.pathname === "/" || url.pathname.match(/\.(png|svg|ico|css|js)$/))) {
-          caches.open(CACHE).then((cache) => cache.put(req, copy));
-        }
-        return res;
-      })
-      .catch(() => caches.match(req).then((cached) => cached || caches.match("/"))),
-  );
+  // Всё с сервера, без cache.put — иначе «нет регистрации / город»
+  event.respondWith(fetch(req));
 });

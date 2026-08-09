@@ -74,6 +74,7 @@ export function EmailGate({ children }: { children: React.ReactNode }) {
         <h1 className="font-display mt-3 text-3xl font-semibold tracking-tight">
           Ваша почта
         </h1>
+        <p className="mt-1 text-[11px] text-muted">регистрация · обязательно</p>
         <p className="mt-3 text-sm leading-relaxed text-muted">
           Подтвердите email — без этого дальше нельзя. Пришлём код на почту.
         </p>

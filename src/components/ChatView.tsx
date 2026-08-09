@@ -142,9 +142,11 @@ export function ChatView() {
     );
   }
 
-  async function fallbackIpLocation() {
+  async function fallbackIpLocation(): Promise<{
+    latitude: number;
+    longitude: number;
+  } | null> {
     try {
-      // 1) наш сервер по IP клиента
       const res = await fetch("/api/geo-ip", { cache: "no-store" });
       if (res.ok) {
         const data = (await res.json()) as {
@@ -158,10 +160,11 @@ export function ChatView() {
           Number.isFinite(data.latitude) &&
           Number.isFinite(data.longitude)
         ) {
-          setCoords({
+          const next = {
             latitude: data.latitude!,
             longitude: data.longitude!,
-          });
+          };
+          setCoords(next);
           if (data.city?.trim()) {
             const current = useAppStore.getState().profile;
             if (!current.city?.trim()) {
@@ -170,7 +173,7 @@ export function ChatView() {
                 .setProfile({ ...current, city: data.city.trim() });
             }
           }
-          return;
+          return next;
         }
       }
     } catch {
@@ -178,11 +181,10 @@ export function ChatView() {
     }
 
     try {
-      // 2) публичный API прямо из браузера (видит IP телефона)
       const res = await fetch("https://get.geojs.io/v1/ip/geo.json", {
         cache: "no-store",
       });
-      if (!res.ok) return;
+      if (!res.ok) return null;
       const data = (await res.json()) as {
         latitude?: string;
         longitude?: string;
@@ -191,8 +193,9 @@ export function ChatView() {
       };
       const latitude = Number(data.latitude);
       const longitude = Number(data.longitude);
-      if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
-      setCoords({ latitude, longitude });
+      if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
+      const next = { latitude, longitude };
+      setCoords(next);
       const place = (data.city || data.region || "").trim();
       if (place) {
         const current = useAppStore.getState().profile;
@@ -200,8 +203,9 @@ export function ChatView() {
           useAppStore.getState().setProfile({ ...current, city: place });
         }
       }
+      return next;
     } catch {
-      /* ignore */
+      return null;
     }
   }
 
@@ -337,6 +341,12 @@ export function ChatView() {
 
     startTransition(async () => {
       try {
+        let sendCoords = coords;
+        if (!sendCoords) {
+          sendCoords = await fallbackIpLocation();
+        }
+        const liveProfile = useAppStore.getState().profile;
+
         const history = [
           ...useAppStore.getState().messages.filter((m) => m.id !== assistantId),
         ]
@@ -348,14 +358,14 @@ export function ChatView() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             messages: history,
-            profile,
+            profile: liveProfile,
             enabledModules,
             customModules,
             wardrobe: wardrobeForChat(wardrobe),
             memories,
             memoryStory,
             journals,
-            coords,
+            coords: sendCoords,
           }),
         });
 
