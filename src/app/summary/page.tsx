@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { IconBadge, MayaIcon } from "@/components/icons/MayaIcon";
 import { childDisplayName } from "@/lib/children";
 import {
@@ -9,13 +9,19 @@ import {
   buildDaySummary,
   dayNormHints,
   formatDayLabel,
+  formatDaySummaryBrief,
   formatDurationRu,
   shiftIsoDate,
   todayIso,
   type DayEventKind,
 } from "@/lib/day-summary";
+import {
+  canSendAiChat,
+  FREE_CHAT_LIMIT,
+} from "@/lib/subscription";
 import { useAppStore } from "@/lib/store";
 import type { IconName } from "@/lib/icons";
+import type { JournalEntry } from "@/lib/types";
 
 const KIND_META: Record<
   DayEventKind,
@@ -48,10 +54,45 @@ const KIND_META: Record<
   },
 };
 
+function extrasForDay(
+  date: string,
+  journals: Record<string, JournalEntry[]>,
+): string[] {
+  const lines: string[] = [];
+  const pick = (id: string, label: string) => {
+    const list = (journals[id] ?? []).filter((e) => e.date === date);
+    if (!list.length) return;
+    const vals = list
+      .slice(0, 8)
+      .map((e) => e.value)
+      .join("; ");
+    lines.push(`${label}: ${vals}`);
+  };
+  pick("water", "Вода");
+  pick("walk", "Прогулка");
+  pick("diaper", "Подгузник");
+  pick("notes", "Заметки");
+  return lines;
+}
+
 export default function SummaryPage() {
   const journals = useAppStore((s) => s.journals);
   const profile = useAppStore((s) => s.profile);
+  const enabledModules = useAppStore((s) => s.enabledModules);
+  const customModules = useAppStore((s) => s.customModules);
+  const wardrobe = useAppStore((s) => s.wardrobe);
+  const memories = useAppStore((s) => s.memories);
+  const memoryStory = useAppStore((s) => s.memoryStory);
+  const subscription = useAppStore((s) => s.subscription);
+  const aiChatUsage = useAppStore((s) => s.aiChatUsage);
+  const consumeAiChatQuota = useAppStore((s) => s.consumeAiChatQuota);
+  const refundAiChatQuota = useAppStore((s) => s.refundAiChatQuota);
+
   const [date, setDate] = useState(todayIso);
+  const [verdict, setVerdict] = useState<string | null>(null);
+  const [verdictError, setVerdictError] = useState<string | null>(null);
+  const [verdictForDate, setVerdictForDate] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
 
   const { totals, events } = useMemo(
     () => buildDaySummary({ date, journals }),
@@ -66,6 +107,106 @@ export default function SummaryPage() {
   const age = ageLabelRu(profile.birthDate);
   const isToday = date === todayIso();
   const feedCount = totals.bfCount + totals.formulaCount;
+  const shownVerdict = verdictForDate === date ? verdict : null;
+
+  function askMayaVerdict() {
+    if (pending) return;
+    setVerdictError(null);
+
+    const gate = canSendAiChat(subscription, aiChatUsage);
+    if (!gate.ok) {
+      setVerdictError(
+        `На сегодня лимит бесплатных сообщений (${FREE_CHAT_LIMIT}). Завтра снова или оформите подписку.`,
+      );
+      return;
+    }
+    if (!consumeAiChatQuota()) {
+      setVerdictError(
+        `На сегодня лимит бесплатных сообщений (${FREE_CHAT_LIMIT}). Завтра снова или оформите подписку.`,
+      );
+      return;
+    }
+
+    const brief = formatDaySummaryBrief({
+      name,
+      age,
+      dateLabel: formatDayLabel(date),
+      totals,
+      events,
+      hints,
+      extraLines: extrasForDay(date, journals),
+    });
+
+    const prompt = `Посмотри итоги дня малыша и скажи простыми словами маме: как прошёл день — нормально ли в целом или на что обратить внимание.
+
+Правила ответа:
+- 4–7 коротких предложений, тёплым тоном «как мама маме»
+- Без паники и диагнозов; если мало данных — честно скажи, что рано судить
+- Не заменяй педиатра
+- Можно 1 мягкий совет, что записать завтра
+
+Данные:
+${brief}`;
+
+    setVerdict("");
+    setVerdictForDate(date);
+
+    startTransition(async () => {
+      try {
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messages: [{ role: "user", content: prompt }],
+            profile,
+            enabledModules,
+            customModules,
+            wardrobe: wardrobe.map((w) => ({
+              id: w.id,
+              name: w.name,
+              type: w.type,
+              season: w.season,
+              note: w.note,
+              imageData: w.imageData ? "[photo]" : undefined,
+              tempMinC: w.tempMinC,
+              tempMaxC: w.tempMaxC,
+              weatherTags: w.weatherTags,
+              aiDescription: w.aiDescription,
+            })),
+            memories,
+            memoryStory,
+            journals,
+          }),
+        });
+        if (!res.ok) {
+          const data = (await res.json().catch(() => null)) as {
+            error?: string;
+          } | null;
+          throw new Error(data?.error || `Ошибка (${res.status})`);
+        }
+        const reader = res.body?.getReader();
+        if (!reader) throw new Error("Нет ответа");
+        const decoder = new TextDecoder();
+        let full = "";
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          full += decoder.decode(value, { stream: true });
+          setVerdict(full.trim());
+        }
+        if (!full.trim()) {
+          throw new Error("Пустой ответ");
+        }
+      } catch (err) {
+        refundAiChatQuota();
+        setVerdict(null);
+        setVerdictForDate(null);
+        setVerdictError(
+          err instanceof Error ? err.message : "Не удалось спросить Маю",
+        );
+      }
+    });
+  }
 
   return (
     <div className="maya-page mx-auto w-full max-w-2xl px-4 py-8 pb-28">
@@ -194,6 +335,33 @@ export default function SummaryPage() {
             <p className="mt-1 text-xs leading-relaxed text-muted">{h.detail}</p>
           </div>
         ))}
+      </div>
+
+      <div className="mt-6 rounded-2xl border border-accent/25 bg-accent-soft/40 p-4">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-accent">
+          Мнение Маи
+        </p>
+        <p className="mt-1 text-sm text-muted">
+          Коротко: нормально ли день или на что глянуть — по вашим записям.
+        </p>
+        <button
+          type="button"
+          onClick={askMayaVerdict}
+          disabled={pending}
+          className="mt-3 w-full rounded-2xl bg-accent py-3 text-sm font-semibold text-on-accent disabled:opacity-60"
+        >
+          {pending ? "Мая думает…" : "Как прошёл день?"}
+        </button>
+        {verdictError && (
+          <p className="mt-3 text-sm text-blush">{verdictError}</p>
+        )}
+        {(shownVerdict || pending) && (
+          <div className="mt-3 rounded-2xl border border-line bg-card/90 px-4 py-3">
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
+              {shownVerdict || "…"}
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="mt-8 flex items-end justify-between gap-3">

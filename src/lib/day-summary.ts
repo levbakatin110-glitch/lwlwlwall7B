@@ -454,3 +454,44 @@ export function ageLabelRu(birthDate?: string | null): string | null {
   if (m < 5) return `${yPart} ${m} месяца`;
   return `${yPart} ${m} месяцев`;
 }
+
+/** Короткий текст дня для запроса мнения Маи */
+export function formatDaySummaryBrief(opts: {
+  name: string;
+  age: string | null;
+  dateLabel: string;
+  totals: DayTotals;
+  events: DayEvent[];
+  hints: DayNormHint[];
+  extraLines?: string[];
+}): string {
+  const lines: string[] = [
+    `Малыш: ${opts.name}${opts.age ? ` (${opts.age})` : ""}`,
+    `День: ${opts.dateLabel}`,
+    `Сон: ${opts.totals.sleepSec > 0 ? formatDurationRu(opts.totals.sleepSec) : "нет записей"} (${opts.totals.sleepCount} запис.)`,
+    `Кормления: ГВ ${opts.totals.bfCount}, смесь ${opts.totals.formulaCount} (${opts.totals.formulaMl} мл), прикорм ${opts.totals.solidsCount}`,
+  ];
+  if (opts.totals.bfSec > 0) {
+    lines.push(`ГВ суммарно: ${formatDurationRu(opts.totals.bfSec)}`);
+  }
+  if (opts.hints.length) {
+    lines.push("Ориентиры:");
+    for (const h of opts.hints) {
+      lines.push(`- ${h.title}: ${h.detail}`);
+    }
+  }
+  if (opts.events.length) {
+    lines.push("Лента:");
+    for (const e of opts.events.slice(0, 20)) {
+      lines.push(`- ${e.title}: ${e.detail}`);
+    }
+  } else {
+    lines.push("Лента пустая — почти нет записей.");
+  }
+  if (opts.extraLines?.length) {
+    lines.push("Ещё:");
+    lines.push(...opts.extraLines.map((l) => `- ${l}`));
+  }
+  return lines.join("\n");
+}
+
