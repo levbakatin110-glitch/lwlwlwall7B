@@ -241,7 +241,7 @@ export function ChatView() {
     };
   }, []);
 
-  function toggleVoice() {
+  async function toggleVoice() {
     if (pending) return;
     const w = window as Window & {
       SpeechRecognition?: new () => SpeechRec;
@@ -249,12 +249,33 @@ export function ChatView() {
     };
     const SR = w.SpeechRecognition || w.webkitSpeechRecognition;
     if (!SR) {
-      setError("Голос здесь не работает — откройте Chrome или Edge.");
+      setError("Голос здесь не работает — откройте в Chrome или Edge.");
       return;
     }
 
     if (listening && recognitionRef.current) {
       recognitionRef.current.stop();
+      return;
+    }
+
+    // Сначала явно просим микрофон — появляется системное «Разрешить?»
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error("no-media");
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach((t) => t.stop());
+    } catch {
+      setListening(false);
+      if (typeof window !== "undefined" && !window.isSecureContext) {
+        setError(
+          "Браузер не даёт микрофон на незащищённом адресе (http). Нужен https — пока напишите текстом, Мая так же поймёт.",
+        );
+        return;
+      }
+      setError(
+        "Браузер спросил доступ к микрофону — нажмите «Разрешить». Если окошка не было: рядом с адресом сайта откройте значок и включите микрофон.",
+      );
       return;
     }
 
@@ -278,28 +299,36 @@ export function ChatView() {
       const code = ev.error || "";
       if (code === "aborted") return;
       if (code === "not-allowed" || code === "service-not-allowed") {
-        setError("Нужен доступ к микрофону — разрешите его в настройках сайта (замочек у адреса).");
+        setError(
+          "Нужно разрешить микрофон. Нажмите на микрофон ещё раз — должно появиться «Разрешить». Если уже запретили: у адреса сайта включите микрофон и попробуйте снова.",
+        );
         return;
       }
       if (code === "no-speech") {
-        setError("Не услышала речь — нажмите микрофон и говорите чуть громче.");
+        setError("Не услышала — нажмите микрофон и говорите чуть громче.");
         return;
       }
       if (code === "audio-capture") {
-        setError("Микрофон недоступен — проверьте, что он подключён и не занят другим приложением.");
+        setError(
+          "Микрофон занят или не найден. Закройте другие приложения с микрофоном и попробуйте снова.",
+        );
         return;
       }
       if (code === "network") {
         setError(
-          "Распознавание речи идёт через Google. Без доступа к их серверам не работает — включите VPN в браузере (не только для Node) и попробуйте снова. Или пишите текстом.",
+          "Распознавание речи идёт через Google. Без доступа к их серверам не работает — включите VPN в браузере и попробуйте снова. Или пишите текстом.",
         );
         return;
       }
       if (code === "language-not-supported") {
-        setError("Русский язык для голоса в этом браузере не поддерживается. Попробуйте Chrome или Edge.");
+        setError(
+          "Русский язык для голоса в этом браузере не поддерживается. Попробуйте Chrome или Edge.",
+        );
         return;
       }
-      setError(`Не удалось распознать речь (${code || "ошибка"}). Попробуйте Chrome/Edge или напишите текстом.`);
+      setError(
+        `Не удалось распознать речь (${code || "ошибка"}). Попробуйте Chrome/Edge или напишите текстом.`,
+      );
     };
     rec.onend = () => {
       setListening(false);
@@ -312,7 +341,7 @@ export function ChatView() {
       rec.start();
     } catch {
       setListening(false);
-      setError("Не удалось включить микрофон.");
+      setError("Не удалось включить микрофон. Нажмите ещё раз — браузер спросит разрешение.");
     }
   }
 
