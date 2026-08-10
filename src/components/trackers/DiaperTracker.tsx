@@ -7,25 +7,21 @@ const KINDS = [
   {
     id: "wet",
     label: "Мокрый",
-    emoji: "💧",
     tone: "bg-sky-500/15 text-sky-800 dark:text-sky-200",
   },
   {
     id: "dirty",
     label: "Грязный",
-    emoji: "💩",
     tone: "bg-amber-500/15 text-amber-900 dark:text-amber-200",
   },
   {
     id: "both",
     label: "Оба",
-    emoji: "💦",
     tone: "bg-violet-500/15 text-violet-800 dark:text-violet-200",
   },
   {
     id: "dry",
     label: "Сухой / проверка",
-    emoji: "✨",
     tone: "bg-emerald-500/15 text-emerald-800 dark:text-emerald-200",
   },
 ] as const;
@@ -93,16 +89,13 @@ export function DiaperTracker() {
             key={k.id}
             type="button"
             onClick={() => setKind(k.id)}
-            className={`rounded-2xl border px-3 py-4 text-left transition ${
+            className={`rounded-2xl border px-3 py-3.5 text-left transition ${
               kind === k.id
                 ? "border-accent bg-accent-soft ring-1 ring-accent/30"
                 : "border-line bg-card/50 hover:border-accent/25"
             }`}
           >
-            <span className="text-2xl" aria-hidden>
-              {k.emoji}
-            </span>
-            <p className="mt-2 text-sm font-semibold">{k.label}</p>
+            <p className="text-sm font-semibold">{k.label}</p>
             <p className="mt-0.5 text-[11px] text-muted">
               сегодня {byKind[k.id]}
             </p>
@@ -119,7 +112,7 @@ export function DiaperTracker() {
             : "border-line text-muted"
         }`}
       >
-        {rash ? "⚠️ Есть раздражение / опрелость" : "Отметить раздражение?"}
+        {rash ? "Есть раздражение / опрелость" : "Отметить раздражение?"}
       </button>
 
       <label className="mt-3 block text-sm">

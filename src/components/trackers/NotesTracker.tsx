@@ -65,7 +65,7 @@ export function NotesTracker() {
     }
 
     const value = remindIso
-      ? `${body} · ⏰ ${formatRemind(remindIso)}`
+      ? `${body} · напомнить ${formatRemind(remindIso)}`
       : body;
 
     addJournalEntry("notes", {
@@ -179,7 +179,7 @@ export function NotesTracker() {
                     {String(e.fields?.text || e.note || e.value)}
                   </p>
                   <p className="mt-0.5 text-[11px] text-muted">
-                    ⏰ {formatRemind(String(e.fields?.remindAt))}
+                    {formatRemind(String(e.fields?.remindAt))}
                   </p>
                 </div>
                 <button

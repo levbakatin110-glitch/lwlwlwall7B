@@ -1,4 +1,4 @@
-export type RecipeTag =
+﻿export type RecipeTag =
   | "быстро"
   | "для мамы"
   | "семья"
@@ -12,7 +12,6 @@ export type RecipeTag =
 export type Recipe = {
   slug: string;
   title: string;
-  emoji: string;
   /** Короткий хук для карточки «Рецепт дня» */
   teaser: string;
   timeMin: number;
@@ -30,7 +29,6 @@ export const RECIPES: Recipe[] = [
   {
     slug: "kabachkovye-oladi-s-yablokom",
     title: "Кабачковые оладьи с яблоком",
-    emoji: "🥞",
     teaser: "Мягкие, слегка сладкие — на завтрак или перекус одной рукой.",
     timeMin: 25,
     servings: "10–12 шт.",
@@ -59,7 +57,6 @@ export const RECIPES: Recipe[] = [
   {
     slug: "ovsyanka-s-bananom-i-tvorozhkom",
     title: "Овсянка с бананом и творожком",
-    emoji: "🥣",
     teaser: "5 минут, одна кастрюля — и сытный старт дня.",
     timeMin: 10,
     servings: "1–2 порции",
@@ -83,7 +80,6 @@ export const RECIPES: Recipe[] = [
   {
     slug: "kurinye-frikadelki-v-souse",
     title: "Куриные фрикадельки в томатном соусе",
-    emoji: "🍅",
     teaser: "Мягкие шарики — и маме, и детям постарше.",
     timeMin: 40,
     servings: "4 порции",
@@ -110,7 +106,6 @@ export const RECIPES: Recipe[] = [
   {
     slug: "sup-pyure-iz-tykvy",
     title: "Суп-пюре из тыквы",
-    emoji: "🎃",
     teaser: "Бархатный, тёплый — как объятие в тарелке.",
     timeMin: 35,
     servings: "3–4 порции",
@@ -136,7 +131,6 @@ export const RECIPES: Recipe[] = [
   {
     slug: "zapekanka-tvorozhnaya",
     title: "Творожная запеканка",
-    emoji: "🧁",
     teaser: "Классика: поставил в духовку — и руки свободны.",
     timeMin: 50,
     servings: "6–8 кусков",
@@ -161,7 +155,6 @@ export const RECIPES: Recipe[] = [
   {
     slug: "omlet-v-duhovke",
     title: "Пышный омлет в духовке",
-    emoji: "🍳",
     teaser: "Без стояния у плиты — духовка делает всё сама.",
     timeMin: 25,
     servings: "2 порции",
@@ -184,7 +177,6 @@ export const RECIPES: Recipe[] = [
   {
     slug: "ris-s-ovoshchami-na-skovorode",
     title: "Рис с овощами на сковороде",
-    emoji: "🍚",
     teaser: "Один сковородник — полноценный ужин.",
     timeMin: 30,
     servings: "3 порции",
@@ -208,7 +200,6 @@ export const RECIPES: Recipe[] = [
   {
     slug: "bananovye-pancakes",
     title: "Банановые панкейки без сахара",
-    emoji: "🍌",
     teaser: "Три ингредиента — и стопка тёплых блинчиков.",
     timeMin: 15,
     servings: "6–8 шт.",
@@ -229,7 +220,6 @@ export const RECIPES: Recipe[] = [
   {
     slug: "salat-iz-ogurtsov-i-yajca",
     title: "Салат «минутка»: огурец, яйцо, зелень",
-    emoji: "🥗",
     teaser: "Когда есть ровно 7 минут и очень хочется чего-то свежего.",
     timeMin: 7,
     servings: "1 порция",
@@ -250,7 +240,6 @@ export const RECIPES: Recipe[] = [
   {
     slug: "zapechennaya-ryba-s-limonom",
     title: "Рыба в фольге с лимоном",
-    emoji: "🐟",
     teaser: "Положила в духовку — и можно заниматься малышом.",
     timeMin: 35,
     servings: "2 порции",
@@ -275,7 +264,6 @@ export const RECIPES: Recipe[] = [
   {
     slug: "syrniki-na-skovorode",
     title: "Сырники на сковороде",
-    emoji: "🧀",
     teaser: "Любимая классика — хрустящие снаружи, мягкие внутри.",
     timeMin: 30,
     servings: "8–10 шт.",
@@ -298,7 +286,6 @@ export const RECIPES: Recipe[] = [
   {
     slug: "grechka-s-gribami",
     title: "Гречка с грибами",
-    emoji: "🍄",
     teaser: "Сытно, по-домашнему, без лишней посуды.",
     timeMin: 35,
     servings: "3 порции",

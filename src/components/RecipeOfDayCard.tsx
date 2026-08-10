@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo } from "react";
+import { MayaIcon } from "@/components/icons/MayaIcon";
 import { formatTime, getRecipeOfDay } from "@/lib/recipes";
 
 export function RecipeOfDayCard({
@@ -20,12 +21,12 @@ export function RecipeOfDayCard({
     >
       <div className="flex items-start gap-3">
         <span
-          className={`flex shrink-0 items-center justify-center rounded-2xl bg-accent-soft text-2xl ${
+          className={`flex shrink-0 items-center justify-center rounded-2xl bg-accent-soft text-accent ${
             compact ? "h-12 w-12" : "h-14 w-14"
           }`}
           aria-hidden
         >
-          {recipe.emoji}
+          <MayaIcon name="diet" size={compact ? 22 : 26} />
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-accent">

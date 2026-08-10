@@ -8,6 +8,7 @@ import {
   getRecipeBySlug,
   otherRecipes,
 } from "@/lib/recipes";
+import { MayaIcon } from "@/components/icons/MayaIcon";
 import { useAppStore } from "@/lib/store";
 
 export default function RecipeDetailPage() {
@@ -47,10 +48,10 @@ export default function RecipeDetailPage() {
 
       <div className="mt-5 flex items-start gap-4">
         <span
-          className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-accent-soft text-3xl"
+          className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-accent-soft text-accent"
           aria-hidden
         >
-          {recipe.emoji}
+          <MayaIcon name="diet" size={30} />
         </span>
         <div className="min-w-0">
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-accent">
@@ -156,8 +157,11 @@ export default function RecipeDetailPage() {
                 href={`/recipes/${r.slug}`}
                 className="flex items-center gap-3 rounded-2xl border border-line bg-card/70 px-3 py-3 transition hover:border-accent/30"
               >
-                <span className="text-xl" aria-hidden>
-                  {r.emoji}
+                <span
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent"
+                  aria-hidden
+                >
+                  <MayaIcon name="diet" size={18} />
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold">{r.title}</p>

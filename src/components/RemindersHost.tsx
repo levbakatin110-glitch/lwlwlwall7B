@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useAppStore } from "@/lib/store";
+import { MayaIcon } from "@/components/icons/MayaIcon";
 
 const FIRED_KEY = "maya-reminders-fired-v1";
 
@@ -92,8 +93,11 @@ export function RemindersHost() {
           key={item.id}
           className="pointer-events-auto flex w-full max-w-md items-start gap-3 rounded-2xl border border-accent/30 bg-card/95 px-4 py-3 shadow-lg backdrop-blur-xl"
         >
-          <span className="text-xl" aria-hidden>
-            ⏰
+          <span
+            className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent"
+            aria-hidden
+          >
+            <MayaIcon name="notes" size={16} />
           </span>
           <div className="min-w-0 flex-1">
             <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-accent">

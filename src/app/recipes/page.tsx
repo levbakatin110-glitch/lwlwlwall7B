@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { IconBadge } from "@/components/icons/MayaIcon";
+import { IconBadge, MayaIcon } from "@/components/icons/MayaIcon";
 import { RecipeOfDayCard } from "@/components/RecipeOfDayCard";
 import {
   formatTime,
@@ -74,10 +74,10 @@ export default function RecipesPage() {
                 className="flex items-start gap-3 rounded-2xl border border-line bg-card/80 p-3.5 transition hover:border-accent/30 hover:bg-accent-soft/25"
               >
                 <span
-                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-xl"
+                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent"
                   aria-hidden
                 >
-                  {recipe.emoji}
+                  <MayaIcon name="diet" size={22} />
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">

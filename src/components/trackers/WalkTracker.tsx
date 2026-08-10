@@ -127,9 +127,6 @@ export function WalkTracker() {
             Сегодня уже ~{todayMin} мин на воздухе
           </p>
         </div>
-        <span className="text-3xl" aria-hidden>
-          🌤️
-        </span>
       </div>
 
       <label className="mt-4 block text-sm">
