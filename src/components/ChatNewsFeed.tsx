@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useMemo } from "react";
-import { MayaIcon } from "@/components/icons/MayaIcon";
 import { buildChatFeed, type FeedItem } from "@/lib/chat-feed";
 import { calcDiet, isDietPlanReady } from "@/lib/diet";
 import { useAppStore } from "@/lib/store";
