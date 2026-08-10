@@ -72,12 +72,13 @@ export default function RecipeDetailPage() {
 
       <div className="mt-4 flex flex-wrap gap-1.5">
         {recipe.tags.map((tag) => (
-          <span
+          <Link
             key={tag}
-            className="rounded-full border border-line bg-card/70 px-2.5 py-0.5 text-[11px] text-muted"
+            href={`/recipes?tag=${encodeURIComponent(tag)}`}
+            className="rounded-full border border-line bg-card px-3 py-1.5 text-[11px] font-semibold text-muted transition hover:border-accent/40 hover:bg-accent-soft hover:text-accent"
           >
             {tag}
-          </span>
+          </Link>
         ))}
       </div>
 

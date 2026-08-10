@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { IconBadge, MayaIcon } from "@/components/icons/MayaIcon";
 import { RecipeOfDayCard } from "@/components/RecipeOfDayCard";
 import {
@@ -18,17 +18,36 @@ const FILTERS: { id: "all" | RecipeTag; label: string }[] = [
   { id: "семья", label: "Семья" },
   { id: "прикорм", label: "Прикорм" },
   { id: "завтрак", label: "Завтрак" },
+  { id: "обед", label: "Обед" },
   { id: "ужин", label: "Ужин" },
+  { id: "перекус", label: "Перекус" },
+  { id: "без духовки", label: "Без духовки" },
 ];
+
+function isRecipeTag(value: string): value is RecipeTag {
+  return FILTERS.some((f) => f.id === value && f.id !== "all");
+}
 
 export default function RecipesPage() {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>("all");
   const ofDay = useMemo(() => getRecipeOfDay(), []);
 
+  useEffect(() => {
+    const tag = new URLSearchParams(window.location.search).get("tag") ?? "";
+    if (isRecipeTag(tag)) setFilter(tag);
+  }, []);
+
   const list = useMemo(() => {
     if (filter === "all") return RECIPES;
     return RECIPES.filter((r) => r.tags.includes(filter));
   }, [filter]);
+
+  function pickFilter(id: (typeof FILTERS)[number]["id"]) {
+    setFilter(id);
+    const url =
+      id === "all" ? "/recipes" : `/recipes?tag=${encodeURIComponent(id)}`;
+    window.history.replaceState(null, "", url);
+  }
 
   return (
     <div className="maya-page mx-auto w-full max-w-2xl px-4 py-8 pb-28">
@@ -51,7 +70,7 @@ export default function RecipesPage() {
             <button
               key={f.id}
               type="button"
-              onClick={() => setFilter(f.id)}
+              onClick={() => pickFilter(f.id)}
               className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition ${
                 active
                   ? "border-accent bg-accent text-on-accent"

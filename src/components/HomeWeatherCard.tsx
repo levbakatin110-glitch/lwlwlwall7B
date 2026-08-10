@@ -143,7 +143,7 @@ export function HomeWeatherCard({
               onClick={onRequestLocation}
               className="rounded-xl bg-accent px-3 py-1.5 text-sm font-semibold text-[var(--on-accent)]"
             >
-              Определить по GPS
+              Обновить
             </button>
           )}
           <Link
@@ -169,9 +169,9 @@ export function HomeWeatherCard({
             type="button"
             onClick={onRequestLocation}
             className="shrink-0 rounded-xl border border-line px-2.5 py-2 text-[11px] font-medium text-muted hover:text-accent"
-            title="Обновить место"
+            title="Обновить"
           >
-            GPS
+            Обновить
           </button>
         )}
       </div>
@@ -187,7 +187,7 @@ export function HomeWeatherCard({
           onClick={onRequestLocation}
           className="mt-2 text-xs font-medium text-muted hover:text-accent"
         >
-          Обновить место
+          Обновить
         </button>
       )}
     </div>
