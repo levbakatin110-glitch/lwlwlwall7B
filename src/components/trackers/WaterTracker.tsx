@@ -120,7 +120,7 @@ export function WaterTracker() {
         />
       </div>
       <p className="mt-1.5 text-center text-[11px] text-muted">
-        {Math.round(progress * 100)}% от дневной нормы
+        {Math.round(progress * 100)}%
       </p>
 
       <div className="mt-4 flex flex-wrap gap-1.5">

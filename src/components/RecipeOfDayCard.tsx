@@ -35,7 +35,7 @@ export function RecipeOfDayCard({
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-accent">
-            Фишка · рецепт дня
+            Рецепт дня
           </p>
           <p
             className={`font-display mt-0.5 font-semibold leading-snug text-foreground ${

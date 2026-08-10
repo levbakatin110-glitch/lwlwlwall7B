@@ -165,10 +165,7 @@ export function WalkTracker() {
           >
             Начать прогулку
           </button>
-          <p className="mt-4 text-center text-[11px] text-muted">
-            или быстро добавить
-          </p>
-          <div className="mt-2 flex flex-wrap justify-center gap-1.5">
+          <div className="mt-3 flex flex-wrap justify-center gap-1.5">
             {QUICK.map((m) => (
               <button
                 key={m}

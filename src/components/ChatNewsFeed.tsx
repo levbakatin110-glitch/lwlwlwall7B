@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import { MayaIcon } from "@/components/icons/MayaIcon";
-import { SketchDoodles, SketchMoon } from "@/components/illustrations/MayaSketch";
 import { buildChatFeed, type FeedItem } from "@/lib/chat-feed";
 import { calcDiet, isDietPlanReady } from "@/lib/diet";
 import { useAppStore } from "@/lib/store";
@@ -61,25 +60,12 @@ export function ChatNewsFeed({
   }
 
   return (
-    <section className="maya-rise relative pb-8 pt-2" aria-label="Короткий разбор">
-      <SketchMoon
-        tone="soft"
-        className="pointer-events-none absolute -right-2 -top-2 h-16 w-16 opacity-70"
-      />
-      <div className="mb-3 flex items-end justify-between gap-3 px-0.5">
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">
-            Лента
-          </p>
-          <h2 className="font-display mt-1 text-xl font-semibold tracking-tight text-foreground">
-            Короткий разбор
-          </h2>
-        </div>
-        <p className="max-w-[11rem] text-right text-[11px] leading-snug text-muted">
-          суть из дневников, без всей истории
-        </p>
+    <section className="maya-rise relative pb-8 pt-2" aria-label="Лента">
+      <div className="mb-4 px-0.5">
+        <h2 className="font-display text-xl font-semibold tracking-tight text-foreground">
+          Лента
+        </h2>
       </div>
-      <SketchDoodles className="mb-4 h-10 w-full max-w-md opacity-70" />
 
       <ul className="flex flex-col gap-3">
         {items.map((item) => {
@@ -111,10 +97,7 @@ export function ChatNewsFeed({
               </p>
 
               {item.href && item.kind !== "empty" && (
-                <p className="mt-3 flex items-center gap-1.5 text-sm font-semibold text-accent">
-                  <MayaIcon name="growth" size={14} />
-                  Открыть раздел
-                </p>
+                <p className="mt-3 text-sm font-semibold text-accent">Открыть</p>
               )}
             </>
           );

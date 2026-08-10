@@ -218,7 +218,7 @@ ${brief}`;
           </h1>
           <p className="mt-1 text-sm text-muted">
             {name}
-            {age ? ` · ${age}` : ""} — сон, кормления и лента за день
+            {age ? ` · ${age}` : ""}
           </p>
         </div>
       </div>
@@ -341,9 +341,6 @@ ${brief}`;
         <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-accent">
           Мнение Маи
         </p>
-        <p className="mt-1 text-sm text-muted">
-          Коротко: нормально ли день или на что глянуть — по вашим записям.
-        </p>
         <button
           type="button"
           onClick={askMayaVerdict}
@@ -365,12 +362,7 @@ ${brief}`;
       </div>
 
       <div className="mt-8 flex items-end justify-between gap-3">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
-            Лента дня
-          </p>
-          <p className="mt-0.5 text-sm text-muted">Как в трекере — всё подряд</p>
-        </div>
+        <p className="font-display text-xl font-semibold">Лента</p>
         <Link
           href="/m/sleep"
           className="text-xs font-medium text-accent underline"

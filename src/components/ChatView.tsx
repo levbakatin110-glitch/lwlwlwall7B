@@ -785,9 +785,6 @@ export function ChatView() {
                   <p className="font-display mt-2 text-2xl font-medium tracking-tight text-foreground md:text-3xl">
                     Спросите как мама маме
                   </p>
-                  <p className="mt-3 text-sm leading-relaxed text-muted">
-                    Прогулка, сон, кормление — напишите или нажмите на микрофон.
-                  </p>
                   <SketchDoodles className="mx-auto mt-4 h-12 w-full max-w-xs opacity-80" />
                   <div className="mt-5 flex flex-wrap justify-center gap-2">
                     {CHAT_PROMPTS.map((q) => (
@@ -1100,10 +1097,6 @@ export function ChatView() {
             </button>
           </form>
         </div>
-
-        <p className="mt-2.5 shrink-0 pb-1 text-center text-[11px] tracking-wide text-muted">
-          ↓ листайте вниз — короткий разбор из дневников
-        </p>
         </div>
 
         <ChatNewsFeed

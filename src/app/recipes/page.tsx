@@ -55,9 +55,6 @@ export default function RecipesPage() {
         <IconBadge name="spark" />
         На кухне
       </h1>
-      <p className="mt-1.5 text-sm leading-relaxed text-muted">
-        Фишка Маи: рецепт дня и простые блюда, когда руки заняты малышом.
-      </p>
 
       <div className="mt-6">
         <RecipeOfDayCard />
