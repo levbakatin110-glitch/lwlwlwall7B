@@ -71,6 +71,8 @@ type AppState = {
   themeDefaultV2?: boolean;
   /** одноразовая: дефолтные разделы больше не навязываются при каждой загрузке */
   modulesDefaultsSeededV1?: boolean;
+  /** одноразовая: вода / прогулка / подгузник / заметки */
+  modulesCareTrackersV1?: boolean;
   /** План диеты мамы (общий) */
   dietPlan: DietPlan | null;
   /** Лог ошибок чата / API для админки */
@@ -620,6 +622,7 @@ export const useAppStore = create<AppState>()(
         theme: state.theme,
         themeDefaultV2: state.themeDefaultV2,
         modulesDefaultsSeededV1: state.modulesDefaultsSeededV1,
+        modulesCareTrackersV1: state.modulesCareTrackersV1,
         dietPlan: state.dietPlan,
         opsErrors: state.opsErrors,
         subscription: state.subscription,
@@ -744,6 +747,41 @@ export const useAppStore = create<AppState>()(
           state.modulesDefaultsSeededV1 = true;
           seededDefaults = true;
         }
+
+        const careTrackers: ModuleId[] = ["water", "walk", "diaper", "notes"];
+        if (!state.modulesCareTrackersV1) {
+          for (const mid of careTrackers) {
+            if (!next.includes(mid)) next.push(mid);
+          }
+          for (const sid of Object.keys(state.childSpaces ?? {})) {
+            const space = state.childSpaces[sid];
+            if (!space) continue;
+            let mods = [...space.enabledModules];
+            for (const mid of careTrackers) {
+              if (!mods.includes(mid)) mods.push(mid);
+            }
+            space.enabledModules = mods;
+            const journals = { ...space.journals };
+            for (const mid of careTrackers) {
+              if (!journals[mid]) journals[mid] = [];
+            }
+            space.journals = journals;
+          }
+          state.modulesCareTrackersV1 = true;
+          seededDefaults = true;
+        }
+        {
+          const journals = { ...(state.journals ?? {}) };
+          let touched = false;
+          for (const mid of careTrackers) {
+            if (!journals[mid]) {
+              journals[mid] = [];
+              touched = true;
+            }
+          }
+          if (touched) state.journals = journals;
+        }
+
         if (!state.journals?.diet) {
           state.journals = { ...(state.journals ?? {}), diet: [] };
         }

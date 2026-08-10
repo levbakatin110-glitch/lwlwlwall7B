@@ -15,6 +15,7 @@ import type { ModuleId } from "@/lib/types";
 const CORE: { href: string; label: string; icon: IconName }[] = [
   { href: "/", label: "Чат с Маей", icon: "chat" },
   { href: "/summary", label: "Итоги дня", icon: "list" },
+  { href: "/recipes", label: "Рецепты", icon: "diet" },
   { href: "/pricing", label: "Подписка", icon: "spark" },
   { href: "/profile", label: "Малыши", icon: "profile" },
   { href: "/modules", label: "Разделы", icon: "plus" },
@@ -30,6 +31,10 @@ const PINNED_DIARIES: {
   { href: "/m/breastfeeding", label: "ГВ · таймер", icon: "feeding", moduleId: "breastfeeding" },
   { href: "/m/formula", label: "Смеси", icon: "formula", moduleId: "formula" },
   { href: "/m/sleep", label: "Сон", icon: "sleep", moduleId: "sleep" },
+  { href: "/m/water", label: "Вода", icon: "water", moduleId: "water" },
+  { href: "/m/walk", label: "Прогулка", icon: "walk", moduleId: "walk" },
+  { href: "/m/diaper", label: "Подгузник", icon: "diaper", moduleId: "diaper" },
+  { href: "/m/notes", label: "Заметки", icon: "notes", moduleId: "notes" },
   { href: "/m/diet", label: "Диета", icon: "diet", moduleId: "diet" },
   { href: "/memories", label: "Моменты", icon: "moments" },
   { href: "/wardrobe", label: "Гардероб", icon: "wardrobe" },

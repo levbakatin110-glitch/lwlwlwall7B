@@ -4,6 +4,7 @@ import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { InstallHint } from "./InstallHint";
 import { OnboardingGate } from "./OnboardingFlow";
+import { RemindersHost } from "./RemindersHost";
 import { Sidebar } from "./Sidebar";
 import { ThemeSync } from "./ThemeSync";
 import { ThemeToggle } from "./ThemeToggle";
@@ -80,6 +81,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
         <WhiteNoisePlayer />
         <InstallHint />
+        <RemindersHost />
       </div>
     </OnboardingGate>
   );

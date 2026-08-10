@@ -11,6 +11,10 @@ import { BreastfeedingTracker } from "@/components/feeding/BreastfeedingTracker"
 import { SleepTracker } from "@/components/feeding/SleepTracker";
 import { SolidsTracker } from "@/components/feeding/SolidsTracker";
 import { DietTracker } from "@/components/diet/DietTracker";
+import { DiaperTracker } from "@/components/trackers/DiaperTracker";
+import { NotesTracker } from "@/components/trackers/NotesTracker";
+import { WalkTracker } from "@/components/trackers/WalkTracker";
+import { WaterTracker } from "@/components/trackers/WaterTracker";
 import { IconBadge } from "@/components/icons/MayaIcon";
 import { hintForDiary } from "@/lib/diary-hints";
 import { isDietLikeModule } from "@/lib/diet";
@@ -273,6 +277,9 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
 
   const isGrowth = moduleId === "growth";
   const isDietPage = isDietLikeModule(moduleId, mod?.title, mod?.description);
+  const hideManualForm =
+    isDietPage ||
+    ["water", "walk", "diaper", "notes"].includes(moduleId);
 
   const growthPoints: GrowthPoint[] = useMemo(() => {
     if (!isGrowth) return [];
@@ -415,7 +422,16 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
       {/* Подсказка только в пустом «простом» дневнике — трекерам не нужна */}
       {entries.length === 0 &&
         !isDietPage &&
-        !["sleep", "breastfeeding", "formula", "solids"].includes(moduleId) && (
+        ![
+          "sleep",
+          "breastfeeding",
+          "formula",
+          "solids",
+          "water",
+          "walk",
+          "diaper",
+          "notes",
+        ].includes(moduleId) && (
         <DiaryHowTo
           hintId={moduleId}
           hint={hintForDiary(moduleId, mod.custom)}
@@ -442,6 +458,26 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
           <SleepTracker />
         </div>
       )}
+      {moduleId === "water" && (
+        <div className="mt-4">
+          <WaterTracker />
+        </div>
+      )}
+      {moduleId === "walk" && (
+        <div className="mt-4">
+          <WalkTracker />
+        </div>
+      )}
+      {moduleId === "diaper" && (
+        <div className="mt-4">
+          <DiaperTracker />
+        </div>
+      )}
+      {moduleId === "notes" && (
+        <div className="mt-4">
+          <NotesTracker />
+        </div>
+      )}
 
       {/* Профессиональный калькулятор — и для /m/diet, и для старых «своих» диет */}
       {isDietPage && (
@@ -466,7 +502,9 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
         />
       )}
 
-      {!isDietPage && !mod.custom && (
+      {!isDietPage &&
+        !mod.custom &&
+        !["water", "walk", "diaper", "notes"].includes(moduleId) && (
         <DiaryQuickActions moduleId={moduleId} onPrefill={focusAdd} />
       )}
 
@@ -500,8 +538,8 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
         </div>
       )}
 
-      {/* На диете форма-анкета не нужна — есть калькулятор */}
-      {!isDietPage && (
+      {/* На диете / умных трекерах форма-анкета не нужна */}
+      {!hideManualForm && (
       <form
         ref={formAnchorRef}
         onSubmit={onSubmit}

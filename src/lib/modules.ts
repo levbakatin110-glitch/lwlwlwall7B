@@ -87,6 +87,42 @@ export const OPTIONAL_MODULES: ModuleDef[] = [
     valueLabel: "Приём пищи",
     valuePlaceholder: "Обед · 450 ккал",
   },
+  {
+    id: "water",
+    title: "Вода",
+    shortTitle: "Вода",
+    description: "Сколько выпито за день — стаканы и миллилитры.",
+    icon: "water",
+    valueLabel: "Объём",
+    valuePlaceholder: "250 мл",
+  },
+  {
+    id: "walk",
+    title: "Прогулка",
+    shortTitle: "Прогулка",
+    description: "Таймер и длительность прогулок с малышом.",
+    icon: "walk",
+    valueLabel: "Прогулка",
+    valuePlaceholder: "40 мин · двор",
+  },
+  {
+    id: "diaper",
+    title: "Подгузник",
+    shortTitle: "Подгузник",
+    description: "Смены: мокрый, грязный или оба.",
+    icon: "diaper",
+    valueLabel: "Смена",
+    valuePlaceholder: "мокрый",
+  },
+  {
+    id: "notes",
+    title: "Заметки",
+    shortTitle: "Заметки",
+    description: "Заметки и напоминания — например, завтра гулять в 18:00.",
+    icon: "notes",
+    valueLabel: "Текст",
+    valuePlaceholder: "Завтра погулять в 18:00",
+  },
 ];
 
 export const MODULE_BY_ID = Object.fromEntries(

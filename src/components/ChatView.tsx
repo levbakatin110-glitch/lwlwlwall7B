@@ -6,6 +6,7 @@ import { ChatNewsFeed } from "@/components/ChatNewsFeed";
 import { HomeWeatherCard } from "@/components/HomeWeatherCard";
 import { JournalEntryChip } from "@/components/JournalEntryChip";
 import { LogPreviewSheet, type LogPreviewData } from "@/components/LogPreviewSheet";
+import { RecipeOfDayCard } from "@/components/RecipeOfDayCard";
 import { CHAT_PROMPTS } from "@/components/TipsCarousel";
 import { VpnHintBanner } from "@/components/VpnHintBanner";
 import { WeatherWidget } from "@/components/WeatherWidget";
@@ -744,6 +745,7 @@ export function ChatView() {
                 city={profile.city}
                 forceShow={vpnSuspect}
               />
+              <RecipeOfDayCard compact={!empty} />
             </div>
 
             {empty && (

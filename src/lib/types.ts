@@ -194,7 +194,11 @@ export type ModuleId =
   | "sleep"
   | "vaccines"
   | "health"
-  | "diet";
+  | "diet"
+  | "water"
+  | "walk"
+  | "diaper"
+  | "notes";
 
 export type AnyModuleId = ModuleId | (string & {});
 
