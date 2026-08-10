@@ -77,6 +77,24 @@ export default function ModulesPage() {
       </h1>
       <p className="mt-1 text-sm text-muted">Сон, кормление, рост — или свой.</p>
 
+      <Link
+        href="/recipes"
+        className="mt-5 flex items-center gap-3 rounded-2xl border border-accent/25 bg-accent-soft/50 px-4 py-3.5 transition hover:border-accent/40"
+      >
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent text-on-accent">
+          <MayaIcon name="spark" size={18} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-accent">
+            Фишка
+          </p>
+          <p className="font-display text-base font-semibold leading-snug">
+            Рецепт дня и блюда для мам
+          </p>
+        </div>
+        <span className="text-sm font-semibold text-accent">→</span>
+      </Link>
+
       <div className="mt-6">
         {!showForm ? (
           <button

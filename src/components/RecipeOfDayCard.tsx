@@ -5,6 +5,7 @@ import { useMemo } from "react";
 import { MayaIcon } from "@/components/icons/MayaIcon";
 import { formatTime, getRecipeOfDay } from "@/lib/recipes";
 
+/** Фишка в чате — не дневник, а идея «что приготовить сегодня» */
 export function RecipeOfDayCard({
   compact = false,
 }: {
@@ -15,22 +16,26 @@ export function RecipeOfDayCard({
   return (
     <Link
       href={`/recipes/${recipe.slug}`}
-      className={`group block overflow-hidden rounded-2xl border border-line bg-card/90 shadow-sm transition hover:border-accent/35 hover:bg-accent-soft/30 ${
-        compact ? "p-3" : "p-4 maya-panel"
+      className={`group relative block overflow-hidden rounded-2xl border border-accent/25 bg-gradient-to-br from-accent-soft/80 via-card to-card shadow-sm transition hover:border-accent/45 ${
+        compact ? "p-3" : "p-4"
       }`}
     >
-      <div className="flex items-start gap-3">
+      <div
+        className="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full bg-accent/10 blur-2xl"
+        aria-hidden
+      />
+      <div className="relative flex items-start gap-3">
         <span
-          className={`flex shrink-0 items-center justify-center rounded-2xl bg-accent-soft text-accent ${
-            compact ? "h-12 w-12" : "h-14 w-14"
+          className={`flex shrink-0 items-center justify-center rounded-2xl bg-accent text-on-accent ${
+            compact ? "h-11 w-11" : "h-12 w-12"
           }`}
           aria-hidden
         >
-          <MayaIcon name="diet" size={compact ? 22 : 26} />
+          <MayaIcon name="spark" size={compact ? 18 : 20} />
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-accent">
-            Рецепт дня
+            Фишка · рецепт дня
           </p>
           <p
             className={`font-display mt-0.5 font-semibold leading-snug text-foreground ${
@@ -49,7 +54,7 @@ export function RecipeOfDayCard({
             <span aria-hidden>·</span>
             <span>{recipe.servings}</span>
             <span className="ml-auto font-semibold text-accent group-hover:underline">
-              Открыть →
+              Смотреть →
             </span>
           </p>
         </div>

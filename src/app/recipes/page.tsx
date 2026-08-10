@@ -33,11 +33,11 @@ export default function RecipesPage() {
   return (
     <div className="maya-page mx-auto w-full max-w-2xl px-4 py-8 pb-28">
       <h1 className="font-display flex items-center gap-3 text-3xl font-semibold">
-        <IconBadge name="diet" />
-        Рецепты
+        <IconBadge name="spark" />
+        На кухне
       </h1>
       <p className="mt-1.5 text-sm leading-relaxed text-muted">
-        Простые блюда для мам: быстро, сытно и без лишней возни на кухне.
+        Фишка Маи: рецепт дня и простые блюда, когда руки заняты малышом.
       </p>
 
       <div className="mt-6">
