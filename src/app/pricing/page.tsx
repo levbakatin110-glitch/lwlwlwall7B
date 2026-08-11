@@ -38,11 +38,11 @@ export default function PricingPage() {
     <div className="maya-page mx-auto w-full max-w-2xl px-4 py-8 pb-28">
       <h1 className="font-display flex items-center gap-3 text-3xl font-semibold">
         <IconBadge name="spark" />
-        Подписка
+        Maya Premium
       </h1>
       <p className="mt-1 text-sm text-muted">
-        Бесплатно — все готовые дневники и {FREE_CHAT_LIMIT} сообщений Мае в
-        день. Плюс — безлимит и свои трекеры.
+        Не «ещё один трекер за копейки» — персональная ИИ-помощница, которая
+        помнит вашего малыша. Бесплатно можно заглянуть; безлимит — в Premium.
       </p>
 
       {active && current ? (

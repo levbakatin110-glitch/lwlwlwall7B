@@ -19,8 +19,11 @@ export type AiChatUsage = {
 /** Бесплатно: столько запросов к ИИ-чату в сутки (жёстко — защита от «потыкать») */
 export const FREE_CHAT_LIMIT = 3;
 
-/** Базовая цена за 1 месяц */
-export const BASE_MONTH_RUB = 349;
+/**
+ * Премиум-цена за 1 месяц.
+ * Ориентир рынка: Huckleberry Premium ~1,3–1,8k ₽/мес; AI-трекеры часто $10–15.
+ */
+export const BASE_MONTH_RUB = 1990;
 
 export type PlanDef = {
   id: PaidPlanId;
@@ -49,27 +52,27 @@ export const PAID_PLANS: PlanDef[] = [
     fullPriceRub: BASE_MONTH_RUB,
     label: "1 месяц",
     perMonthRub: BASE_MONTH_RUB,
-    blurb: "Попробовать без обязательств",
+    blurb: "Премиум · без обязательств",
   },
   {
     id: "m3",
     months: 3,
-    discountPct: 5,
-    priceRub: priceFor(3, 5),
+    discountPct: 15,
+    priceRub: priceFor(3, 15),
     fullPriceRub: BASE_MONTH_RUB * 3,
     label: "3 месяца",
-    perMonthRub: Math.round(priceFor(3, 5) / 3),
-    blurb: "Скидка 5%",
+    perMonthRub: Math.round(priceFor(3, 15) / 3),
+    blurb: "−15% к месячному",
   },
   {
     id: "m6",
     months: 6,
-    discountPct: 10,
-    priceRub: priceFor(6, 10),
+    discountPct: 25,
+    priceRub: priceFor(6, 25),
     fullPriceRub: BASE_MONTH_RUB * 6,
     label: "6 месяцев",
-    perMonthRub: Math.round(priceFor(6, 10) / 6),
-    blurb: "Скидка 10% — выгоднее",
+    perMonthRub: Math.round(priceFor(6, 25) / 6),
+    blurb: "−25% · лучшая цена Premium",
   },
 ];
 
@@ -162,7 +165,9 @@ export const FREE_PERKS = [
 ];
 
 export const PAID_PERKS = [
-  "Безлимитный чат с Маей",
-  "Создание своих дневников с ИИ",
-  "Эволюция и доработка разделов через чат",
+  "Безлимитный чат с Маей — тёплая ИИ «как мама маме»",
+  "Ответы с учётом возраста, дневников и норм",
+  "Свои дневники и доработка разделов через ИИ",
+  "Итог дня, рецепты ВОЗ, PDF для педиатра",
+  "Приоритет новых фич в Premium",
 ];
