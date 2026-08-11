@@ -88,6 +88,11 @@ export function Sidebar({
     PINNED_DIARIES.map((p) => p.moduleId).filter(Boolean) as ModuleId[],
   );
 
+  /** Закреплённые дневники — только если раздел включён (Моменты/Гардероб всегда) */
+  const visiblePinned = PINNED_DIARIES.filter(
+    (item) => !item.moduleId || enabledModules.includes(item.moduleId),
+  );
+
   const extraDiaries = [
     ...enabledModules
       .filter((id) => !pinnedIds.has(id))
@@ -209,7 +214,7 @@ export function Sidebar({
       <p className="mb-2 mt-6 px-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted">
         {childDisplayName(profile)}
       </p>
-      {PINNED_DIARIES.map((item) => (
+      {visiblePinned.map((item) => (
         <Link
           key={item.href}
           href={item.href}
