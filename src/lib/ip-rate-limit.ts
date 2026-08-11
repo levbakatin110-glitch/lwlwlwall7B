@@ -9,7 +9,7 @@ function todayUtc(): string {
 }
 
 /** Сколько ИИ-запросов с одного IP в сутки (даже если чистят localStorage) */
-export const IP_CHAT_LIMIT_PER_DAY = 12;
+export const IP_CHAT_LIMIT_PER_DAY = 3;
 
 export function checkIpChatLimit(ip: string): {
   ok: boolean;

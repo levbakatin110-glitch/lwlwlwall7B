@@ -5,7 +5,10 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { IconBadge, MayaIcon } from "@/components/icons/MayaIcon";
 import { OPTIONAL_MODULES, MODULE_BY_ID } from "@/lib/modules";
-import { isSubscriptionActive } from "@/lib/subscription";
+import {
+  isFreeModuleId,
+  isSubscriptionActive,
+} from "@/lib/subscription";
 import { useAppStore } from "@/lib/store";
 import type { ModuleBlueprint, ModuleId } from "@/lib/types";
 
@@ -17,6 +20,8 @@ export default function ModulesPage() {
   const enableModule = useAppStore((s) => s.enableModule);
   const addCustomModuleFromBlueprint = useAppStore((s) => s.addCustomModuleFromBlueprint);
   const removeCustomModule = useAppStore((s) => s.removeCustomModule);
+  const subscription = useAppStore((s) => s.subscription);
+  const premium = isSubscriptionActive(subscription);
 
   const [prompt, setPrompt] = useState("");
   const [blueprint, setBlueprint] = useState<ModuleBlueprint | null>(null);
@@ -274,6 +279,7 @@ export default function ModulesPage() {
       <ul className="space-y-3">
         {OPTIONAL_MODULES.map((mod, i) => {
           const on = enabledModules.includes(mod.id);
+          const locked = !premium && !isFreeModuleId(mod.id);
           return (
             <li
               key={mod.id}
@@ -287,9 +293,20 @@ export default function ModulesPage() {
               <div className="flex gap-3">
                 <IconBadge name={mod.icon} />
                 <div>
-                  <p className="font-medium">{mod.title}</p>
+                  <p className="font-medium">
+                    {mod.title}
+                    {locked ? (
+                      <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-accent">
+                        Premium
+                      </span>
+                    ) : null}
+                  </p>
                   <p className="mt-1 text-sm text-muted">{mod.description}</p>
-                  {on ? (
+                  {locked ? (
+                    <p className="mt-2 text-xs text-muted">
+                      На бесплатном доступны только рост/вес, ГВ и вода
+                    </p>
+                  ) : on ? (
                     <Link
                       href={`/m/${mod.id}`}
                       className="mt-2 inline-block text-sm text-accent underline"
@@ -303,17 +320,26 @@ export default function ModulesPage() {
                   )}
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => toggleModule(mod.id)}
-                className={`shrink-0 rounded-xl px-4 py-2 text-sm font-medium ${
-                  on
-                    ? "border border-line bg-accent-soft text-accent"
-                    : "bg-accent text-white"
-                }`}
-              >
-                {on ? "Отключить" : "Подключить"}
-              </button>
+              {locked ? (
+                <Link
+                  href="/pricing"
+                  className="shrink-0 rounded-xl bg-accent px-4 py-2 text-center text-sm font-medium text-white"
+                >
+                  Открыть в Premium
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => toggleModule(mod.id)}
+                  className={`shrink-0 rounded-xl px-4 py-2 text-sm font-medium ${
+                    on
+                      ? "border border-line bg-accent-soft text-accent"
+                      : "bg-accent text-white"
+                  }`}
+                >
+                  {on ? "Отключить" : "Подключить"}
+                </button>
+              )}
             </li>
           );
         })}

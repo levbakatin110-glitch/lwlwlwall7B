@@ -24,9 +24,11 @@ import { OPTIONAL_MODULES } from "./modules";
 import type { DietPlan } from "./diet-types";
 import {
   activatePaidPlan,
+  clampModulesForPlan,
   emptyAiUsage,
   emptySubscription,
   FREE_CHAT_LIMIT,
+  isFreeModuleId,
   isSubscriptionActive,
   localToday,
   normalizeAiUsage,
@@ -245,8 +247,14 @@ export const useAppStore = create<AppState>()(
         set({ accountEmail: null, emailVerified: false }),
       activateSubscription: (planId) =>
         set({ subscription: activatePaidPlan(planId) }),
-      clearSubscription: () =>
-        set({ subscription: emptySubscription() }),
+      clearSubscription: () => {
+        const freeMods = clampModulesForPlan(
+          get().enabledModules,
+          false,
+        ) as ModuleId[];
+        withActiveSpace(get, set, { enabledModules: freeMods });
+        set({ subscription: emptySubscription() });
+      },
       consumeAiChatQuota: () => {
         if (isSubscriptionActive(get().subscription)) return true;
         const today = localToday();
@@ -294,14 +302,23 @@ export const useAppStore = create<AppState>()(
 
       toggleModule: (id) => {
         const enabled = get().enabledModules;
+        const premium = isSubscriptionActive(get().subscription);
+        if (enabled.includes(id)) {
+          const next = enabled.filter((x) => x !== id);
+          withActiveSpace(get, set, {
+            enabledModules: clampModulesForPlan(next, premium) as ModuleId[],
+          });
+          return;
+        }
+        if (!premium && !isFreeModuleId(id)) return;
         withActiveSpace(get, set, {
-          enabledModules: enabled.includes(id)
-            ? enabled.filter((x) => x !== id)
-            : [...enabled, id],
+          enabledModules: [...enabled, id],
         });
       },
 
       enableModule: (id) => {
+        const premium = isSubscriptionActive(get().subscription);
+        if (!premium && !isFreeModuleId(id)) return;
         const enabled = get().enabledModules;
         if (!enabled.includes(id)) {
           withActiveSpace(get, set, { enabledModules: [...enabled, id] });
@@ -714,19 +731,12 @@ export const useAppStore = create<AppState>()(
           state.themeDefaultV2 = true;
         }
 
-        const defaults: ModuleId[] = [
-          "growth",
-          "sleep",
-          "breastfeeding",
-          "formula",
-          "solids",
-          "diet",
-        ];
+        const defaults: ModuleId[] = ["growth", "breastfeeding", "water"];
         const next = [...(state.enabledModules ?? [])].filter(
           (id) => (id as string) !== "outfit",
         );
-        // Один раз: досеять дефолты / диету. Дальше пользователь может отключать —
-        // при следующей загрузке разделы НЕ возвращаются сами.
+        // Один раз: досеять бесплатный набор. Дальше пользователь может отключать
+        // (в рамках тарифа) — при следующей загрузке разделы НЕ возвращаются сами.
         let seededDefaults = false;
         if (!state.modulesDefaultsSeededV1) {
           for (const mid of defaults) {
@@ -742,38 +752,42 @@ export const useAppStore = create<AppState>()(
               if (!mods.includes(mid)) mods.push(mid);
             }
             space.enabledModules = mods;
-            if (!space.journals.diet) space.journals.diet = [];
           }
           state.modulesDefaultsSeededV1 = true;
           seededDefaults = true;
         }
 
-        const careTrackers: ModuleId[] = ["water", "walk", "diaper", "notes"];
+        // Старый сид care-трекеров больше не раздувает бесплатный тариф
         if (!state.modulesCareTrackersV1) {
-          for (const mid of careTrackers) {
-            if (!next.includes(mid)) next.push(mid);
+          state.modulesCareTrackersV1 = true;
+        }
+
+        // Бесплатный тариф: только ГВ + рост/вес + вода
+        {
+          const premium = isSubscriptionActive(state.subscription);
+          const clamped = clampModulesForPlan(next, premium) as ModuleId[];
+          if (
+            clamped.length !== next.length ||
+            clamped.some((id, i) => id !== next[i])
+          ) {
+            next.length = 0;
+            next.push(...clamped);
+            seededDefaults = true;
           }
           for (const sid of Object.keys(state.childSpaces ?? {})) {
             const space = state.childSpaces[sid];
             if (!space) continue;
-            let mods = [...space.enabledModules];
-            for (const mid of careTrackers) {
-              if (!mods.includes(mid)) mods.push(mid);
-            }
-            space.enabledModules = mods;
-            const journals = { ...space.journals };
-            for (const mid of careTrackers) {
-              if (!journals[mid]) journals[mid] = [];
-            }
-            space.journals = journals;
+            space.enabledModules = clampModulesForPlan(
+              space.enabledModules,
+              premium,
+            ) as ModuleId[];
           }
-          state.modulesCareTrackersV1 = true;
-          seededDefaults = true;
         }
+
         {
           const journals = { ...(state.journals ?? {}) };
           let touched = false;
-          for (const mid of careTrackers) {
+          for (const mid of ["growth", "breastfeeding", "water"] as ModuleId[]) {
             if (!journals[mid]) {
               journals[mid] = [];
               touched = true;

@@ -65,8 +65,8 @@ export default function PricingPage() {
         <div className="mt-5 rounded-2xl border border-line bg-card/60 px-4 py-3 text-sm">
           <p className="font-medium">Сейчас: бесплатный тариф</p>
           <p className="mt-1 text-xs text-muted">
-            {FREE_CHAT_LIMIT} запросов к ИИ в сутки · без создания новых
-            дневников
+            {FREE_CHAT_LIMIT} запросов к ИИ в сутки · 3 дневника (рост/вес, ГВ,
+            вода)
           </p>
         </div>
       )}
@@ -86,7 +86,7 @@ export default function PricingPage() {
             >
               {popular && (
                 <span className="absolute -top-2 right-4 rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
-                  Выгоднее
+                  Premium
                 </span>
               )}
               <div className="flex flex-wrap items-end justify-between gap-3">
@@ -147,7 +147,7 @@ export default function PricingPage() {
         </div>
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
-            В подписке
+            Premium
           </p>
           <ul className="mt-2 space-y-2 text-sm text-foreground/90">
             {PAID_PERKS.map((t) => (

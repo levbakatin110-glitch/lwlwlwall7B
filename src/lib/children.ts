@@ -51,18 +51,7 @@ export type ChildSpace = {
 
 export function emptyChildSpace(): ChildSpace {
   return {
-    enabledModules: [
-      "growth",
-      "sleep",
-      "breastfeeding",
-      "formula",
-      "solids",
-      "diet",
-      "water",
-      "walk",
-      "diaper",
-      "notes",
-    ],
+    enabledModules: ["growth", "breastfeeding", "water"],
     customModules: [],
     wardrobe: [],
     memories: [],

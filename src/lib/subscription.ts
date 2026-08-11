@@ -25,6 +25,33 @@ export const FREE_CHAT_LIMIT = 3;
  */
 export const BASE_MONTH_RUB = 1990;
 
+/** На бесплатном только эти дневники */
+export const FREE_MODULE_IDS = [
+  "growth",
+  "breastfeeding",
+  "water",
+] as const;
+
+export type FreeModuleId = (typeof FREE_MODULE_IDS)[number];
+
+export function isFreeModuleId(id: string): boolean {
+  return (FREE_MODULE_IDS as readonly string[]).includes(id);
+}
+
+export function clampModulesForPlan(
+  modules: string[] | undefined,
+  premium: boolean,
+): string[] {
+  const list = [...(modules ?? [])];
+  if (premium) return list;
+  const allowed = FREE_MODULE_IDS as readonly string[];
+  const kept = list.filter((id) => allowed.includes(id));
+  for (const id of allowed) {
+    if (!kept.includes(id)) kept.push(id);
+  }
+  return kept;
+}
+
 export type PlanDef = {
   id: PaidPlanId;
   months: number;

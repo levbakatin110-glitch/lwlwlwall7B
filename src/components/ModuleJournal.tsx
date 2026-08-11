@@ -29,6 +29,10 @@ import {
 import { WhoGrowthChart } from "@/components/WhoGrowthChart";
 import { isBuiltinModuleId, resolveModule } from "@/lib/modules";
 import { summarizeEntryFields } from "@/lib/module-schema";
+import {
+  isFreeModuleId,
+  isSubscriptionActive,
+} from "@/lib/subscription";
 import { useAppStore } from "@/lib/store";
 import type { ModuleField, ModuleId } from "@/lib/types";
 
@@ -248,12 +252,19 @@ function FieldInput({
 export function ModuleJournal({ moduleId }: { moduleId: string }) {
   const customModules = useAppStore((s) => s.customModules);
   const profile = useAppStore((s) => s.profile);
+  const subscription = useAppStore((s) => s.subscription);
+  const premium = isSubscriptionActive(subscription);
   const mod = resolveModule(moduleId, customModules);
   const custom = customModules.find((c) => c.id === moduleId);
+  const premiumLocked =
+    isBuiltinModuleId(moduleId) && !premium && !isFreeModuleId(moduleId);
   const enabledBuiltin = useAppStore((s) =>
     isBuiltinModuleId(moduleId) ? s.enabledModules.includes(moduleId) : true,
   );
-  const enabled = Boolean(mod) && (mod?.custom || enabledBuiltin);
+  const enabled =
+    Boolean(mod) &&
+    !premiumLocked &&
+    (mod?.custom ? premium : enabledBuiltin);
   const entries = useAppStore((s) => s.journals[moduleId] ?? []);
   const addJournalEntry = useAppStore((s) => s.addJournalEntry);
   const removeJournalEntry = useAppStore((s) => s.removeJournalEntry);
@@ -375,22 +386,50 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
     return (
       <div className="mx-auto max-w-xl px-4 py-10">
         <p className="font-display flex items-center gap-3 text-3xl">
-          <IconBadge name={mod.icon} />
-          {mod.title}
+          <IconBadge name={mod?.icon || "list"} />
+          {mod?.title || "Дневник"}
         </p>
-        <p className="mt-4 text-sm text-muted">Раздел пока выключен.</p>
-        <div className="mt-4 flex gap-2">
-          <button
-            type="button"
-            onClick={() => enableModule(moduleId as ModuleId)}
-            className="rounded-xl bg-accent px-4 py-2 text-sm text-white"
-          >
-            Подключить
-          </button>
-          <Link href="/modules" className="rounded-xl border border-line bg-card px-4 py-2 text-sm">
-            К каталогу
-          </Link>
-        </div>
+        {premiumLocked ? (
+          <>
+            <p className="mt-4 text-sm text-muted">
+              Этот дневник — в Maya Premium. На бесплатном доступны рост и вес,
+              ГВ и вода.
+            </p>
+            <div className="mt-4 flex gap-2">
+              <Link
+                href="/pricing"
+                className="rounded-xl bg-accent px-4 py-2 text-sm text-white"
+              >
+                Открыть Premium
+              </Link>
+              <Link
+                href="/modules"
+                className="rounded-xl border border-line bg-card px-4 py-2 text-sm"
+              >
+                К каталогу
+              </Link>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="mt-4 text-sm text-muted">Раздел пока выключен.</p>
+            <div className="mt-4 flex gap-2">
+              <button
+                type="button"
+                onClick={() => enableModule(moduleId as ModuleId)}
+                className="rounded-xl bg-accent px-4 py-2 text-sm text-white"
+              >
+                Подключить
+              </button>
+              <Link
+                href="/modules"
+                className="rounded-xl border border-line bg-card px-4 py-2 text-sm"
+              >
+                К каталогу
+              </Link>
+            </div>
+          </>
+        )}
       </div>
     );
   }
