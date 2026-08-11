@@ -732,6 +732,12 @@ export function OnboardingFlow({
   );
 }
 
+/**
+ * ВРЕМЕННО открытый доступ (показ коллеге): без анкеты и без почты.
+ * Вернуть false, когда нужно снова включить вход.
+ */
+export const TEMP_OPEN_ACCESS = true;
+
 /** Ждёт persist и показывает онбординг новым пользователям */
 export function OnboardingGate({ children }: { children: React.ReactNode }) {
   const onboardingDone = useAppStore((s) => s.onboardingDone);
@@ -750,6 +756,11 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
         <p className="font-display text-lg">Мая…</p>
       </div>
     );
+  }
+
+  // Временный просмотр: сразу в приложение
+  if (TEMP_OPEN_ACCESS) {
+    return <>{children}</>;
   }
 
   if (!onboardingDone) {
