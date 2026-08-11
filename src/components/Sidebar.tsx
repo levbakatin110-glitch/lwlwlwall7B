@@ -15,7 +15,6 @@ import type { ModuleId } from "@/lib/types";
 const CORE: { href: string; label: string; icon: IconName }[] = [
   { href: "/", label: "Чат с Маей", icon: "chat" },
   { href: "/summary", label: "Итоги дня", icon: "list" },
-  { href: "/recipes", label: "На кухне", icon: "solids" },
   { href: "/pricing", label: "Подписка", icon: "spark" },
   { href: "/profile", label: "Малыши", icon: "profile" },
   { href: "/modules", label: "Разделы", icon: "plus" },

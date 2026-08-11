@@ -59,11 +59,15 @@ export function ChatNewsFeed({
   }
 
   return (
-    <section className="maya-rise relative pb-8 pt-2" aria-label="Лента">
+    <section
+      className="maya-rise relative overflow-hidden rounded-[1.5rem] border border-accent/20 bg-gradient-to-br from-accent-soft/50 via-card/90 to-[color-mix(in_oklab,var(--accent)_8%,transparent)] px-3.5 py-4 pb-8"
+      aria-label="Лента"
+    >
       <div className="mb-4 px-0.5">
         <h2 className="font-display text-xl font-semibold tracking-tight text-foreground">
           Лента
         </h2>
+        <p className="mt-0.5 text-xs text-muted">Про малыша</p>
       </div>
 
       <ul className="flex flex-col gap-3">

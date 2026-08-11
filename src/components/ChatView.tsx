@@ -775,7 +775,6 @@ export function ChatView() {
                 city={profile.city}
                 forceShow={vpnSuspect}
               />
-              <RecipeOfDayCard compact={!empty} />
             </div>
 
             {empty && (
@@ -1102,13 +1101,42 @@ export function ChatView() {
         </div>
         </div>
 
-        <ChatNewsFeed
-          onOpenChat={(prefill) => {
-            if (prefill) setInput(prefill);
-            chatPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-            window.setTimeout(() => inputRef.current?.focus(), 350);
-          }}
-        />
+        <div className="mt-2 space-y-5 pb-4">
+          {/* Кухня — отдельно по цвету от ленты малыша */}
+          <section
+            className="rounded-[1.5rem] border border-amber-500/25 bg-gradient-to-br from-amber-50/90 via-[#fff8ee] to-orange-50/50 px-3.5 py-4 dark:border-amber-400/20 dark:from-amber-950/40 dark:via-card dark:to-orange-950/20"
+            aria-label="На кухне"
+          >
+            <div className="mb-3 flex items-end justify-between gap-2 px-0.5">
+              <div>
+                <h2 className="font-display text-xl font-semibold tracking-tight text-foreground">
+                  На кухне
+                </h2>
+                <p className="mt-0.5 text-xs text-muted">
+                  Рецепт дня — каждый день новый
+                </p>
+              </div>
+              <Link
+                href="/recipes"
+                className="shrink-0 text-xs font-semibold text-amber-800 underline decoration-amber-500/40 underline-offset-2 dark:text-amber-200"
+              >
+                Все →
+              </Link>
+            </div>
+            <RecipeOfDayCard />
+          </section>
+
+          <ChatNewsFeed
+            onOpenChat={(prefill) => {
+              if (prefill) setInput(prefill);
+              chatPanelRef.current?.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+              });
+              window.setTimeout(() => inputRef.current?.focus(), 350);
+            }}
+          />
+        </div>
       </div>
 
       {logPreview && (
