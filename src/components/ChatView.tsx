@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { ChatChart } from "@/components/ChatChart";
 import { ChatNewsFeed } from "@/components/ChatNewsFeed";
+import { ChatQuickLog } from "@/components/ChatQuickLog";
 import { HomeWeatherCard } from "@/components/HomeWeatherCard";
 import { JournalEntryChip } from "@/components/JournalEntryChip";
 import { LogPreviewSheet, type LogPreviewData } from "@/components/LogPreviewSheet";
@@ -1039,6 +1040,8 @@ export function ChatView() {
               </Link>
             </p>
           )}
+
+          <ChatQuickLog />
 
           <form
             className="flex shrink-0 gap-2 border-t border-line p-3"

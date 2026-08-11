@@ -15,6 +15,7 @@ import {
   todayIso,
   type DayEventKind,
 } from "@/lib/day-summary";
+import { openDoctorReportPdf } from "@/lib/doctor-report";
 import {
   canSendAiChat,
   FREE_CHAT_LIMIT,
@@ -221,6 +222,20 @@ ${brief}`;
             {age ? ` · ${age}` : ""}
           </p>
         </div>
+        <button
+          type="button"
+          onClick={() =>
+            openDoctorReportPdf({
+              profile,
+              journals,
+              date,
+              verdict: shownVerdict,
+            })
+          }
+          className="shrink-0 rounded-xl border border-line bg-card/80 px-3 py-2 text-xs font-semibold text-foreground transition hover:border-accent/40"
+        >
+          PDF врачу
+        </button>
       </div>
 
       <div className="mt-6 flex items-center justify-between gap-2">

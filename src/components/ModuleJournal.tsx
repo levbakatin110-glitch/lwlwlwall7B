@@ -26,6 +26,7 @@ import {
   parseWeightKg,
   type GrowthPoint,
 } from "@/lib/growth-norms";
+import { WhoGrowthChart } from "@/components/WhoGrowthChart";
 import { isBuiltinModuleId, resolveModule } from "@/lib/modules";
 import { summarizeEntryFields } from "@/lib/module-schema";
 import { useAppStore } from "@/lib/store";
@@ -504,7 +505,7 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
 
       {!isDietPage &&
         !mod.custom &&
-        !["water", "walk", "diaper", "notes"].includes(moduleId) && (
+        !["water", "walk", "notes"].includes(moduleId) && (
         <DiaryQuickActions moduleId={moduleId} onPrefill={focusAdd} />
       )}
 
@@ -515,6 +516,18 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
             onAskHeight={() => focusAdd("68 см")}
             onAskWeight={() => focusAdd("8.2 кг")}
           />
+          <WhoGrowthChart
+            metric="weight"
+            sex={profile.sex}
+            birthDate={profile.birthDate}
+            series={weightSeries.filter((s) => s.y >= 2 && s.y <= 25)}
+          />
+          <WhoGrowthChart
+            metric="length"
+            sex={profile.sex}
+            birthDate={profile.birthDate}
+            series={heightSeries.filter((s) => s.y >= 40 && s.y <= 120)}
+          />
           {weightSeries.length >= 2 && (
             <ProgressMini
               series={weightSeries}
@@ -522,12 +535,16 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
               title={
                 weightSeries.some((s) => s.y < 15)
                   ? "Прибавки"
-                  : "Вес"
+                  : "Динамика веса"
               }
             />
           )}
           {heightSeries.length >= 2 && (
-            <ProgressMini series={heightSeries} unit="см" title="Рост" />
+            <ProgressMini
+              series={heightSeries}
+              unit="см"
+              title="Динамика роста"
+            />
           )}
         </div>
       )}

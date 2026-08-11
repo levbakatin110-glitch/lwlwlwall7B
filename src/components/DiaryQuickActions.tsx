@@ -49,6 +49,11 @@ const CHIPS: Record<string, Chip[]> = {
     { label: "Каша", prefill: "каша · 2 ч.л." },
     { label: "Фрукт", prefill: "яблоко · пробование" },
   ],
+  diaper: [
+    { label: "Мокрый", instant: { value: "Мокрый" } },
+    { label: "Грязный", instant: { value: "Грязный" } },
+    { label: "Оба", instant: { value: "Мокрый и грязный" } },
+  ],
   diet: [
     { label: "Завтрак", prefill: "Завтрак · 350 ккал" },
     { label: "Обед", prefill: "Обед · 500 ккал" },
@@ -107,6 +112,15 @@ export function DiaryQuickActions({
               }
               if (chip.instant) {
                 const ml = chip.instant.value.match(/(\d+)\s*мл/i);
+                const diaperKind =
+                  moduleId === "diaper"
+                    ? /грязн/i.test(chip.instant.value) &&
+                      /мокр/i.test(chip.instant.value)
+                      ? "both"
+                      : /грязн/i.test(chip.instant.value)
+                        ? "dirty"
+                        : "wet"
+                    : null;
                 addJournalEntry(moduleId, {
                   date: new Date().toISOString().slice(0, 10),
                   value: chip.instant.value,
@@ -114,7 +128,9 @@ export function DiaryQuickActions({
                   fields:
                     moduleId === "formula" && ml
                       ? { ml: Number(ml[1]) }
-                      : undefined,
+                      : diaperKind
+                        ? { kind: diaperKind, rash: 0 }
+                        : undefined,
                 });
                 return;
               }
