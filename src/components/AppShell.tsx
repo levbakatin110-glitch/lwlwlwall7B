@@ -6,6 +6,7 @@ import { InstallHint } from "./InstallHint";
 import { AnalyticsVisitBeacon } from "./AnalyticsVisitBeacon";
 import { OnboardingGate } from "./OnboardingFlow";
 import { RemindersHost } from "./RemindersHost";
+import { SubscriptionSync } from "./SubscriptionSync";
 import { Sidebar } from "./Sidebar";
 import { ThemeSync } from "./ThemeSync";
 import { ThemeToggle } from "./ThemeToggle";
@@ -45,6 +46,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <OnboardingGate>
       <ThemeSync />
       <AnalyticsVisitBeacon />
+      <SubscriptionSync />
       <div className="flex h-dvh max-h-dvh overflow-hidden bg-background pt-[env(safe-area-inset-top)] text-foreground">
         <Sidebar mobileOpen={menuOpen} onMobileOpenChange={setMenuOpen} />
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
