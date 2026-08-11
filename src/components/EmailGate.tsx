@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { trackEvent } from "@/lib/analytics-client";
 import { useAppStore } from "@/lib/store";
 
 /** Если анкету уже прошли раньше — всё равно просим почту */
@@ -58,6 +59,7 @@ export function EmailGate({ children }: { children: React.ReactNode }) {
       const data = (await res.json()) as { error?: string; email?: string };
       if (!res.ok) throw new Error(data.error || "Неверный код");
       setAccountEmail(data.email || email.trim().toLowerCase());
+      trackEvent("register");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Ошибка");
     } finally {

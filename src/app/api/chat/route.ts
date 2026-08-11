@@ -1,5 +1,10 @@
 import { buildSystemPrompt, type ClientChatPayload } from "@/lib/ai-context";
+import { trackAnalyticsEvent } from "@/lib/analytics-store";
 import { clientIpFromRequest, lookupIpGeo } from "@/lib/ip-geo";
+import {
+  checkIpChatLimit,
+  consumeIpChatLimit,
+} from "@/lib/ip-rate-limit";
 import { chatModel, createOpenAI } from "@/lib/openai";
 import { pushServerOpsError } from "@/lib/ops-log";
 import { encodeWeatherHeader, resolveWeather } from "@/lib/weather";
@@ -13,6 +18,20 @@ export async function POST(req: Request) {
       "Не настроен ключ ИИ. В .env.local нужен OPENAI_API_KEY (ключ ProxyAPI или OpenAI).";
     pushServerOpsError({ source: "server", message: error, status: 500 });
     return Response.json({ error }, { status: 500 });
+  }
+
+  const ip = clientIpFromRequest(req);
+  const ipGate = checkIpChatLimit(ip);
+  if (!ipGate.ok) {
+    const error =
+      "С этого адреса сегодня слишком много запросов к Мае. Завтра снова или оформите подписку.";
+    pushServerOpsError({
+      source: "chat",
+      message: "IP chat limit",
+      status: 429,
+      detail: ip.slice(0, 40),
+    });
+    return Response.json({ error }, { status: 429 });
   }
 
   let body: ClientChatPayload;
@@ -32,6 +51,12 @@ export async function POST(req: Request) {
   }
 
   const lastUser = [...body.messages].reverse().find((m) => m.role === "user");
+
+  consumeIpChatLimit(ip);
+  trackAnalyticsEvent({
+    name: "chat_send",
+    meta: lastUser?.content?.slice(0, 40),
+  });
 
   try {
     let coords = body.coords ?? null;

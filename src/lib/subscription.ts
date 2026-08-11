@@ -16,8 +16,8 @@ export type AiChatUsage = {
   count: number;
 };
 
-/** Бесплатно: столько запросов к ИИ-чату в сутки */
-export const FREE_CHAT_LIMIT = 11;
+/** Бесплатно: столько запросов к ИИ-чату в сутки (жёстко — защита от «потыкать») */
+export const FREE_CHAT_LIMIT = 3;
 
 /** Базовая цена за 1 месяц */
 export const BASE_MONTH_RUB = 349;

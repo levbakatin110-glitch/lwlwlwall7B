@@ -131,6 +131,10 @@ export default function AdminPage() {
         Валидатор дневников, авто-починка и лог ошибок чата. Отдельная страница —
         в меню мам её нет. Открывать:{" "}
         <code className="text-foreground">/admin</code>
+        {" · "}
+        <Link href="/admin/stats" className="text-accent underline">
+          аналитика
+        </Link>
       </p>
 
       {note && (

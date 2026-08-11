@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { InstallHint } from "./InstallHint";
+import { AnalyticsVisitBeacon } from "./AnalyticsVisitBeacon";
 import { OnboardingGate } from "./OnboardingFlow";
 import { RemindersHost } from "./RemindersHost";
 import { Sidebar } from "./Sidebar";
@@ -43,6 +44,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <OnboardingGate>
       <ThemeSync />
+      <AnalyticsVisitBeacon />
       <div className="flex h-dvh max-h-dvh overflow-hidden bg-background pt-[env(safe-area-inset-top)] text-foreground">
         <Sidebar mobileOpen={menuOpen} onMobileOpenChange={setMenuOpen} />
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">

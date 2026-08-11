@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
 import { IconBadge } from "@/components/icons/MayaIcon";
 import {
   FREE_CHAT_LIMIT,
@@ -13,6 +14,7 @@ import {
   planById,
   type PaidPlanId,
 } from "@/lib/subscription";
+import { trackEvent } from "@/lib/analytics-client";
 import { useAppStore } from "@/lib/store";
 
 export default function PricingPage() {
@@ -22,8 +24,14 @@ export default function PricingPage() {
   const active = isSubscriptionActive(subscription);
   const current = active ? planById(subscription.planId) : null;
 
+  useEffect(() => {
+    trackEvent("pricing_view");
+  }, []);
+
   function pick(id: PaidPlanId) {
+    trackEvent("subscribe_click", id);
     activateSubscription(id);
+    trackEvent("subscribe_activate", id);
   }
 
   return (

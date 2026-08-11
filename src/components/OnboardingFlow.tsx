@@ -10,6 +10,7 @@ import {
   validateCurrentWeight,
 } from "@/lib/children";
 import { compressImageFile } from "@/lib/image";
+import { trackEvent } from "@/lib/analytics-client";
 import { useAppStore } from "@/lib/store";
 import type { ChildProfile, Sex } from "@/lib/types";
 import {
@@ -282,6 +283,7 @@ export function OnboardingFlow({
       if (!res.ok) throw new Error(data.error || "Неверный код");
       setAccountEmail(data.email || trimmed);
       setEmailOk(true);
+      trackEvent("register");
       setStep(4);
     } catch (e) {
       setEmailError(e instanceof Error ? e.message : "Ошибка проверки");
@@ -305,6 +307,7 @@ export function OnboardingFlow({
         setStep(1);
       } else {
         completeOnboarding();
+        trackEvent("onboarding_done");
         onClose?.();
       }
     } finally {
@@ -736,7 +739,7 @@ export function OnboardingFlow({
  * ВРЕМЕННО открытый доступ (показ коллеге): без анкеты и без почты.
  * Вернуть false, когда нужно снова включить вход.
  */
-export const TEMP_OPEN_ACCESS = true;
+export const TEMP_OPEN_ACCESS = false;
 
 /** Ждёт persist и показывает онбординг новым пользователям */
 export function OnboardingGate({ children }: { children: React.ReactNode }) {
