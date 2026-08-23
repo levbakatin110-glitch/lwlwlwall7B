@@ -1,5 +1,11 @@
 /** Тарифы Маи. Оплата (ЮKassa и т.п.) подключим отдельно — пока активация локальная. */
 
+/**
+ * ВРЕМЕННО: полный Premium всем (чат без лимита + все дневники).
+ * Выставь false и задеплой, когда демо клиентке закончится.
+ */
+export const TEMP_UNLOCK_ALL = true;
+
 export type PlanId = "free" | "m1" | "m3" | "m6";
 
 export type PaidPlanId = Exclude<PlanId, "free">;
@@ -35,6 +41,7 @@ export const FREE_MODULE_IDS = [
 export type FreeModuleId = (typeof FREE_MODULE_IDS)[number];
 
 export function isFreeModuleId(id: string): boolean {
+  if (TEMP_UNLOCK_ALL) return true;
   return (FREE_MODULE_IDS as readonly string[]).includes(id);
 }
 
@@ -43,7 +50,29 @@ export function clampModulesForPlan(
   premium: boolean,
 ): string[] {
   const list = [...(modules ?? [])];
-  if (premium) return list;
+  if (TEMP_UNLOCK_ALL || premium) {
+    // На время демо сразу включаем все встроенные дневники
+    if (TEMP_UNLOCK_ALL) {
+      const allBuiltins = [
+        "growth",
+        "breastfeeding",
+        "formula",
+        "solids",
+        "sleep",
+        "vaccines",
+        "health",
+        "diet",
+        "water",
+        "walk",
+        "diaper",
+        "notes",
+      ];
+      for (const id of allBuiltins) {
+        if (!list.includes(id)) list.push(id);
+      }
+    }
+    return list;
+  }
   const allowed = FREE_MODULE_IDS as readonly string[];
   const kept = list.filter((id) => allowed.includes(id));
   for (const id of allowed) {
@@ -125,6 +154,7 @@ export function localToday(): string {
 }
 
 export function isSubscriptionActive(sub: SubscriptionState | null | undefined): boolean {
+  if (TEMP_UNLOCK_ALL) return true;
   if (!sub || sub.planId === "free" || !sub.expiresAt) return false;
   const t = Date.parse(sub.expiresAt);
   if (Number.isNaN(t)) return false;

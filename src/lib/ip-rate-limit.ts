@@ -1,5 +1,7 @@
 /** Простой лимит запросов к ИИ по IP (in-memory, на процесс pm2). */
 
+import { TEMP_UNLOCK_ALL } from "@/lib/subscription";
+
 type Bucket = { day: string; count: number };
 
 const buckets = new Map<string, Bucket>();
@@ -16,6 +18,9 @@ export function checkIpChatLimit(ip: string): {
   remaining: number;
   limit: number;
 } {
+  if (TEMP_UNLOCK_ALL) {
+    return { ok: true, remaining: 9999, limit: 9999 };
+  }
   const key = (ip || "unknown").slice(0, 64);
   const day = todayUtc();
   const cur = buckets.get(key);
@@ -32,6 +37,7 @@ export function checkIpChatLimit(ip: string): {
 }
 
 export function consumeIpChatLimit(ip: string): void {
+  if (TEMP_UNLOCK_ALL) return;
   const key = (ip || "unknown").slice(0, 64);
   const day = todayUtc();
   const cur = buckets.get(key);
