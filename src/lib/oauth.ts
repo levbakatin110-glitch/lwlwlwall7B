@@ -69,10 +69,8 @@ export function siteOrigin(): string {
 
 export function oauthCallbackUrl(provider: OAuthProvider): string {
   if (provider === "mailru") {
-    const custom = process.env.MAILRU_REDIRECT_URI?.trim();
-    if (custom) return custom;
-    // Mail.ru в доках требует URI со «/» на конце
-    return `${siteOrigin()}/api/auth/oauth/mailru/callback/`;
+    // Должен совпадать 1:1 с «Все redirect_uri» в oauth.mail.ru
+    return "https://hey-maya.ru/api/auth/oauth/mailru/callback/";
   }
   return `${siteOrigin()}/api/auth/oauth/${provider}/callback`;
 }
