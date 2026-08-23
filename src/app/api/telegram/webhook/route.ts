@@ -1,14 +1,17 @@
 import {
-  sendMessage,
-  siteKeyboard,
-  tgApi,
-  type TelegramUpdate,
-  webhookSecret,
-  welcomeText,
   botToken,
+  siteKeyboard,
+  welcomeText,
+  webhookSecret,
+  type TelegramUpdate,
 } from "@/lib/telegram";
 
 export const runtime = "nodejs";
+
+/** Ответ Telegram прямо в HTTP-ответе webhook — без исходящего запроса с VPS. */
+function tgMethodResponse(method: string, params: Record<string, unknown>) {
+  return Response.json({ method, ...params });
+}
 
 export async function POST(req: Request) {
   if (!botToken()) {
@@ -31,37 +34,35 @@ export async function POST(req: Request) {
   }
 
   try {
+    if (update.callback_query?.id) {
+      return tgMethodResponse("answerCallbackQuery", {
+        callback_query_id: update.callback_query.id,
+      });
+    }
+
     if (update.message?.text) {
       const chatId = update.message.chat.id;
       const text = update.message.text.trim();
       const cmd = text.split(/\s+/)[0]?.toLowerCase().split("@")[0] ?? "";
 
+      let reply = "Нажми /start или кнопку ниже — откроется Мая.";
       if (cmd === "/start" || cmd === "/help") {
-        await sendMessage(chatId, welcomeText(), siteKeyboard());
+        reply = welcomeText();
       } else if (cmd === "/site" || cmd === "/maya") {
-        await sendMessage(
-          chatId,
-          "Мая на сайте ↓",
-          siteKeyboard(),
-        );
-      } else {
-        await sendMessage(
-          chatId,
-          "Нажми /start или кнопку ниже — откроется Мая.",
-          siteKeyboard(),
-        );
+        reply = "Мая на сайте ↓";
       }
-    }
 
-    if (update.callback_query?.id) {
-      await tgApi("answerCallbackQuery", {
-        callback_query_id: update.callback_query.id,
+      return tgMethodResponse("sendMessage", {
+        chat_id: chatId,
+        text: reply,
+        parse_mode: "HTML",
+        disable_web_page_preview: false,
+        reply_markup: siteKeyboard(),
       });
     }
   } catch (e) {
     console.error("[telegram webhook]", e);
   }
 
-  // Telegram ждёт быстрый 200
   return Response.json({ ok: true });
 }
