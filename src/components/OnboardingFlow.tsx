@@ -17,6 +17,7 @@ import {
   SketchMaya,
 } from "@/components/illustrations/MayaSketch";
 import { EmailGate } from "@/components/EmailGate";
+import { OAuthButtons } from "@/components/OAuthButtons";
 import {
   dueDateFromLmp,
 } from "@/lib/pregnancy";
@@ -877,6 +878,14 @@ export function OnboardingFlow({
                         Отправить код ещё раз
                       </button>
                     </div>
+                  )}
+
+                  {!codeSent && authMode !== "recover" && (
+                    <OAuthButtons
+                      mode={authMode === "register" ? "register" : "login"}
+                      returnTo="/"
+                      onError={(msg) => setEmailError(msg || null)}
+                    />
                   )}
 
                   <div className="flex flex-col gap-2 pt-2 text-center text-sm">

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { trackEvent } from "@/lib/analytics-client";
+import { OAuthButtons } from "@/components/OAuthButtons";
 import { useAppStore } from "@/lib/store";
 
 type AuthMode = "register" | "login" | "recover";
@@ -213,6 +214,15 @@ export function EmailGate({ children }: { children: React.ReactNode }) {
                 Отправить код ещё раз
               </button>
             </div>
+          )}
+
+          {!codeSent && authMode !== "recover" && (
+            <OAuthButtons
+              mode={authMode === "register" ? "register" : "login"}
+              consentsOk={consentsOk}
+              returnTo="/register"
+              onError={(msg) => setError(msg || null)}
+            />
           )}
 
           <div className="flex flex-col gap-2 pt-1 text-center text-sm">
