@@ -18,6 +18,7 @@ export default function ProfilePage() {
   const accountEmail = useAppStore((s) => s.accountEmail);
   const emailVerified = useAppStore((s) => s.emailVerified);
   const setAccountEmail = useAppStore((s) => s.setAccountEmail);
+  const clearAccountEmail = useAppStore((s) => s.clearAccountEmail);
   const [form, setForm] = useState<ChildProfile>(profile);
   const [saved, setSaved] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -125,13 +126,6 @@ export default function ProfilePage() {
         Маей.
       </p>
 
-      <a
-        href="/register"
-        className="mt-4 flex w-full items-center justify-center rounded-2xl bg-accent py-3.5 text-sm font-semibold text-white"
-      >
-        Регистрация по почте →
-      </a>
-
       <div className="mt-4">
         <InstallAppCard />
       </div>
@@ -141,9 +135,21 @@ export default function ProfilePage() {
           Аккаунт · почта
         </p>
         {emailVerified && accountEmail ? (
-          <p className="mt-2 text-sm text-foreground">
-            Привязана: <span className="font-medium">{accountEmail}</span>
-          </p>
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-foreground">
+              Привязана: <span className="font-medium">{accountEmail}</span>
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                clearAccountEmail();
+                window.location.href = "/register";
+              }}
+              className="rounded-xl border border-line px-3.5 py-2 text-sm font-medium text-muted transition hover:border-accent/40 hover:text-foreground"
+            >
+              Выйти
+            </button>
+          </div>
         ) : (
           <div className="mt-3 space-y-3">
             <p className="text-sm text-muted">
