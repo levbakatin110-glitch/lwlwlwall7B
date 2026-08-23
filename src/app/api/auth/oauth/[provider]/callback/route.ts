@@ -1,10 +1,12 @@
 import {
   createOAuthTicket,
-  exchangeGoogleCode,
+  exchangeMailruCode,
+  exchangeVkCode,
   parseOAuthState,
   providerConfigured,
   safeReturnTo,
   siteOrigin,
+  takePkceSession,
   type OAuthProvider,
 } from "@/lib/oauth";
 
@@ -13,7 +15,7 @@ export const runtime = "nodejs";
 type Ctx = { params: Promise<{ provider: string }> };
 
 function isProvider(v: string): v is OAuthProvider {
-  return v === "google";
+  return v === "vk" || v === "mailru";
 }
 
 function redirectError(returnTo: string, message: string) {
@@ -28,7 +30,12 @@ export async function GET(req: Request, ctx: Ctx) {
     return redirectError("/register", "Неизвестный провайдер");
   }
   if (!providerConfigured(raw)) {
-    return redirectError("/register", "Google OAuth не настроен на сервере");
+    return redirectError(
+      "/register",
+      raw === "vk"
+        ? "VK OAuth не настроен на сервере"
+        : "Mail.ru OAuth не настроен на сервере",
+    );
   }
 
   const url = new URL(req.url);
@@ -36,6 +43,7 @@ export async function GET(req: Request, ctx: Ctx) {
   const errDesc = url.searchParams.get("error_description");
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state") || "";
+  const deviceIdFromQuery = url.searchParams.get("device_id") || "";
 
   const parsed = parseOAuthState(state);
   const returnTo = parsed.ok ? safeReturnTo(parsed.data.r) : "/register";
@@ -50,12 +58,27 @@ export async function GET(req: Request, ctx: Ctx) {
     return redirectError(returnTo, parsed.error);
   }
 
+  const pkce = takePkceSession(parsed.data.n, raw);
+  if (!pkce.ok) {
+    return redirectError(returnTo, pkce.error);
+  }
+
   try {
-    const email = await exchangeGoogleCode(code);
+    const email =
+      raw === "vk"
+        ? await exchangeVkCode({
+            code,
+            deviceId: deviceIdFromQuery || pkce.deviceId,
+            verifier: pkce.verifier,
+          })
+        : await exchangeMailruCode({
+            code,
+            verifier: pkce.verifier,
+          });
     const ticket = createOAuthTicket(email);
     const dest = new URL(returnTo, siteOrigin());
     dest.searchParams.set("oauth", ticket);
-    dest.searchParams.set("oauth_provider", "google");
+    dest.searchParams.set("oauth_provider", raw);
     return Response.redirect(dest.toString(), 302);
   } catch (e) {
     return redirectError(

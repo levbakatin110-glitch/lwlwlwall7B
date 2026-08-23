@@ -1,24 +1,23 @@
 import {
+  buildAuthUrl,
   createOAuthState,
-  googleAuthUrl,
   providerConfigured,
   providersStatus,
   safeReturnTo,
+  savePkceSession,
   type OAuthProvider,
 } from "@/lib/oauth";
 
 export const runtime = "nodejs";
 
 function isProvider(v: string): v is OAuthProvider {
-  return v === "google";
+  return v === "vk" || v === "mailru";
 }
 
-/** Какие соц. входы настроены на сервере */
 export async function GET() {
   return Response.json(providersStatus());
 }
 
-/** Старт OAuth */
 export async function POST(req: Request) {
   let body: {
     provider?: string;
@@ -39,7 +38,9 @@ export async function POST(req: Request) {
     return Response.json(
       {
         error:
-          "Вход через Google ещё не настроен (нужны GOOGLE_CLIENT_ID / SECRET на сервере)",
+          provider === "vk"
+            ? "Вход через VK ещё не настроен (нужны VK_CLIENT_ID / SECRET на сервере)"
+            : "Вход через Mail.ru ещё не настроен (нужны MAILRU_CLIENT_ID / SECRET на сервере)",
       },
       { status: 503 },
     );
@@ -47,6 +48,8 @@ export async function POST(req: Request) {
 
   const mode = body.mode === "register" ? "register" : "login";
   const returnTo = safeReturnTo(body.returnTo);
-  const state = createOAuthState({ provider, mode, returnTo });
-  return Response.json({ url: googleAuthUrl(state) });
+  const { state, nonce } = createOAuthState({ provider, mode, returnTo });
+  const { challenge, deviceId } = savePkceSession(nonce, provider);
+  const url = buildAuthUrl(provider, state, challenge, deviceId);
+  return Response.json({ url });
 }

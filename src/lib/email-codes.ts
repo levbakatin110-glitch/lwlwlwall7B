@@ -23,6 +23,50 @@ export function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeEmail(email));
 }
 
+/** Российские / СНГ почтовые сервисы + любые адреса на .ru / .su / .рф */
+const RU_MAILBOX_DOMAINS = new Set([
+  "mail.ru",
+  "bk.ru",
+  "list.ru",
+  "inbox.ru",
+  "internet.ru",
+  "xmail.ru",
+  "yandex.ru",
+  "ya.ru",
+  "yandex.com",
+  "yandex.by",
+  "yandex.kz",
+  "yandex.ua",
+  "rambler.ru",
+  "lenta.ru",
+  "autorambler.ru",
+  "myrambler.ru",
+  "ro.ru",
+  "vk.com",
+  "ok.ru",
+]);
+
+export function isAllowedRussianEmail(email: string): boolean {
+  if (!isValidEmail(email)) return false;
+  const domain = normalizeEmail(email).split("@")[1] || "";
+  if (RU_MAILBOX_DOMAINS.has(domain)) return true;
+  if (
+    domain.endsWith(".mail.ru") ||
+    domain.endsWith(".yandex.ru") ||
+    domain.endsWith(".yandex.com") ||
+    domain.endsWith(".rambler.ru")
+  ) {
+    return true;
+  }
+  if (domain.endsWith(".ru") || domain.endsWith(".su") || domain.endsWith(".xn--p1ai")) {
+    return true;
+  }
+  return false;
+}
+
+export const RUSSIAN_EMAIL_HINT =
+  "Только российская почта: Mail.ru, Яндекс, Rambler или адрес на .ru";
+
 export function createEmailCode(email: string): string {
   const key = normalizeEmail(email);
   const code = String(Math.floor(100000 + Math.random() * 900000));

@@ -1,4 +1,10 @@
-import { createEmailCode, isValidEmail, normalizeEmail } from "@/lib/email-codes";
+import {
+  createEmailCode,
+  isAllowedRussianEmail,
+  isValidEmail,
+  normalizeEmail,
+  RUSSIAN_EMAIL_HINT,
+} from "@/lib/email-codes";
 import { sendRegistrationCodeEmail } from "@/lib/resend";
 
 export const runtime = "nodejs";
@@ -14,6 +20,9 @@ export async function POST(req: Request) {
   const email = normalizeEmail(body.email || "");
   if (!isValidEmail(email)) {
     return Response.json({ error: "Укажите корректную почту" }, { status: 400 });
+  }
+  if (!isAllowedRussianEmail(email)) {
+    return Response.json({ error: RUSSIAN_EMAIL_HINT }, { status: 400 });
   }
 
   const code = createEmailCode(email);

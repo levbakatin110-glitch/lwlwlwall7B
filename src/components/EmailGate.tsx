@@ -107,10 +107,10 @@ export function EmailGate({ children }: { children: React.ReactNode }) {
         </h1>
         <p className="mt-3 text-sm leading-relaxed text-muted">
           {authMode === "register"
-            ? "Подтвердите email — без этого дальше нельзя. Пришлём код на почту."
+            ? "Только российская почта (Mail.ru, Яндекс, .ru). Пришлём код. Или войдите через VK / Mail.ru."
             : authMode === "login"
-              ? "Вход по коду на почту — пароль в Мае не нужен."
-              : "В Мае нет пароля. Введите почту — пришлём новый код для входа."}
+              ? "Вход по коду на почту (РФ) или через VK / Mail.ru — пароль не нужен."
+              : "Введите российскую почту аккаунта — пришлём новый код."}
         </p>
 
         <div className="mt-6 space-y-3">

@@ -1,6 +1,8 @@
 import {
+  isAllowedRussianEmail,
   isValidEmail,
   normalizeEmail,
+  RUSSIAN_EMAIL_HINT,
   verifyEmailCode,
 } from "@/lib/email-codes";
 
@@ -18,6 +20,9 @@ export async function POST(req: Request) {
   const code = String(body.code || "").trim();
   if (!isValidEmail(email)) {
     return Response.json({ error: "Укажите корректную почту" }, { status: 400 });
+  }
+  if (!isAllowedRussianEmail(email)) {
+    return Response.json({ error: RUSSIAN_EMAIL_HINT }, { status: 400 });
   }
   if (!/^\d{6}$/.test(code)) {
     return Response.json({ error: "Код — 6 цифр из письма" }, { status: 400 });

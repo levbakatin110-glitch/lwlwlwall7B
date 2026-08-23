@@ -1,20 +1,38 @@
-import { createHmac, randomBytes, timingSafeEqual } from "crypto";
-import { isValidEmail, normalizeEmail } from "@/lib/email-codes";
+import { createHash, createHmac, randomBytes, timingSafeEqual } from "crypto";
+import {
+  isAllowedRussianEmail,
+  isValidEmail,
+  normalizeEmail,
+  RUSSIAN_EMAIL_HINT,
+} from "@/lib/email-codes";
 
-export type OAuthProvider = "google";
+export type OAuthProvider = "vk" | "mailru";
 
 type OAuthTicket = {
   email: string;
   expiresAt: number;
 };
 
+type PkceSession = {
+  provider: OAuthProvider;
+  verifier: string;
+  deviceId: string;
+  expiresAt: number;
+};
+
 const g = globalThis as typeof globalThis & {
   __mayaOAuthTickets?: Map<string, OAuthTicket>;
+  __mayaOAuthPkce?: Map<string, PkceSession>;
 };
 
 function tickets() {
   if (!g.__mayaOAuthTickets) g.__mayaOAuthTickets = new Map();
   return g.__mayaOAuthTickets;
+}
+
+function pkceStore() {
+  if (!g.__mayaOAuthPkce) g.__mayaOAuthPkce = new Map();
+  return g.__mayaOAuthPkce;
 }
 
 function authSecret(): string {
@@ -38,18 +56,21 @@ export function oauthCallbackUrl(provider: OAuthProvider): string {
 }
 
 export function providerConfigured(provider: OAuthProvider): boolean {
-  if (provider === "google") {
+  if (provider === "vk") {
     return Boolean(
-      process.env.GOOGLE_CLIENT_ID?.trim() &&
-        process.env.GOOGLE_CLIENT_SECRET?.trim(),
+      process.env.VK_CLIENT_ID?.trim() && process.env.VK_CLIENT_SECRET?.trim(),
     );
   }
-  return false;
+  return Boolean(
+    process.env.MAILRU_CLIENT_ID?.trim() &&
+      process.env.MAILRU_CLIENT_SECRET?.trim(),
+  );
 }
 
 export function providersStatus(): Record<OAuthProvider, boolean> {
   return {
-    google: providerConfigured("google"),
+    vk: providerConfigured("vk"),
+    mailru: providerConfigured("mailru"),
   };
 }
 
@@ -71,6 +92,14 @@ function sign(payload: string): string {
   return b64url(createHmac("sha256", authSecret()).update(payload).digest());
 }
 
+function pkceVerifier(): string {
+  return randomBytes(32).toString("base64url");
+}
+
+function pkceChallenge(verifier: string): string {
+  return b64url(createHash("sha256").update(verifier).digest());
+}
+
 export type OAuthStatePayload = {
   p: OAuthProvider;
   m: "login" | "register";
@@ -83,16 +112,17 @@ export function createOAuthState(input: {
   provider: OAuthProvider;
   mode: "login" | "register";
   returnTo: string;
-}): string {
+}): { state: string; nonce: string } {
+  const nonce = randomBytes(12).toString("hex");
   const payload: OAuthStatePayload = {
     p: input.provider,
     m: input.mode,
     r: input.returnTo,
     t: Date.now(),
-    n: randomBytes(12).toString("hex"),
+    n: nonce,
   };
   const body = b64url(JSON.stringify(payload));
-  return `${body}.${sign(body)}`;
+  return { state: `${body}.${sign(body)}`, nonce };
 }
 
 export function parseOAuthState(
@@ -111,8 +141,10 @@ export function parseOAuthState(
     return { ok: false, error: "Некорректный state" };
   }
   try {
-    const data = JSON.parse(fromB64url(body).toString("utf8")) as OAuthStatePayload;
-    if (data.p !== "google") {
+    const data = JSON.parse(
+      fromB64url(body).toString("utf8"),
+    ) as OAuthStatePayload;
+    if (data.p !== "vk" && data.p !== "mailru") {
       return { ok: false, error: "Неизвестный провайдер" };
     }
     if (Date.now() - data.t > 15 * 60_000) {
@@ -124,10 +156,54 @@ export function parseOAuthState(
   }
 }
 
+export function savePkceSession(
+  nonce: string,
+  provider: OAuthProvider,
+): { verifier: string; challenge: string; deviceId: string } {
+  const verifier = pkceVerifier();
+  const deviceId = randomBytes(16).toString("hex");
+  pkceStore().set(nonce, {
+    provider,
+    verifier,
+    deviceId,
+    expiresAt: Date.now() + 15 * 60_000,
+  });
+  return { verifier, challenge: pkceChallenge(verifier), deviceId };
+}
+
+export function takePkceSession(
+  nonce: string,
+  provider: OAuthProvider,
+): { ok: true; verifier: string; deviceId: string } | { ok: false; error: string } {
+  const entry = pkceStore().get(nonce);
+  if (!entry) {
+    return { ok: false, error: "Сессия входа не найдена — начните снова" };
+  }
+  pkceStore().delete(nonce);
+  if (entry.provider !== provider) {
+    return { ok: false, error: "Некорректная сессия входа" };
+  }
+  if (Date.now() > entry.expiresAt) {
+    return { ok: false, error: "Сессия входа устарела — попробуйте снова" };
+  }
+  return { ok: true, verifier: entry.verifier, deviceId: entry.deviceId };
+}
+
+function assertRussianEmail(email: string): string {
+  const n = normalizeEmail(email);
+  if (!isValidEmail(n)) {
+    throw new Error("Провайдер не вернул почту");
+  }
+  if (!isAllowedRussianEmail(n)) {
+    throw new Error(RUSSIAN_EMAIL_HINT);
+  }
+  return n;
+}
+
 export function createOAuthTicket(email: string): string {
   const key = randomBytes(24).toString("hex");
   tickets().set(key, {
-    email: normalizeEmail(email),
+    email: assertRussianEmail(email),
     expiresAt: Date.now() + 5 * 60_000,
   });
   return key;
@@ -144,37 +220,126 @@ export function consumeOAuthTicket(
   if (Date.now() > entry.expiresAt) {
     return { ok: false, error: "Ссылка входа устарела — войдите снова" };
   }
-  if (!isValidEmail(entry.email)) {
-    return { ok: false, error: "Провайдер не вернул почту" };
+  if (!isAllowedRussianEmail(entry.email)) {
+    return { ok: false, error: RUSSIAN_EMAIL_HINT };
   }
   return { ok: true, email: entry.email };
 }
 
-export function googleAuthUrl(state: string): string {
-  const clientId = process.env.GOOGLE_CLIENT_ID!.trim();
+export function buildAuthUrl(
+  provider: OAuthProvider,
+  state: string,
+  challenge: string,
+  deviceId: string,
+): string {
+  if (provider === "vk") {
+    const clientId = process.env.VK_CLIENT_ID!.trim();
+    const params = new URLSearchParams({
+      response_type: "code",
+      client_id: clientId,
+      redirect_uri: oauthCallbackUrl("vk"),
+      state,
+      code_challenge: challenge,
+      code_challenge_method: "S256",
+      scope: "email",
+      device_id: deviceId,
+    });
+    return `https://id.vk.ru/authorize?${params}`;
+  }
+
+  const clientId = process.env.MAILRU_CLIENT_ID!.trim();
   const params = new URLSearchParams({
-    client_id: clientId,
-    redirect_uri: oauthCallbackUrl("google"),
     response_type: "code",
-    scope: "openid email profile",
-    access_type: "online",
-    prompt: "select_account",
+    client_id: clientId,
+    redirect_uri: oauthCallbackUrl("mailru"),
     state,
+    code_challenge: challenge,
+    code_challenge_method: "S256",
+    scope: "openid email profile",
   });
-  return `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
+  return `https://oauth.mail.ru/login?${params}`;
 }
 
-export async function exchangeGoogleCode(code: string): Promise<string> {
+export async function exchangeVkCode(input: {
+  code: string;
+  deviceId: string;
+  verifier: string;
+}): Promise<string> {
+  const clientId = process.env.VK_CLIENT_ID!.trim();
+  const clientSecret = process.env.VK_CLIENT_SECRET!.trim();
   const body = new URLSearchParams({
-    code,
-    client_id: process.env.GOOGLE_CLIENT_ID!.trim(),
-    client_secret: process.env.GOOGLE_CLIENT_SECRET!.trim(),
-    redirect_uri: oauthCallbackUrl("google"),
     grant_type: "authorization_code",
+    code: input.code,
+    code_verifier: input.verifier,
+    client_id: clientId,
+    client_secret: clientSecret,
+    redirect_uri: oauthCallbackUrl("vk"),
+    device_id: input.deviceId,
+    state: "maya",
   });
-  const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+  const tokenRes = await fetch("https://id.vk.ru/oauth2/auth", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body,
+  });
+  const tokenData = (await tokenRes.json()) as {
+    access_token?: string;
+    error?: string;
+    error_description?: string;
+    email?: string;
+  };
+  if (!tokenRes.ok || !tokenData.access_token) {
+    throw new Error(
+      tokenData.error_description ||
+        tokenData.error ||
+        "Не удалось получить токен VK",
+    );
+  }
+
+  if (tokenData.email) {
+    return assertRussianEmail(tokenData.email);
+  }
+
+  const infoRes = await fetch("https://id.vk.ru/oauth2/user_info", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      access_token: tokenData.access_token,
+      client_id: clientId,
+    }),
+  });
+  const info = (await infoRes.json()) as {
+    user?: { email?: string };
+    error?: string;
+  };
+  const email = info.user?.email;
+  if (!infoRes.ok || !email) {
+    throw new Error(
+      "VK не вернул email. Разрешите доступ к почте или войдите кодом на Mail.ru / Яндекс.",
+    );
+  }
+  return assertRussianEmail(email);
+}
+
+export async function exchangeMailruCode(input: {
+  code: string;
+  verifier: string;
+}): Promise<string> {
+  const clientId = process.env.MAILRU_CLIENT_ID!.trim();
+  const clientSecret = process.env.MAILRU_CLIENT_SECRET!.trim();
+  const basic = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
+  const body = new URLSearchParams({
+    grant_type: "authorization_code",
+    code: input.code,
+    code_verifier: input.verifier,
+    redirect_uri: oauthCallbackUrl("mailru"),
+  });
+  const tokenRes = await fetch("https://oauth.mail.ru/token", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Authorization: `Basic ${basic}`,
+    },
     body,
   });
   const tokenData = (await tokenRes.json()) as {
@@ -186,24 +351,22 @@ export async function exchangeGoogleCode(code: string): Promise<string> {
     throw new Error(
       tokenData.error_description ||
         tokenData.error ||
-        "Не удалось получить токен Google",
+        "Не удалось получить токен Mail.ru",
     );
   }
-  const infoRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+
+  const infoRes = await fetch("https://oauth.mail.ru/api/v1/oidc/userinfo", {
+    method: "POST",
     headers: { Authorization: `Bearer ${tokenData.access_token}` },
   });
   const info = (await infoRes.json()) as {
     email?: string;
-    email_verified?: boolean;
     error?: string;
   };
   if (!infoRes.ok || !info.email) {
-    throw new Error("Google не вернул email");
+    throw new Error("Mail.ru не вернул email");
   }
-  if (info.email_verified === false) {
-    throw new Error("Email в Google не подтверждён");
-  }
-  return normalizeEmail(info.email);
+  return assertRussianEmail(info.email);
 }
 
 export function safeReturnTo(raw: string | null | undefined): string {
