@@ -19,7 +19,7 @@ export function PwaRegister() {
         /* ignore */
       }
       // лёгкий SW только для «Установить», без кэша JS
-      void navigator.serviceWorker.register("/sw.js?v=5").catch(() => {});
+      void navigator.serviceWorker.register("/sw.js?v=6").catch(() => {});
     })();
   }, []);
 

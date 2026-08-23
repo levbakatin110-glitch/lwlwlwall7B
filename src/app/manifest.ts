@@ -2,16 +2,21 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Мая — помощница для мам",
+    name: "Мая",
     short_name: "Мая",
     description:
-      "ИИ-помощница: сон, кормление, рост, гардероб и советы что надеть малышу.",
-    start_url: "/",
+      "ИИ для мам: рост, кормление, сон и режим ребёнка — не просто записи.",
+    start_url: "/?utm_source=pwa&utm_medium=homescreen",
+    scope: "/",
+    id: "/",
     display: "standalone",
-    background_color: "#000000",
-    theme_color: "#32d7af",
+    display_override: ["standalone", "browser"],
+    background_color: "#fff6f8",
+    theme_color: "#fff6f8",
     lang: "ru",
+    dir: "ltr",
     orientation: "portrait-primary",
+    categories: ["lifestyle", "health", "productivity"],
     icons: [
       {
         src: "/icons/icon-192.png",

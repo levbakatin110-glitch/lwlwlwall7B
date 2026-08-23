@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { InstallAppCard } from "@/components/InstallAppCard";
 import { OnboardingFlow } from "@/components/OnboardingFlow";
 import { childDisplayName } from "@/lib/children";
 import { compressImageFile } from "@/lib/image";
@@ -130,6 +131,10 @@ export default function ProfilePage() {
       >
         Регистрация по почте →
       </a>
+
+      <div className="mt-4">
+        <InstallAppCard />
+      </div>
 
       <div className="mt-6 rounded-2xl border border-line bg-card/70 p-4">
         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">

@@ -1,5 +1,5 @@
-/* Не кэшируем JS/CSS Next — иначе на телефоне вечно старая Мая */
-const CACHE = "maya-shell-v5";
+/* PWA shell — без кэша JS/CSS Next (иначе на телефоне старая Мая) */
+const CACHE = "maya-shell-v6";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
@@ -18,10 +18,7 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET") return;
-
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
-
-  // Всё с сервера, без cache.put — иначе «нет регистрации / город»
   event.respondWith(fetch(req));
 });
