@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { localToday } from "@/lib/local-date";
 import { formatSec } from "@/lib/pregnancy";
 import { useAppStore } from "@/lib/store";
 
 type Row = { startMs: number; endMs: number | null };
+
+const SESSION_KEY = "maya-contractions-session";
 
 export function ContractionsTracker() {
   const addJournalEntry = useAppStore((s) => s.addJournalEntry);
@@ -12,6 +15,24 @@ export function ContractionsTracker() {
   const [live, setLive] = useState<Row | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [flash, setFlash] = useState(false);
+
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(SESSION_KEY);
+      if (raw) setLive(JSON.parse(raw) as Row);
+    } catch {
+      /* */
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      if (!live) sessionStorage.removeItem(SESSION_KEY);
+      else sessionStorage.setItem(SESSION_KEY, JSON.stringify(live));
+    } catch {
+      /* */
+    }
+  }, [live]);
 
   useEffect(() => {
     if (!live || live.endMs) return;
@@ -50,7 +71,7 @@ export function ContractionsTracker() {
         ? `${formatSec(dur)} · интервал ${formatSec(interval)}`
         : formatSec(dur);
     addJournalEntry("contractions", {
-      date: new Date().toISOString().slice(0, 10),
+      date: localToday(),
       value,
       note: "",
       fields: {

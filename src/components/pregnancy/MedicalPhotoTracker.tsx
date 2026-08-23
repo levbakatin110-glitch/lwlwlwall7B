@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { compressImageFile } from "@/lib/image";
+import { localToday } from "@/lib/local-date";
 import { useAppStore } from "@/lib/store";
 
 export function MedicalPhotoTracker({
@@ -42,7 +43,12 @@ export function MedicalPhotoTracker({
       const res = await fetch("/api/analyze-medical", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageData: preview, hint }),
+        body: JSON.stringify({
+          imageData: preview,
+          hint,
+          kind: moduleId === "preg_labs" ? "lab" : "document",
+        }),
+        signal: AbortSignal.timeout(55_000),
       });
       const data = (await res.json()) as {
         error?: string;
@@ -59,7 +65,13 @@ export function MedicalPhotoTracker({
         note: data.note || "",
       });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Ошибка");
+      const msg =
+        e instanceof Error && e.name === "TimeoutError"
+          ? "Слишком долго — попробуйте фото поменьше или ещё раз"
+          : e instanceof Error
+            ? e.message
+            : "Ошибка";
+      setError(msg);
     } finally {
       setBusy(false);
     }
@@ -68,15 +80,13 @@ export function MedicalPhotoTracker({
   function save() {
     if (!result) return;
     addJournalEntry(moduleId, {
-      date: new Date().toISOString().slice(0, 10),
+      date: localToday(),
       value: result.value,
       note: result.note || result.summary.slice(0, 200),
       fields: {
         title: result.title,
         summary: result.summary,
         ...(preview ? { hasPhoto: 1 } : {}),
-        // мини-превью не кладём целиком в journal чтобы не раздувать storage —
-        // оставляем только флаг; полный OCR-текст в note/summary
       },
     });
     setPreview(null);

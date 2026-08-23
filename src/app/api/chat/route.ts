@@ -55,7 +55,6 @@ export async function POST(req: Request) {
 
   const lastUser = [...body.messages].reverse().find((m) => m.role === "user");
 
-  consumeIpChatLimit(ip);
   trackAnalyticsEvent({
     name: "chat_send",
     meta: lastUser?.content?.slice(0, 40),
@@ -123,6 +122,9 @@ export async function POST(req: Request) {
       ],
       temperature: 0.6,
     });
+
+    // Списываем IP-квоту только после успешного старта ответа
+    consumeIpChatLimit(ip);
 
     const encoder = new TextEncoder();
     const readable = new ReadableStream({

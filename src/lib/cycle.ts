@@ -1,5 +1,7 @@
 /** Цикл: прогноз по среднему и последним «1-й день». */
 
+import { toLocalDateIso } from "./local-date";
+
 export type CycleSettings = {
   /** Длина цикла в днях (обычно 21–35) */
   cycleLength: number;
@@ -21,10 +23,14 @@ export function cycleStartFromEntry(value: string, date: string): string | null 
 }
 
 export function collectPeriodStarts(
-  entries: { date: string; value: string }[],
+  entries: { date: string; value: string; fields?: Record<string, string | number> }[],
 ): string[] {
   const starts = new Set<string>();
   for (const e of entries) {
+    if (e.fields?.kind === "period_start") {
+      starts.add(e.date);
+      continue;
+    }
     const s = cycleStartFromEntry(e.value, e.date);
     if (s) starts.add(s);
   }
@@ -34,7 +40,7 @@ export function collectPeriodStarts(
 export function addDays(iso: string, days: number): string {
   const d = new Date(`${iso}T12:00:00`);
   d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
+  return toLocalDateIso(d);
 }
 
 export function daysBetween(a: string, b: string): number {
@@ -65,25 +71,41 @@ export type CycleDayKind =
   | "predicted_period"
   | null;
 
+/**
+ * Красим день: все прошлые «1-й день» дают менструацию;
+ * от последнего старта — фертильное / овуляция / прогноз следующего цикла.
+ */
 export function classifyCycleDay(
   date: string,
-  lastStart: string | null,
+  starts: string[],
   settings: CycleSettings,
 ): CycleDayKind {
-  if (!lastStart) return null;
-  const dayIndex = daysBetween(lastStart, date); // 0 = 1st day
-  if (dayIndex < 0) return null;
+  if (!starts.length) return null;
   const { cycleLength, periodLength } = settings;
-  const inCycle = dayIndex % cycleLength;
-  if (inCycle < periodLength) return "period";
-  // овуляция ~ за 14 дней до следующего цикла
-  const ovu = cycleLength - 14;
-  if (inCycle === ovu) return "ovulation";
-  if (inCycle >= ovu - 5 && inCycle <= ovu + 1) return "fertile";
-  // прогноз следующего цикла (если смотрим вперёд от lastStart)
-  if (dayIndex >= cycleLength && dayIndex < cycleLength + periodLength) {
-    return "predicted_period";
+  const sorted = [...starts].sort();
+
+  for (const start of sorted) {
+    const di = daysBetween(start, date);
+    if (di >= 0 && di < periodLength) return "period";
   }
+
+  const lastStart = sorted[sorted.length - 1]!;
+  const dayIndex = daysBetween(lastStart, date);
+  if (dayIndex < 0) return null;
+
+  // следующие циклы — прогноз месячных + окно
+  if (dayIndex >= cycleLength) {
+    const inCycle = dayIndex % cycleLength;
+    if (inCycle < periodLength) return "predicted_period";
+    const ovu = cycleLength - 14;
+    if (inCycle === ovu) return "ovulation";
+    if (inCycle >= ovu - 5 && inCycle <= ovu + 1) return "fertile";
+    return null;
+  }
+
+  const ovu = cycleLength - 14;
+  if (dayIndex === ovu) return "ovulation";
+  if (dayIndex >= ovu - 5 && dayIndex <= ovu + 1) return "fertile";
   return null;
 }
 
@@ -110,8 +132,7 @@ export function monthMatrix(year: number, month0: number): (string | null)[][] {
   const cells: (string | null)[] = [];
   for (let i = 0; i < startPad; i++) cells.push(null);
   for (let d = 1; d <= daysInMonth; d++) {
-    const iso = new Date(year, month0, d, 12).toISOString().slice(0, 10);
-    cells.push(iso);
+    cells.push(toLocalDateIso(new Date(year, month0, d, 12)));
   }
   while (cells.length % 7) cells.push(null);
   const rows: (string | null)[][] = [];

@@ -391,6 +391,10 @@ export function ChatView() {
           .slice(-20)
           .map((m) => ({ role: m.role, content: m.content }));
 
+        const journalsForChat = Object.fromEntries(
+          Object.entries(journals).map(([k, v]) => [k, (v ?? []).slice(0, 40)]),
+        );
+
         const res = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -402,10 +406,11 @@ export function ChatView() {
             wardrobe: wardrobeForChat(wardrobe),
             memories,
             memoryStory,
-            journals,
+            journals: journalsForChat,
             coords: sendCoords,
             pregnancy,
           }),
+          signal: AbortSignal.timeout(55_000),
         });
 
         if (!res.ok) {
@@ -597,7 +602,12 @@ export function ChatView() {
           weather: weatherForMsg,
         });
       } catch (e) {
-        const msg = e instanceof Error ? e.message : "Неизвестная ошибка";
+        const raw = e instanceof Error ? e.message : "Неизвестная ошибка";
+        const msg =
+          e instanceof Error &&
+          (e.name === "TimeoutError" || /aborted|timeout/i.test(raw))
+            ? "Мая не успела ответить — попробуйте ещё раз"
+            : raw;
         refundAiChatQuota();
         pushOpsError({
           source: "chat",

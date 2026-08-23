@@ -12,24 +12,6 @@ type SleepLive = {
 
 const KEY = "maya-sleep-session";
 
-function load(): SleepLive | null {
-  try {
-    const raw = sessionStorage.getItem(KEY);
-    return raw ? (JSON.parse(raw) as SleepLive) : null;
-  } catch {
-    return null;
-  }
-}
-
-function save(s: SleepLive | null) {
-  try {
-    if (!s) sessionStorage.removeItem(KEY);
-    else sessionStorage.setItem(KEY, JSON.stringify(s));
-  } catch {
-    /* */
-  }
-}
-
 function fmt(sec: number) {
   const h = Math.floor(sec / 3600);
   const m = Math.floor((sec % 3600) / 60);
@@ -100,9 +82,10 @@ export function SleepTracker({
     const end = new Date();
     const pad = (n: number) => String(n).padStart(2, "0");
     const range = `${pad(start.getHours())}:${pad(start.getMinutes())}–${pad(end.getHours())}:${pad(end.getMinutes())}`;
+    const isMom = journalId === "preg_sleep";
     const label = live.kind === "night" ? "ночь" : "дневной сон";
     addJournalEntry(journalId, {
-      date: start.toISOString().slice(0, 10),
+      date: `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-${String(start.getDate()).padStart(2, "0")}`,
       value: `${label} ${range} · ${fmt(elapsed)}`,
       note: "",
       fields: {
@@ -118,10 +101,18 @@ export function SleepTracker({
     window.setTimeout(() => setFlash(false), 2200);
   }
 
+  const isMomSleep = journalId === "preg_sleep";
+
   return (
     <div className="maya-rise overflow-hidden rounded-[1.5rem] border border-line bg-card/80 p-4 sm:p-5">
       <h2 className="font-display text-xl font-semibold tracking-tight">
-        {live ? "Спит…" : "Засечь сон"}
+        {live
+          ? isMomSleep
+            ? "Отдыхаю…"
+            : "Спит…"
+          : isMomSleep
+            ? "Засечь отдых"
+            : "Засечь сон"}
       </h2>
 
       {live ? (
@@ -137,7 +128,7 @@ export function SleepTracker({
             onClick={stop}
             className="mt-6 w-full rounded-2xl bg-accent py-3.5 text-sm font-semibold text-[#ffffff]"
           >
-            Проснулся — сохранить
+            {isMomSleep ? "Проснулась — сохранить" : "Проснулся — сохранить"}
           </button>
           <button
             type="button"
@@ -155,7 +146,9 @@ export function SleepTracker({
             className="rounded-[1.25rem] border border-line bg-background/50 px-3 py-6 text-left hover:border-accent/35"
           >
             <p className="font-display text-lg font-semibold">Дневной</p>
-            <p className="mt-1 text-xs text-muted">Короткий сон</p>
+            <p className="mt-1 text-xs text-muted">
+              {isMomSleep ? "Короткий отдых" : "Короткий сон"}
+            </p>
           </button>
           <button
             type="button"
@@ -170,7 +163,9 @@ export function SleepTracker({
 
       {flash && (
         <p className="maya-msg-in mt-3 text-sm font-medium text-accent">
-          Сон записан · Мая следит за режимом
+          {isMomSleep
+            ? "Отдых записан · берегите себя"
+            : "Сон записан · Мая следит за режимом"}
         </p>
       )}
       {hint && (

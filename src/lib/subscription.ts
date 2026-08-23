@@ -173,12 +173,10 @@ export function emptyAiUsage(today = localToday()): AiChatUsage {
   return { date: today, count: 0 };
 }
 
+import { localToday as localTodayFromDate } from "./local-date";
+
 export function localToday(): string {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
+  return localTodayFromDate();
 }
 
 export function isSubscriptionActive(sub: SubscriptionState | null | undefined): boolean {
@@ -244,14 +242,14 @@ export function canSendAiChat(
 
 /** Что даёт бесплатный / платный */
 export const FREE_PERKS = [
-  "3 дневника: рост и вес, ГВ, вода",
+  "Дневники беременности, цикла, ГВ, рост и вес, вода",
   `${FREE_CHAT_LIMIT} сообщений Мае в сутки`,
   "Гардероб, моменты, профиль малышей",
 ];
 
 export const PAID_PERKS = [
   "Безлимитный чат с Маей — тёплая ИИ «как мама маме»",
-  "Все дневники: сон, смеси, подгузник, прогулка, диета…",
+  "Все дневники: сон малыша, смеси, подгузник, прогулка, диета…",
   "Свои дневники и доработка разделов через ИИ",
   "Итог дня, графики ВОЗ, PDF для педиатра",
   "Приоритет новых фич в Premium",

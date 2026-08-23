@@ -1,8 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { localToday } from "@/lib/local-date";
 import { formatSec } from "@/lib/pregnancy";
 import { useAppStore } from "@/lib/store";
+
+const SESSION_KEY = "maya-kicks-session";
+
+type KickSession = { count: number; startedAt: number };
 
 export function KicksTracker() {
   const addJournalEntry = useAppStore((s) => s.addJournalEntry);
@@ -10,6 +15,35 @@ export function KicksTracker() {
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [flash, setFlash] = useState(false);
+
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(SESSION_KEY);
+      if (!raw) return;
+      const s = JSON.parse(raw) as KickSession;
+      if (s?.startedAt && s.count > 0) {
+        setStartedAt(s.startedAt);
+        setCount(s.count);
+      }
+    } catch {
+      /* */
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      if (startedAt == null || count <= 0) {
+        sessionStorage.removeItem(SESSION_KEY);
+      } else {
+        sessionStorage.setItem(
+          SESSION_KEY,
+          JSON.stringify({ count, startedAt } satisfies KickSession),
+        );
+      }
+    } catch {
+      /* */
+    }
+  }, [count, startedAt]);
 
   useEffect(() => {
     if (startedAt == null) return;
@@ -35,7 +69,7 @@ export function KicksTracker() {
   function save() {
     if (count <= 0) return;
     addJournalEntry("kicks", {
-      date: new Date().toISOString().slice(0, 10),
+      date: localToday(),
       value: `${count} толчков за ${formatSec(elapsed)}`,
       note: "",
       fields: { count, durationSec: elapsed },

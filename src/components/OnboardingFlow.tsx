@@ -19,7 +19,6 @@ import {
 import { EmailGate } from "@/components/EmailGate";
 import {
   dueDateFromLmp,
-  type PregnancyProfile,
 } from "@/lib/pregnancy";
 
 type FlowStep =
@@ -289,14 +288,13 @@ export function OnboardingFlow({
     }
     let due = pregDue.trim();
     if (!due && pregLmp.trim()) due = dueDateFromLmp(pregLmp) || "";
-    const profile: PregnancyProfile = {
+    setPregnancy({
       active: true,
       dueDate: due,
       lmpDate: pregLmp.trim() || undefined,
       startWeightKg: parseRuNumber(pregStartWeight) ?? undefined,
       trackCycle: trackCycle || undefined,
-    };
-    setPregnancy(profile);
+    });
     enablePregnancyModules();
   }
 

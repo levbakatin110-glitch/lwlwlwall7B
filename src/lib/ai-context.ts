@@ -211,11 +211,12 @@ export function buildSystemPrompt(input: {
     "=== Беременность ===",
     ...(pregnancy?.active && pregnancy.dueDate
       ? (() => {
-          const w = pregnancyWeek(pregnancy.dueDate);
+          const w = pregnancyWeek(pregnancy.dueDate, pregnancy.lmpDate);
           const left = daysUntilDue(pregnancy.dueDate);
           return [
             "Мама сейчас беременна.",
             `ПДР: ${pregnancy.dueDate}`,
+            pregnancy.lmpDate ? `ЛМП: ${pregnancy.lmpDate}` : "",
             w != null
               ? `Срок: ≈ ${w}-я неделя (${trimesterLabel(w)})`
               : "Неделя: не рассчитана",
@@ -223,7 +224,7 @@ export function buildSystemPrompt(input: {
             pregnancy.startWeightKg != null
               ? `Вес до беременности: ${pregnancy.startWeightKg} кг`
               : "",
-            "Дневники: pregnancy, contractions, kicks, preg_weight, preg_pressure, preg_symptoms, preg_visits, preg_belly.",
+            "Дневники: pregnancy, contractions, kicks, preg_weight, preg_pressure, preg_symptoms, preg_visits, preg_belly, preg_meds, preg_labs, preg_docs, preg_sleep, birth_plan, cycle.",
             "Тревожные симптомы — к врачу/скорой, не ставь диагнозы.",
           ].filter(Boolean);
         })()

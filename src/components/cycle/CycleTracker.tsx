@@ -11,22 +11,36 @@ import {
   ovulationDate,
   type CycleSettings,
 } from "@/lib/cycle";
+import { localToday } from "@/lib/local-date";
 import { useAppStore } from "@/lib/store";
 
 const WEEK = ["пн", "вт", "ср", "чт", "пт", "сб", "вс"];
 
 export function CycleTracker() {
   const entries = useAppStore((s) => s.journals.cycle ?? []);
+  const pregnancy = useAppStore((s) => s.pregnancy);
+  const setPregnancy = useAppStore((s) => s.setPregnancy);
   const addJournalEntry = useAppStore((s) => s.addJournalEntry);
   const [cursor, setCursor] = useState(() => {
     const n = new Date();
     return { y: n.getFullYear(), m: n.getMonth() };
   });
-  const [len, setLen] = useState(DEFAULT_CYCLE.cycleLength);
-  const [periodLen, setPeriodLen] = useState(DEFAULT_CYCLE.periodLength);
+  const [len, setLen] = useState(
+    pregnancy.cycleLength || DEFAULT_CYCLE.cycleLength,
+  );
+  const [periodLen, setPeriodLen] = useState(
+    pregnancy.periodLength || DEFAULT_CYCLE.periodLength,
+  );
 
   const starts = useMemo(
-    () => collectPeriodStarts(entries.map((e) => ({ date: e.date, value: e.value }))),
+    () =>
+      collectPeriodStarts(
+        entries.map((e) => ({
+          date: e.date,
+          value: e.value,
+          fields: e.fields,
+        })),
+      ),
     [entries],
   );
   const lastStart = starts[starts.length - 1] ?? null;
@@ -43,11 +57,25 @@ export function CycleTracker() {
 
   const nextP = nextPeriodDate(lastStart, settings.cycleLength);
   const ovu = ovulationDate(lastStart, settings.cycleLength);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localToday();
 
   const [selected, setSelected] = useState<string | null>(null);
 
+  function persistSettings(nextLen: number, nextPeriod: number) {
+    setLen(nextLen);
+    setPeriodLen(nextPeriod);
+    setPregnancy({
+      cycleLength: nextLen,
+      periodLength: nextPeriod,
+      trackCycle: true,
+    });
+  }
+
   function markPeriodStart(date: string) {
+    if (starts.includes(date)) {
+      setSelected(null);
+      return;
+    }
     addJournalEntry("cycle", {
       date,
       value: "1-й день цикла",
@@ -111,16 +139,18 @@ export function CycleTracker() {
         <div className="mt-1 grid grid-cols-7 gap-1">
           {rows.flat().map((iso, i) => {
             if (!iso) return <div key={`e-${i}`} />;
-            const kind = classifyCycleDay(iso, lastStart, settings);
+            const kind = classifyCycleDay(iso, starts, settings);
             const isToday = iso === today;
             const bg =
-              kind === "period" || kind === "predicted_period"
+              kind === "period"
                 ? "bg-blush/80 text-white"
-                : kind === "ovulation"
-                  ? "bg-accent text-white"
-                  : kind === "fertile"
-                    ? "bg-accent-soft text-accent"
-                    : "bg-background/60";
+                : kind === "predicted_period"
+                  ? "bg-blush/40 text-foreground"
+                  : kind === "ovulation"
+                    ? "bg-accent text-white"
+                    : kind === "fertile"
+                      ? "bg-accent-soft text-accent"
+                      : "bg-background/60";
             return (
               <button
                 key={iso}
@@ -141,6 +171,10 @@ export function CycleTracker() {
           <span>
             <i className="mr-1 inline-block h-2 w-2 rounded-full bg-blush/80" />
             месячные
+          </span>
+          <span>
+            <i className="mr-1 inline-block h-2 w-2 rounded-full bg-blush/40" />
+            прогноз
           </span>
           <span>
             <i className="mr-1 inline-block h-2 w-2 rounded-full bg-accent-soft" />
@@ -200,7 +234,10 @@ export function CycleTracker() {
               min={21}
               max={45}
               value={len}
-              onChange={(e) => setLen(Number(e.target.value) || 28)}
+              onChange={(e) => {
+                const v = Number(e.target.value) || 28;
+                persistSettings(v, periodLen);
+              }}
               className="mt-1 w-full rounded-xl border border-line px-2 py-2"
             />
           </label>
@@ -211,7 +248,10 @@ export function CycleTracker() {
               min={2}
               max={10}
               value={periodLen}
-              onChange={(e) => setPeriodLen(Number(e.target.value) || 5)}
+              onChange={(e) => {
+                const v = Number(e.target.value) || 5;
+                persistSettings(len, v);
+              }}
               className="mt-1 w-full rounded-xl border border-line px-2 py-2"
             />
           </label>

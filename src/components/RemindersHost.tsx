@@ -33,11 +33,17 @@ type DueItem = {
 };
 
 function collectFromJournal(
-  entries: { id: string; value: string; note: string; fields?: Record<string, string | number> }[],
+  entries: {
+    id: string;
+    value: string;
+    note: string;
+    fields?: Record<string, string | number>;
+  }[],
   href: string,
 ): { id: string; text: string; at: string; t: number; href: string }[] {
   return entries
     .map((e) => {
+      if (e.fields?.taken) return null;
       const at = String(e.fields?.remindAt || "");
       if (!at) return null;
       const t = new Date(at).getTime();
@@ -76,13 +82,19 @@ export function RemindersHost() {
       const fired = loadFired();
       const now = Date.now();
       const fresh: DueItem[] = [];
-      for (const c of candidates) {
+      const sorted = [...candidates].sort((a, b) => a.t - b.t);
+      for (const c of sorted) {
         if (c.t > now) continue;
         if (c.t < now - 24 * 60 * 60 * 1000) continue;
         if (fired.has(c.id)) continue;
+        // Не больше 5 тостов за раз — остальные дожмутся на следующем тике
+        if (fresh.length >= 5) break;
         fired.add(c.id);
         fresh.push({ id: c.id, text: c.text, at: c.at, href: c.href });
-        if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+        if (
+          typeof Notification !== "undefined" &&
+          Notification.permission === "granted"
+        ) {
           try {
             new Notification("Мая · напоминание", {
               body: c.text,
@@ -95,7 +107,11 @@ export function RemindersHost() {
       }
       if (fresh.length) {
         saveFired(fired);
-        setDue((prev) => [...fresh, ...prev].slice(0, 5));
+        setDue((prev) => {
+          const ids = new Set(prev.map((p) => p.id));
+          const merged = [...fresh.filter((f) => !ids.has(f.id)), ...prev];
+          return merged.slice(0, 5);
+        });
       }
     }
     check();

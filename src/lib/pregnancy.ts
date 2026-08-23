@@ -17,6 +17,9 @@ export type PregnancyProfile = {
   doctorQuestions?: string;
   /** Экстренные контакты */
   emergencyContacts?: string;
+  /** Настройки календаря цикла (если следит) */
+  cycleLength?: number;
+  periodLength?: number;
 };
 
 export const PREGNANCY_MODULE_IDS = [
@@ -85,18 +88,14 @@ export function pregnancyAgeLabel(
   return `${w} нед. ${d} дн.`;
 }
 
-/** Неделя беременности 1…42 по ПДР (40 недель от зачатия ≈ ПДР). */
-export function pregnancyWeek(dueDate: string, now = new Date()): number | null {
-  const days = pregnancyAgeDays(dueDate, undefined, now);
-  if (days == null) {
-    if (!dueDate?.trim()) return null;
-    const due = new Date(`${dueDate}T12:00:00`);
-    if (Number.isNaN(due.getTime())) return null;
-    const msLeft = due.getTime() - now.getTime();
-    const daysLeft = Math.ceil(msLeft / (1000 * 60 * 60 * 24));
-    const week = 40 - Math.floor(daysLeft / 7);
-    return Math.max(1, Math.min(42, week));
-  }
+/** Неделя беременности 1…42 (с учётом ЛМП, если есть). */
+export function pregnancyWeek(
+  dueDate: string,
+  lmpDate?: string,
+  now = new Date(),
+): number | null {
+  const days = pregnancyAgeDays(dueDate, lmpDate, now);
+  if (days == null) return null;
   return Math.max(1, Math.min(42, Math.floor(days / 7) || 1));
 }
 
@@ -113,7 +112,10 @@ export function dueDateFromLmp(lmpDate: string): string | null {
   const d = new Date(`${lmpDate}T12:00:00`);
   if (Number.isNaN(d.getTime())) return null;
   d.setDate(d.getDate() + 280);
-  return d.toISOString().slice(0, 10);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 const WEEK_BLURBS: Record<number, { size: string; tip: string }> = {

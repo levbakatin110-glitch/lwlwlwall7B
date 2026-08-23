@@ -309,6 +309,8 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
       "preg_sleep",
       "cycle",
       "preg_meds",
+      "preg_labs",
+      "preg_docs",
     ].includes(moduleId);
 
   const growthPoints: GrowthPoint[] = useMemo(() => {
@@ -489,6 +491,14 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
           "walk",
           "diaper",
           "notes",
+          "pregnancy",
+          "contractions",
+          "kicks",
+          "preg_sleep",
+          "cycle",
+          "preg_meds",
+          "preg_labs",
+          "preg_docs",
         ].includes(moduleId) && (
         <DiaryHowTo
           hintId={moduleId}
@@ -618,6 +628,8 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
           "preg_sleep",
           "cycle",
           "preg_meds",
+          "preg_labs",
+          "preg_docs",
         ].includes(moduleId) && (
         <DiaryQuickActions moduleId={moduleId} onPrefill={focusAdd} />
       )}

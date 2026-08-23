@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { SleepTracker } from "@/components/feeding/SleepTracker";
+import { toLocalDateIso } from "@/lib/local-date";
 import { useAppStore } from "@/lib/store";
 
 function fmtSec(sec: number) {
@@ -18,11 +19,12 @@ export function MomSleepCalendar() {
   const days = useMemo(() => {
     const out: { iso: string; label: string; totalSec: number }[] = [];
     const base = new Date();
+    base.setHours(12, 0, 0, 0);
     base.setDate(base.getDate() - offset * 7);
     for (let i = 6; i >= 0; i--) {
       const d = new Date(base);
       d.setDate(base.getDate() - i);
-      const iso = d.toISOString().slice(0, 10);
+      const iso = toLocalDateIso(d);
       const dayEntries = entries.filter((e) => e.date === iso);
       const totalSec = dayEntries.reduce((s, e) => {
         const n = Number(e.fields?.totalSec);

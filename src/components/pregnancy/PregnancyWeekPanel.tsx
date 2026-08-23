@@ -9,6 +9,7 @@ import {
   trimesterLabel,
   weekBlurb,
 } from "@/lib/pregnancy";
+import { localToday } from "@/lib/local-date";
 import { useAppStore } from "@/lib/store";
 
 export function PregnancyWeekPanel() {
@@ -21,8 +22,12 @@ export function PregnancyWeekPanel() {
   const [note, setNote] = useState("");
 
   const week = useMemo(
-    () => pregnancyWeek(pregnancy?.dueDate || due),
-    [pregnancy?.dueDate, due],
+    () =>
+      pregnancyWeek(
+        pregnancy?.dueDate || due,
+        pregnancy?.lmpDate || lmp || undefined,
+      ),
+    [pregnancy?.dueDate, pregnancy?.lmpDate, due, lmp],
   );
   const left = useMemo(
     () => daysUntilDue(pregnancy?.dueDate || due),
@@ -41,8 +46,6 @@ export function PregnancyWeekPanel() {
       active: true,
       dueDate: nextDue,
       lmpDate: lmp.trim() || undefined,
-      startWeightKg: pregnancy?.startWeightKg,
-      notes: pregnancy?.notes,
     });
     enablePregnancyModules();
   }
@@ -50,7 +53,7 @@ export function PregnancyWeekPanel() {
   function saveNote() {
     if (!note.trim()) return;
     addJournalEntry("pregnancy", {
-      date: new Date().toISOString().slice(0, 10),
+      date: localToday(),
       value:
         week != null
           ? `${week} нед. · ${note.trim()}`

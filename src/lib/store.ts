@@ -30,14 +30,15 @@ import {
   FREE_CHAT_LIMIT,
   isFreeModuleId,
   isSubscriptionActive,
-  localToday,
   normalizeAiUsage,
   type AiChatUsage,
   type PaidPlanId,
   type SubscriptionState,
 } from "./subscription";
+import { localToday } from "./local-date";
 import {
   emptyPregnancy,
+  isPregnancyModuleId,
   PREGNANCY_MODULE_IDS,
   type PregnancyProfile,
 } from "./pregnancy";
@@ -72,6 +73,8 @@ type AppState = {
 
   /** Беременность (профиль мамы, общий) */
   pregnancy: PregnancyProfile;
+  /** Дневники мамы (беременность / цикл) — общие для всех профилей детей */
+  momJournals: Record<string, JournalEntry[]>;
 
   sidebarOpen: boolean;
   pendingChatPrompt: string | null;
@@ -102,7 +105,7 @@ type AppState = {
   setDietPlan: (plan: DietPlan | null) => void;
   setAccountEmail: (email: string) => void;
   clearAccountEmail: () => void;
-  setPregnancy: (pregnancy: PregnancyProfile) => void;
+  setPregnancy: (pregnancy: Partial<PregnancyProfile> | PregnancyProfile) => void;
   /** Включить все дневники беременности у активного ребёнка/профиля */
   enablePregnancyModules: () => void;
   enableCycleModule: () => void;
@@ -137,6 +140,11 @@ type AppState = {
   addMemory: (item: Omit<MemoryItem, "id">) => void;
   removeMemory: (id: string) => void;
   addJournalEntry: (moduleId: string, entry: Omit<JournalEntry, "id">) => void;
+  updateJournalEntry: (
+    moduleId: string,
+    id: string,
+    patch: Partial<Omit<JournalEntry, "id">>,
+  ) => void;
   removeJournalEntry: (moduleId: string, id: string) => void;
   addMessage: (message: Omit<ChatMessage, "id"> & { id?: string }) => string;
   updateMessage: (id: string, patch: Partial<ChatMessage>) => void;
@@ -161,6 +169,28 @@ function spaceSlice(space: ChildSpace) {
   };
 }
 
+/** Дневники беременности и цикла — общие для мамы, не привязаны к ребёнку */
+export function isMomJournalId(moduleId: string): boolean {
+  return isPregnancyModuleId(moduleId) || moduleId === "cycle";
+}
+
+function stripMomJournals(
+  journals: Record<string, JournalEntry[]>,
+): Record<string, JournalEntry[]> {
+  const out: Record<string, JournalEntry[]> = {};
+  for (const [k, v] of Object.entries(journals)) {
+    if (!isMomJournalId(k)) out[k] = v;
+  }
+  return out;
+}
+
+function overlayMomJournals(
+  childJournals: Record<string, JournalEntry[]>,
+  momJournals: Record<string, JournalEntry[]>,
+): Record<string, JournalEntry[]> {
+  return { ...childJournals, ...momJournals };
+}
+
 function withActiveSpace(
   get: () => AppState,
   set: (partial: Partial<AppState>) => void,
@@ -168,6 +198,9 @@ function withActiveSpace(
 ) {
   const id = get().activeChildId;
   const prev = get().childSpaces[id] ?? emptyChildSpace();
+  const rawJournals =
+    (patch.journals as Record<string, JournalEntry[]> | undefined) ??
+    prev.journals;
   const nextSpace: ChildSpace = {
     ...prev,
     enabledModules: (patch.enabledModules as ModuleId[]) ?? prev.enabledModules,
@@ -178,14 +211,17 @@ function withActiveSpace(
       "memoryStory" in patch
         ? (patch.memoryStory as MemoryStory | null)
         : prev.memoryStory,
-    journals:
-      (patch.journals as Record<string, JournalEntry[]>) ?? prev.journals,
+    journals: stripMomJournals(rawJournals),
     messages: (patch.messages as ChatMessage[]) ?? prev.messages,
     demoWardrobeSeeded:
       (patch.demoWardrobeSeeded as boolean) ?? prev.demoWardrobeSeeded,
   };
-  set({
+  const mirrored = {
     ...spaceSlice(nextSpace),
+    journals: overlayMomJournals(nextSpace.journals, get().momJournals),
+  };
+  set({
+    ...mirrored,
     childSpaces: { ...get().childSpaces, [id]: nextSpace },
   });
 }
@@ -238,6 +274,7 @@ export const useAppStore = create<AppState>()(
       dietPlan: null,
       opsErrors: [],
       pregnancy: emptyPregnancy(),
+      momJournals: {},
       subscription: emptySubscription(),
       aiChatUsage: emptyAiUsage(),
       accountEmail: null,
@@ -258,22 +295,42 @@ export const useAppStore = create<AppState>()(
         }),
       clearAccountEmail: () =>
         set({ accountEmail: null, emailVerified: false }),
-      setPregnancy: (pregnancy) => set({ pregnancy }),
+      setPregnancy: (patch) =>
+        set((s) => ({
+          pregnancy: { ...s.pregnancy, ...patch },
+        })),
       enablePregnancyModules: () => {
-        const cur = get().enabledModules;
-        const next = [...cur];
-        for (const id of PREGNANCY_MODULE_IDS) {
-          if (!next.includes(id)) next.push(id);
+        const spaces = { ...get().childSpaces };
+        for (const sid of Object.keys(spaces)) {
+          const cur = spaces[sid]!;
+          const next = [...cur.enabledModules];
+          for (const id of PREGNANCY_MODULE_IDS) {
+            if (!next.includes(id as ModuleId)) next.push(id as ModuleId);
+          }
+          spaces[sid] = { ...cur, enabledModules: next };
         }
-        withActiveSpace(get, set, {
-          enabledModules: next as ModuleId[],
+        const activeId = get().activeChildId;
+        set({
+          childSpaces: spaces,
+          enabledModules:
+            spaces[activeId]?.enabledModules ?? get().enabledModules,
         });
       },
       enableCycleModule: () => {
-        const cur = get().enabledModules;
-        if (cur.includes("cycle")) return;
-        withActiveSpace(get, set, {
-          enabledModules: [...cur, "cycle"] as ModuleId[],
+        const spaces = { ...get().childSpaces };
+        for (const sid of Object.keys(spaces)) {
+          const cur = spaces[sid]!;
+          if (cur.enabledModules.includes("cycle")) continue;
+          spaces[sid] = {
+            ...cur,
+            enabledModules: [...cur.enabledModules, "cycle" as ModuleId],
+          };
+        }
+        const activeId = get().activeChildId;
+        set({
+          childSpaces: spaces,
+          enabledModules:
+            spaces[activeId]?.enabledModules ?? get().enabledModules,
         });
       },
       activateSubscription: (planId) =>
@@ -531,19 +588,70 @@ export const useAppStore = create<AppState>()(
       },
 
       addJournalEntry: (moduleId, entry) => {
+        const row: JournalEntry = {
+          ...entry,
+          id: uid(),
+          createdAt: entry.createdAt || new Date().toISOString(),
+        };
+        if (isMomJournalId(moduleId)) {
+          const momJournals = { ...get().momJournals };
+          momJournals[moduleId] = [row, ...(momJournals[moduleId] ?? [])];
+          set({
+            momJournals,
+            journals: {
+              ...get().journals,
+              [moduleId]: momJournals[moduleId]!,
+            },
+          });
+          return;
+        }
         const journals = { ...get().journals };
-        journals[moduleId] = [
-          {
-            ...entry,
-            id: uid(),
-            createdAt: entry.createdAt || new Date().toISOString(),
-          },
-          ...(journals[moduleId] ?? []),
-        ];
+        journals[moduleId] = [row, ...(journals[moduleId] ?? [])];
+        withActiveSpace(get, set, { journals });
+      },
+
+      updateJournalEntry: (moduleId, id, patch) => {
+        const apply = (list: JournalEntry[]) =>
+          list.map((e) => {
+            if (e.id !== id) return e;
+            const fields =
+              patch.fields !== undefined
+                ? { ...(e.fields || {}), ...patch.fields }
+                : e.fields;
+            return { ...e, ...patch, fields };
+          });
+        if (isMomJournalId(moduleId)) {
+          const momJournals = { ...get().momJournals };
+          momJournals[moduleId] = apply(momJournals[moduleId] ?? []);
+          set({
+            momJournals,
+            journals: {
+              ...get().journals,
+              [moduleId]: momJournals[moduleId]!,
+            },
+          });
+          return;
+        }
+        const journals = { ...get().journals };
+        journals[moduleId] = apply(journals[moduleId] ?? []);
         withActiveSpace(get, set, { journals });
       },
 
       removeJournalEntry: (moduleId, id) => {
+        if (isMomJournalId(moduleId)) {
+          const momJournals = { ...get().momJournals };
+          momJournals[moduleId] = (momJournals[moduleId] ?? []).filter(
+            (x) => x.id !== id,
+          );
+          set({
+            momJournals,
+            journals: {
+              ...get().journals,
+              [moduleId]: momJournals[moduleId]!,
+            },
+          });
+          return;
+        }
         const journals = { ...get().journals };
         journals[moduleId] = (journals[moduleId] ?? []).filter((x) => x.id !== id);
         withActiveSpace(get, set, { journals });
@@ -578,15 +686,17 @@ export const useAppStore = create<AppState>()(
           wardrobe: get().wardrobe,
           memories: get().memories,
           memoryStory: get().memoryStory,
-          journals: get().journals,
+          journals: stripMomJournals(get().journals),
           messages: get().messages,
           demoWardrobeSeeded: get().demoWardrobeSeeded,
         };
+        const nextSlice = spaceSlice(space);
         set({
           childSpaces: { ...get().childSpaces, [curId]: curSpace },
           activeChildId: id,
           profile: child,
-          ...spaceSlice(space),
+          ...nextSlice,
+          journals: overlayMomJournals(space.journals, get().momJournals),
         });
       },
 
@@ -612,7 +722,7 @@ export const useAppStore = create<AppState>()(
           wardrobe: get().wardrobe,
           memories: get().memories,
           memoryStory: get().memoryStory,
-          journals: get().journals,
+          journals: stripMomJournals(get().journals),
           messages: get().messages,
           demoWardrobeSeeded: get().demoWardrobeSeeded,
         };
@@ -626,6 +736,7 @@ export const useAppStore = create<AppState>()(
           activeChildId: id,
           profile: child,
           ...spaceSlice(space),
+          journals: overlayMomJournals(space.journals, get().momJournals),
         });
       },
 
@@ -644,6 +755,7 @@ export const useAppStore = create<AppState>()(
           activeChildId: nextId,
           profile: nextChild,
           ...spaceSlice(nextSpace),
+          journals: overlayMomJournals(nextSpace.journals, get().momJournals),
         });
       },
 
@@ -674,6 +786,7 @@ export const useAppStore = create<AppState>()(
         dietPlan: state.dietPlan,
         opsErrors: state.opsErrors,
         pregnancy: state.pregnancy,
+        momJournals: state.momJournals,
         subscription: state.subscription,
         aiChatUsage: state.aiChatUsage,
         accountEmail: state.accountEmail,
@@ -684,6 +797,7 @@ export const useAppStore = create<AppState>()(
         if (!state.opsErrors) state.opsErrors = [];
         if (!state.subscription) state.subscription = emptySubscription();
         if (!state.pregnancy) state.pregnancy = emptyPregnancy();
+        if (!state.momJournals) state.momJournals = {};
         if (!state.aiChatUsage) state.aiChatUsage = emptyAiUsage();
         if (state.accountEmail === undefined) state.accountEmail = null;
         if (state.emailVerified == null) state.emailVerified = false;
@@ -745,6 +859,40 @@ export const useAppStore = create<AppState>()(
               !(state.messages?.length > 0);
             state.onboardingDone = !empty;
           }
+        }
+
+        // Вынести дневники беременности/цикла из профилей детей в momJournals
+        {
+          const mom: Record<string, JournalEntry[]> = {
+            ...(state.momJournals || {}),
+          };
+          const spaces = { ...(state.childSpaces || {}) };
+          for (const [sid, space] of Object.entries(spaces)) {
+            const j = { ...space.journals };
+            let changed = false;
+            for (const key of Object.keys(j)) {
+              if (!isMomJournalId(key)) continue;
+              const list = j[key] ?? [];
+              if (list.length) {
+                const prev = mom[key] ?? [];
+                const seen = new Set(prev.map((e) => e.id));
+                mom[key] = [
+                  ...prev,
+                  ...list.filter((e) => !seen.has(e.id)),
+                ];
+              }
+              delete j[key];
+              changed = true;
+            }
+            if (changed) {
+              spaces[sid] = { ...space, journals: j };
+            }
+          }
+          state.momJournals = mom;
+          state.childSpaces = spaces;
+          const activeSpace =
+            spaces[state.activeChildId] ?? emptyChildSpace();
+          state.journals = overlayMomJournals(activeSpace.journals, mom);
         }
 
         // если имя уже есть — убрать «ещё не выбрали»

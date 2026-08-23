@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MayaIcon } from "@/components/icons/MayaIcon";
 import {
   openAppointmentPrepPdf,
@@ -12,6 +12,7 @@ import {
   pregnancyWeek,
   trimesterLabel,
 } from "@/lib/pregnancy";
+import { localToday } from "@/lib/local-date";
 import { useAppStore } from "@/lib/store";
 
 const SECTIONS: {
@@ -20,6 +21,12 @@ const SECTIONS: {
   sub: string;
   moduleId: string;
 }[] = [
+  {
+    href: "/m/pregnancy",
+    title: "Срок и неделя",
+    sub: "ПДР, ЛМП, подсказки",
+    moduleId: "pregnancy",
+  },
   {
     href: "/m/preg_visits",
     title: "Записи к врачу",
@@ -43,6 +50,18 @@ const SECTIONS: {
     title: "Заметки и документы",
     sub: "Обменка, направления",
     moduleId: "preg_docs",
+  },
+  {
+    href: "/m/preg_symptoms",
+    title: "Самочувствие",
+    sub: "Симптомы по дням",
+    moduleId: "preg_symptoms",
+  },
+  {
+    href: "/m/preg_belly",
+    title: "Животик",
+    sub: "Обхват и фото",
+    moduleId: "preg_belly",
   },
   {
     href: "/m/birth_plan",
@@ -80,6 +99,12 @@ const SECTIONS: {
     sub: "Отдых и ночи",
     moduleId: "preg_sleep",
   },
+  {
+    href: "/m/cycle",
+    title: "Цикл",
+    sub: "Календарь и овуляция",
+    moduleId: "cycle",
+  },
 ];
 
 export default function MedCardPage() {
@@ -97,6 +122,16 @@ export default function MedCardPage() {
   );
   const [birthPlan, setBirthPlan] = useState(pregnancy.birthPlan || "");
 
+  useEffect(() => {
+    setQuestions(pregnancy.doctorQuestions || "");
+    setEmergency(pregnancy.emergencyContacts || "");
+    setBirthPlan(pregnancy.birthPlan || "");
+  }, [
+    pregnancy.doctorQuestions,
+    pregnancy.emergencyContacts,
+    pregnancy.birthPlan,
+  ]);
+
   const age = useMemo(
     () =>
       pregnancy.active && pregnancy.dueDate
@@ -106,7 +141,7 @@ export default function MedCardPage() {
   );
   const week =
     pregnancy.active && pregnancy.dueDate
-      ? pregnancyWeek(pregnancy.dueDate)
+      ? pregnancyWeek(pregnancy.dueDate, pregnancy.lmpDate)
       : null;
 
   const counts = useMemo(() => {
@@ -124,7 +159,7 @@ export default function MedCardPage() {
   }, [journals]);
 
   const kicksToday = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localToday();
     return (journals.kicks ?? []).filter((e) => e.date === today).length;
   }, [journals.kicks]);
 

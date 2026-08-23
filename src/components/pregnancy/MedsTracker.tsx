@@ -1,10 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { toLocalDateIso } from "@/lib/local-date";
 import { useAppStore } from "@/lib/store";
 
 export function MedsTracker() {
   const addJournalEntry = useAppStore((s) => s.addJournalEntry);
+  const updateJournalEntry = useAppStore((s) => s.updateJournalEntry);
   const entries = useAppStore((s) => s.journals.preg_meds ?? []);
   const [name, setName] = useState("");
   const [dose, setDose] = useState("");
@@ -12,14 +14,18 @@ export function MedsTracker() {
   const [days, setDays] = useState(7);
 
   const upcoming = useMemo(() => {
+    const now = Date.now();
     return entries
-      .filter((e) => e.fields?.remindAt)
-      .slice(0, 8)
+      .filter((e) => e.fields?.remindAt && !e.fields?.taken)
       .map((e) => ({
         id: e.id,
         label: e.value,
         at: String(e.fields!.remindAt),
-      }));
+        t: new Date(String(e.fields!.remindAt)).getTime(),
+      }))
+      .filter((e) => Number.isFinite(e.t) && e.t >= now - 60_000)
+      .sort((a, b) => a.t - b.t)
+      .slice(0, 8);
   }, [entries]);
 
   function save() {
@@ -34,7 +40,7 @@ export function MedsTracker() {
       d.setHours(hh || 9, mm || 0, 0, 0);
       if (d.getTime() < Date.now() - 60_000) continue;
       const iso = d.toISOString();
-      const date = d.toISOString().slice(0, 10);
+      const date = toLocalDateIso(d);
       addJournalEntry("preg_meds", {
         date,
         value: dose.trim() ? `${n} · ${dose.trim()}` : n,
@@ -50,7 +56,10 @@ export function MedsTracker() {
     }
     setName("");
     setDose("");
-    if (typeof Notification !== "undefined" && Notification.permission === "default") {
+    if (
+      typeof Notification !== "undefined" &&
+      Notification.permission === "default"
+    ) {
       void Notification.requestPermission();
     }
     if (!created.length) {
@@ -58,12 +67,10 @@ export function MedsTracker() {
     }
   }
 
-  function tookNow(label: string) {
-    addJournalEntry("preg_meds", {
-      date: new Date().toISOString().slice(0, 10),
+  function tookNow(id: string, label: string) {
+    updateJournalEntry("preg_meds", id, {
       value: `Приняла · ${label}`,
-      note: "",
-      fields: { taken: 1 },
+      fields: { taken: 1, remindAt: "" },
     });
   }
 
@@ -117,7 +124,8 @@ export function MedsTracker() {
           </button>
         </div>
         <p className="mt-2 text-[11px] text-muted">
-          Мая напомнит во вкладке и через уведомление браузера (если разрешите).
+          Мая напомнит, пока вкладка открыта, и через уведомление браузера (если
+          разрешите).
         </p>
       </div>
 
@@ -145,7 +153,7 @@ export function MedsTracker() {
                 </span>
                 <button
                   type="button"
-                  onClick={() => tookNow(u.label)}
+                  onClick={() => tookNow(u.id, u.label)}
                   className="shrink-0 rounded-lg border border-line px-2 py-1 text-xs"
                 >
                   Приняла
