@@ -45,10 +45,26 @@ function authSecret(): string {
 }
 
 export function siteOrigin(): string {
-  return (
-    process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, "") ||
-    "http://localhost:3000"
-  );
+  const raw =
+    process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
+    process.env.MAILRU_REDIRECT_URI?.trim() ||
+    "";
+  let origin = raw.replace(/\/$/, "");
+  // Публичный домен — никогда не отдаём IP:3000 (браузер ломается на https://IP)
+  if (
+    !origin ||
+    /194\.67\.101\.192/.test(origin) ||
+    /:3000\b/.test(origin) ||
+    origin.startsWith("http://localhost")
+  ) {
+    origin = "https://hey-maya.ru";
+  }
+  try {
+    const u = new URL(origin);
+    return `${u.protocol}//${u.host}`;
+  } catch {
+    return "https://hey-maya.ru";
+  }
 }
 
 export function oauthCallbackUrl(provider: OAuthProvider): string {
