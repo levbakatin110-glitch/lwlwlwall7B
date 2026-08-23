@@ -31,11 +31,19 @@ export const FREE_CHAT_LIMIT = 3;
  */
 export const BASE_MONTH_RUB = 1990;
 
-/** На бесплатном только эти дневники */
+/** На бесплатном: базовые дневники малыша + весь блок беременности */
 export const FREE_MODULE_IDS = [
   "growth",
   "breastfeeding",
   "water",
+  "pregnancy",
+  "contractions",
+  "kicks",
+  "preg_weight",
+  "preg_pressure",
+  "preg_symptoms",
+  "preg_visits",
+  "preg_belly",
 ] as const;
 
 export type FreeModuleId = (typeof FREE_MODULE_IDS)[number];
@@ -66,6 +74,14 @@ export function clampModulesForPlan(
         "walk",
         "diaper",
         "notes",
+        "pregnancy",
+        "contractions",
+        "kicks",
+        "preg_weight",
+        "preg_pressure",
+        "preg_symptoms",
+        "preg_visits",
+        "preg_belly",
       ];
       for (const id of allBuiltins) {
         if (!list.includes(id)) list.push(id);

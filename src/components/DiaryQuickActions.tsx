@@ -60,6 +60,31 @@ const CHIPS: Record<string, Chip[]> = {
     { label: "Ужин", prefill: "Ужин · 400 ккал" },
     { label: "Перекус", prefill: "Перекус · 150 ккал" },
   ],
+  preg_weight: [
+    { label: "65 кг", prefill: "65 кг" },
+    { label: "68 кг", prefill: "68 кг" },
+    { label: "+0.5 кг", prefill: "+0.5 кг за неделю" },
+  ],
+  preg_pressure: [
+    { label: "120/80", prefill: "120/80 · пульс 72" },
+    { label: "110/70", prefill: "110/70 · пульс 78" },
+    { label: "130/85", prefill: "130/85 · пульс 80" },
+  ],
+  preg_symptoms: [
+    { label: "Тошнота", prefill: "Тошнота утром" },
+    { label: "Изжога", prefill: "Изжога" },
+    { label: "Отёки", prefill: "Отёки ног вечером" },
+    { label: "Нормально", prefill: "Самочувствие хорошее" },
+  ],
+  preg_visits: [
+    { label: "ЖК", prefill: "Приём в ЖК" },
+    { label: "УЗИ", prefill: "УЗИ" },
+    { label: "Анализы", prefill: "Сдала анализы" },
+  ],
+  preg_belly: [
+    { label: "Окружность", prefill: "90 см" },
+    { label: "Фото-заметка", prefill: "Фото животика на этой неделе" },
+  ],
 };
 
 /** Быстрые действия — подсказки, не единственный сценарий */

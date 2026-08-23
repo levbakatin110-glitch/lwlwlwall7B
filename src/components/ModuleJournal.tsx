@@ -15,6 +15,9 @@ import { DiaperTracker } from "@/components/trackers/DiaperTracker";
 import { NotesTracker } from "@/components/trackers/NotesTracker";
 import { WalkTracker } from "@/components/trackers/WalkTracker";
 import { WaterTracker } from "@/components/trackers/WaterTracker";
+import { PregnancyWeekPanel } from "@/components/pregnancy/PregnancyWeekPanel";
+import { ContractionsTracker } from "@/components/pregnancy/ContractionsTracker";
+import { KicksTracker } from "@/components/pregnancy/KicksTracker";
 import { IconBadge } from "@/components/icons/MayaIcon";
 import { hintForDiary } from "@/lib/diary-hints";
 import { isDietLikeModule } from "@/lib/diet";
@@ -291,7 +294,15 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
   const isDietPage = isDietLikeModule(moduleId, mod?.title, mod?.description);
   const hideManualForm =
     isDietPage ||
-    ["water", "walk", "diaper", "notes"].includes(moduleId);
+    [
+      "water",
+      "walk",
+      "diaper",
+      "notes",
+      "pregnancy",
+      "contractions",
+      "kicks",
+    ].includes(moduleId);
 
   const growthPoints: GrowthPoint[] = useMemo(() => {
     if (!isGrowth) return [];
@@ -518,6 +529,21 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
           <NotesTracker />
         </div>
       )}
+      {moduleId === "pregnancy" && (
+        <div className="mt-4">
+          <PregnancyWeekPanel />
+        </div>
+      )}
+      {moduleId === "contractions" && (
+        <div className="mt-4">
+          <ContractionsTracker />
+        </div>
+      )}
+      {moduleId === "kicks" && (
+        <div className="mt-4">
+          <KicksTracker />
+        </div>
+      )}
 
       {/* Профессиональный калькулятор — и для /m/diet, и для старых «своих» диет */}
       {isDietPage && (
@@ -544,7 +570,14 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
 
       {!isDietPage &&
         !mod.custom &&
-        !["water", "walk", "notes"].includes(moduleId) && (
+        ![
+          "water",
+          "walk",
+          "notes",
+          "pregnancy",
+          "contractions",
+          "kicks",
+        ].includes(moduleId) && (
         <DiaryQuickActions moduleId={moduleId} onPrefill={focusAdd} />
       )}
 

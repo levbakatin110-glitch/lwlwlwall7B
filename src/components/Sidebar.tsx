@@ -26,6 +26,14 @@ const PINNED_DIARIES: {
   icon: IconName;
   moduleId?: ModuleId;
 }[] = [
+  { href: "/m/pregnancy", label: "Беременность", icon: "spark", moduleId: "pregnancy" },
+  { href: "/m/contractions", label: "Схватки", icon: "pulse", moduleId: "contractions" },
+  { href: "/m/kicks", label: "Шевеления", icon: "moments", moduleId: "kicks" },
+  { href: "/m/preg_weight", label: "Вес мамы", icon: "growth", moduleId: "preg_weight" },
+  { href: "/m/preg_pressure", label: "Давление", icon: "pulse", moduleId: "preg_pressure" },
+  { href: "/m/preg_symptoms", label: "Самочувствие", icon: "health", moduleId: "preg_symptoms" },
+  { href: "/m/preg_visits", label: "Визиты", icon: "list", moduleId: "preg_visits" },
+  { href: "/m/preg_belly", label: "Животик", icon: "outfit", moduleId: "preg_belly" },
   { href: "/m/growth", label: "Рост и вес", icon: "growth", moduleId: "growth" },
   { href: "/m/breastfeeding", label: "ГВ · таймер", icon: "feeding", moduleId: "breastfeeding" },
   { href: "/m/formula", label: "Смеси", icon: "formula", moduleId: "formula" },

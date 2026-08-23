@@ -198,7 +198,15 @@ export type ModuleId =
   | "water"
   | "walk"
   | "diaper"
-  | "notes";
+  | "notes"
+  | "pregnancy"
+  | "contractions"
+  | "kicks"
+  | "preg_weight"
+  | "preg_pressure"
+  | "preg_symptoms"
+  | "preg_visits"
+  | "preg_belly";
 
 export type AnyModuleId = ModuleId | (string & {});
 

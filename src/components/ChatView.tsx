@@ -67,6 +67,7 @@ export function ChatView() {
   const memories = useAppStore((s) => s.memories);
   const memoryStory = useAppStore((s) => s.memoryStory);
   const journals = useAppStore((s) => s.journals);
+  const pregnancy = useAppStore((s) => s.pregnancy);
   const addMessage = useAppStore((s) => s.addMessage);
   const updateMessage = useAppStore((s) => s.updateMessage);
   const addCustomModuleFromBlueprint = useAppStore((s) => s.addCustomModuleFromBlueprint);
@@ -403,6 +404,7 @@ export function ChatView() {
             memoryStory,
             journals,
             coords: sendCoords,
+            pregnancy,
           }),
         });
 

@@ -11,6 +11,12 @@ import type {
   WardrobeItem,
   WeatherSnapshot,
 } from "./types";
+import type { PregnancyProfile } from "./pregnancy";
+import {
+  daysUntilDue,
+  pregnancyWeek,
+  trimesterLabel,
+} from "./pregnancy";
 
 function ageLabel(birthDate: string): string {
   if (!birthDate) return "возраст не указан";
@@ -91,6 +97,7 @@ export function buildSystemPrompt(input: {
   memoryStory?: MemoryStory | null;
   journals: Record<string, JournalEntry[]>;
   weather?: WeatherSnapshot | null;
+  pregnancy?: PregnancyProfile | null;
 }): string {
   const {
     profile,
@@ -101,6 +108,7 @@ export function buildSystemPrompt(input: {
     memoryStory,
     journals,
     weather,
+    pregnancy,
   } = input;
   const name = profile.namePending
     ? "малыш (имя ещё не выбрали)"
@@ -115,8 +123,8 @@ export function buildSystemPrompt(input: {
   const today = clock.dateIso;
 
   const lines: string[] = [
-    "Ты — «Мая»: тёплая ИИ-помощница для мам с малышом (беременность / грудничок / первый год).",
-    "Главное — помнить про ЭТОГО ребёнка и помогать маме, когда голова не варит. Дневники — способ хранить память.",
+    "Ты — «Мая»: тёплая ИИ-помощница для мам (беременность и/или малыш).",
+    "Главное — помнить про ЭТУ маму и ребёнка и помогать, когда голова не варит. Дневники — способ хранить память.",
     "В разговоре никогда не говори «модуль», «схема», «конструктор», «API». Говори: дневник, запомнить, учитывать.",
     "Отвечай по-русски, тепло, конкретно, без нравоучений. Ты не врач — при тревожных симптомах советуй педиатра.",
     "",
@@ -199,6 +207,27 @@ export function buildSystemPrompt(input: {
     `Местное время сейчас: ${clock.time} (${clock.cityLabel})`,
     `Аллергии / особенности: ${profile.allergies.trim() || "не указаны"}`,
     `Заметки: ${profile.notes.trim() || "нет"}`,
+    "",
+    "=== Беременность ===",
+    ...(pregnancy?.active && pregnancy.dueDate
+      ? (() => {
+          const w = pregnancyWeek(pregnancy.dueDate);
+          const left = daysUntilDue(pregnancy.dueDate);
+          return [
+            "Мама сейчас беременна.",
+            `ПДР: ${pregnancy.dueDate}`,
+            w != null
+              ? `Срок: ≈ ${w}-я неделя (${trimesterLabel(w)})`
+              : "Неделя: не рассчитана",
+            left != null ? `До ПДР ≈ ${left} дн.` : "",
+            pregnancy.startWeightKg != null
+              ? `Вес до беременности: ${pregnancy.startWeightKg} кг`
+              : "",
+            "Дневники: pregnancy, contractions, kicks, preg_weight, preg_pressure, preg_symptoms, preg_visits, preg_belly.",
+            "Тревожные симптомы — к врачу/скорой, не ставь диагнозы.",
+          ].filter(Boolean);
+        })()
+      : ["Сейчас беременность в профиле не активна."]),
   ];
 
   lines.push("", "=== Текущая погода (актуальные данные, не выдумывай) ===");
@@ -555,4 +584,5 @@ export type ClientChatPayload = {
   journals: Record<string, JournalEntry[]>;
   /** Геолокация браузера — точнее города, если без VPN и рядом с профилем */
   coords?: { latitude: number; longitude: number } | null;
+  pregnancy?: PregnancyProfile | null;
 };

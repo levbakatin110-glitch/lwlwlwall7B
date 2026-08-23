@@ -14,14 +14,21 @@ import { trackEvent } from "@/lib/analytics-client";
 import { useAppStore } from "@/lib/store";
 import type { ChildProfile, Sex } from "@/lib/types";
 import {
-  SketchBaby,
   SketchMaya,
-  SketchSprig,
 } from "@/components/illustrations/MayaSketch";
 import { EmailGate } from "@/components/EmailGate";
+import {
+  dueDateFromLmp,
+  type PregnancyProfile,
+} from "@/lib/pregnancy";
 
-const STEPS_FIRST = 5;
-const STEPS_ADD = 4;
+type FlowStep =
+  | "who"
+  | "preg"
+  | "baby1"
+  | "baby2"
+  | "email"
+  | "finish";
 
 type Draft = {
   name: string;
@@ -48,6 +55,19 @@ const emptyDraft = (): Draft => ({
   sex: "unknown",
   city: "",
 });
+
+function buildFlow(
+  mode: "first" | "add",
+  pregnant: boolean,
+  hasChild: boolean,
+): FlowStep[] {
+  if (mode === "add") return ["baby1", "baby2", "finish"];
+  const steps: FlowStep[] = ["who"];
+  if (pregnant) steps.push("preg");
+  if (hasChild) steps.push("baby1", "baby2");
+  steps.push("email", "finish");
+  return steps;
+}
 
 function LineField({
   label,
@@ -117,8 +137,22 @@ export function OnboardingFlow({
   const accountEmail = useAppStore((s) => s.accountEmail);
   const emailVerified = useAppStore((s) => s.emailVerified);
 
-  const lastStep = mode === "first" ? STEPS_FIRST - 1 : STEPS_ADD - 1;
-  const [step, setStep] = useState(mode === "add" ? 1 : 0);
+  const setPregnancy = useAppStore((s) => s.setPregnancy);
+  const enablePregnancyModules = useAppStore((s) => s.enablePregnancyModules);
+
+  const [isPregnant, setIsPregnant] = useState(false);
+  const [hasChild, setHasChild] = useState(mode === "add");
+  const [pregDue, setPregDue] = useState("");
+  const [pregLmp, setPregLmp] = useState("");
+  const [pregStartWeight, setPregStartWeight] = useState("");
+
+  const flow = useMemo(
+    () => buildFlow(mode, isPregnant, hasChild),
+    [mode, isPregnant, hasChild],
+  );
+  const [stepIdx, setStepIdx] = useState(0);
+  const flowStep = flow[Math.min(stepIdx, flow.length - 1)]!;
+
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
@@ -135,9 +169,14 @@ export function OnboardingFlow({
   );
   const fileRef = useRef<HTMLInputElement>(null);
   const isFirstSave = useRef(mode === "first");
+  const babySaved = useRef(false);
 
-  const progress = useMemo(() => step + 1, [step]);
-  const totalProgress = mode === "first" ? STEPS_FIRST : STEPS_ADD;
+  useEffect(() => {
+    setStepIdx((i) => Math.min(i, Math.max(0, flow.length - 1)));
+  }, [flow.length]);
+
+  const progress = stepIdx + 1;
+  const totalProgress = flow.length;
 
   function patch(p: Partial<Draft>) {
     setDraft((d) => ({ ...d, ...p }));
@@ -183,11 +222,32 @@ export function OnboardingFlow({
     return Object.keys(next).length === 0;
   }
 
+  function validateWho(): boolean {
+    if (!isPregnant && !hasChild) {
+      setErrors({ who: "Выберите хотя бы один вариант" });
+      return false;
+    }
+    setErrors({});
+    return true;
+  }
+
+  function validatePreg(): boolean {
+    const next: Record<string, string> = {};
+    let due = pregDue.trim();
+    if (!due && pregLmp.trim()) {
+      due = dueDateFromLmp(pregLmp) || "";
+      if (due) setPregDue(due);
+    }
+    if (!due) next.pregDue = "Укажите ПДР или дату последних месячных";
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  }
+
   function buildProfile(id: string): ChildProfile {
     return emptyChildProfile({
       id,
       name: draft.namePending ? "" : draft.name.trim(),
-      namePending: draft.namePending,
+      namePending: draft.namePending || (!hasChild && isPregnant),
       photoData: draft.photoData,
       birthDate: draft.birthDate,
       sex: draft.sex,
@@ -215,38 +275,70 @@ export function OnboardingFlow({
     });
   }
 
+  function persistPregnancy() {
+    if (!isPregnant) {
+      setPregnancy({ active: false, dueDate: "" });
+      return;
+    }
+    let due = pregDue.trim();
+    if (!due && pregLmp.trim()) due = dueDateFromLmp(pregLmp) || "";
+    const profile: PregnancyProfile = {
+      active: true,
+      dueDate: due,
+      lmpDate: pregLmp.trim() || undefined,
+      startWeightKg: parseRuNumber(pregStartWeight) ?? undefined,
+    };
+    setPregnancy(profile);
+    enablePregnancyModules();
+  }
+
   function persistDraft() {
     const seed = {
       heightCm: parseRuNumber(draft.currentHeight) ?? undefined,
       weightKg: parseRuNumber(draft.currentWeight) ?? undefined,
     };
     if (isFirstSave.current) {
-      setProfile(buildProfile(activeChildId));
-      seedCurrentGrowth();
+      if (hasChild || mode === "add") {
+        setProfile(buildProfile(activeChildId));
+        seedCurrentGrowth();
+        babySaved.current = true;
+      } else {
+        // Только беременность — плейсхолдер профиля, чтобы приложение работало
+        setProfile(
+          emptyChildProfile({
+            id: activeChildId,
+            namePending: true,
+            name: "",
+          }),
+        );
+      }
       isFirstSave.current = false;
     } else {
       addChild(buildProfile(`child-${Date.now()}`), { seedGrowth: seed });
+      babySaved.current = true;
     }
     setSavedInSession((n) => n + 1);
   }
 
   function goNext() {
-    if (step === 1 && !validateStep2()) return;
-    if (mode === "first" && step === 3 && !emailOk && !emailVerified) {
+    if (flowStep === "who" && !validateWho()) return;
+    if (flowStep === "preg" && !validatePreg()) return;
+    if (flowStep === "baby1" && !validateStep2()) return;
+    if (mode === "first" && flowStep === "email" && !emailOk && !emailVerified) {
       setEmailError("Сначала подтвердите почту кодом из письма");
       return;
     }
-    setStep((s) => Math.min(lastStep, s + 1));
+    setStepIdx((s) => Math.min(flow.length - 1, s + 1));
   }
 
   function goBack() {
     setErrors({});
     setEmailError(null);
-    if (mode === "add" && step <= 1) {
+    if (mode === "add" && stepIdx <= 0) {
       onClose?.();
       return;
     }
-    setStep((s) => Math.max(0, s - 1));
+    setStepIdx((s) => Math.max(0, s - 1));
   }
 
   async function sendCode() {
@@ -288,7 +380,7 @@ export function OnboardingFlow({
       setAccountEmail(data.email || trimmed);
       setEmailOk(true);
       trackEvent(authMode === "register" ? "register" : "login");
-      setStep(4);
+      setStepIdx((i) => Math.min(flow.length - 1, i + 1));
     } catch (e) {
       setEmailError(e instanceof Error ? e.message : "Ошибка проверки");
     } finally {
@@ -306,19 +398,26 @@ export function OnboardingFlow({
   async function finish(andAddAnother: boolean) {
     if (mode === "first" && !emailOk && !emailVerified) {
       setEmailError("Нужна подтверждённая почта");
-      setStep(3);
+      const emailIdx = flow.indexOf("email");
+      if (emailIdx >= 0) setStepIdx(emailIdx);
       return;
     }
     setSaving(true);
     try {
-      persistDraft();
+      persistPregnancy();
+      if (hasChild || mode === "add") {
+        persistDraft();
+      } else if (isFirstSave.current) {
+        persistDraft();
+      }
       if (andAddAnother) {
         setDraft(emptyDraft());
         setErrors({});
-        setStep(1);
+        setHasChild(true);
+        setStepIdx(flow.indexOf("baby1") >= 0 ? flow.indexOf("baby1") : 0);
       } else {
-        completeOnboarding();
         trackEvent("onboarding_done");
+        completeOnboarding();
         onClose?.();
       }
     } finally {
@@ -352,7 +451,7 @@ export function OnboardingFlow({
         </div>
 
         <div className="mb-4 flex items-center gap-2">
-          {(step > 0 || mode === "add") && (
+          {(stepIdx > 0 || mode === "add") && (
             <button
               type="button"
               onClick={goBack}
@@ -367,33 +466,114 @@ export function OnboardingFlow({
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto pb-4">
-          {step === 0 && (
-            <div className="maya-rise relative flex h-full flex-col justify-center py-8">
-              <SketchSprig
-                tone="soft"
-                className="pointer-events-none absolute -right-2 top-4 h-32 w-20 opacity-80"
-              />
-              <SketchMaya className="mb-2 h-28 w-28" />
-              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-accent">
-                Мая
-              </p>
-              <h1 className="font-display mt-3 text-4xl font-semibold leading-tight tracking-tight">
-                Давайте настроим
-                <br />
-                под вашего малыша
-              </h1>
-              <p className="mt-4 max-w-sm text-[15px] leading-relaxed text-muted">
-                Имя, рост, вес — и Мая сразу понимает контекст. Можно добавить
-                несколько детей: у каждого свои дневники и чат.
-              </p>
-              <SketchBaby
-                tone="soft"
-                className="mt-6 h-24 w-28 opacity-90"
+          {flowStep === "who" && (
+            <div className="maya-rise space-y-5 py-4">
+              <div className="text-center">
+                <SketchMaya className="mx-auto mb-2 h-20 w-20" />
+                <h1 className="font-display text-3xl font-semibold tracking-tight">
+                  Кто вы?
+                </h1>
+                <p className="mt-1.5 text-sm text-muted">
+                  Можно выбрать оба варианта
+                </p>
+              </div>
+              {(
+                [
+                  {
+                    key: "preg" as const,
+                    on: isPregnant,
+                    toggle: () => setIsPregnant((v) => !v),
+                    title: "Я беременна",
+                    sub: "Недели, схватки, шевеления, визиты",
+                  },
+                  {
+                    key: "child" as const,
+                    on: hasChild,
+                    toggle: () => setHasChild((v) => !v),
+                    title: "У меня есть ребёнок",
+                    sub: "Дневники, чат и рост малыша",
+                  },
+                ] as const
+              ).map((opt) => (
+                <button
+                  key={opt.key}
+                  type="button"
+                  onClick={opt.toggle}
+                  className={`flex w-full items-start gap-3 rounded-2xl border px-4 py-4 text-left transition ${
+                    opt.on
+                      ? "border-accent bg-accent-soft/60"
+                      : "border-line bg-card/60"
+                  }`}
+                >
+                  <div className="min-w-0 flex-1">
+                    <p
+                      className={`font-semibold ${
+                        opt.on ? "text-accent" : "text-foreground"
+                      }`}
+                    >
+                      {opt.title}
+                    </p>
+                    <p className="mt-0.5 text-xs text-muted">{opt.sub}</p>
+                  </div>
+                  {opt.on && (
+                    <span className="mt-0.5 text-accent" aria-hidden>
+                      ✓
+                    </span>
+                  )}
+                </button>
+              ))}
+              {errors.who && (
+                <p className="text-sm text-blush">{errors.who}</p>
+              )}
+            </div>
+          )}
+
+          {flowStep === "preg" && (
+            <div className="maya-rise space-y-5">
+              <div>
+                <h1 className="font-display text-3xl font-semibold tracking-tight">
+                  О беременности
+                </h1>
+                <p className="mt-1.5 text-sm text-muted">
+                  По ПДР или дате месячных Мая посчитает неделю
+                </p>
+              </div>
+              <label className="block">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+                  Предполагаемая дата родов (ПДР)
+                </span>
+                <input
+                  type="date"
+                  value={pregDue}
+                  onChange={(e) => setPregDue(e.target.value)}
+                  className="mt-2 w-full rounded-xl border border-line bg-card/70 px-3 py-3 text-sm"
+                />
+                {errors.pregDue && (
+                  <p className="mt-1.5 text-xs text-blush">{errors.pregDue}</p>
+                )}
+              </label>
+              <label className="block">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+                  Или первый день последних месячных
+                </span>
+                <input
+                  type="date"
+                  value={pregLmp}
+                  onChange={(e) => setPregLmp(e.target.value)}
+                  className="mt-2 w-full rounded-xl border border-line bg-card/70 px-3 py-3 text-sm"
+                />
+              </label>
+              <LineField
+                label="Вес до беременности (кг), необязательно"
+                value={pregStartWeight}
+                onChange={setPregStartWeight}
+                inputMode="decimal"
+                placeholder="например 60"
               />
             </div>
           )}
 
-          {step === 1 && (
+          {flowStep === "baby1" && (
             <div className="maya-rise space-y-5">
               <div>
                 <h1 className="font-display text-3xl font-semibold tracking-tight">
@@ -523,7 +703,7 @@ export function OnboardingFlow({
             </div>
           )}
 
-          {step === 2 && (
+          {flowStep === "baby2" && (
             <div className="maya-rise space-y-5">
               <div>
                 <h1 className="font-display text-3xl font-semibold tracking-tight">
@@ -577,7 +757,7 @@ export function OnboardingFlow({
             </div>
           )}
 
-          {mode === "first" && step === 3 && (
+          {flowStep === "email" && (
             <div className="maya-rise flex h-full flex-col justify-center py-6">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-accent">
                 {authMode === "register"
@@ -736,19 +916,24 @@ export function OnboardingFlow({
             </div>
           )}
 
-          {((mode === "first" && step === 4) ||
-            (mode === "add" && step === 3)) && (
+          {flowStep === "finish" && (
             <div className="maya-rise flex h-full flex-col justify-center py-6">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-accent">
                 Готово
               </p>
               <h1 className="font-display mt-3 text-3xl font-semibold tracking-tight">
-                {titleName} в Мае
+                {isPregnant && !hasChild
+                  ? "Беременность в Мае"
+                  : `${titleName} в Мае`}
               </h1>
               <p className="mt-3 text-sm leading-relaxed text-muted">
                 {mode === "add"
                   ? "Ребёнок сохранён. Можно сразу добавить ещё одного или вернуться в Маю."
-                  : "Всё готово — можно начинать. Ещё одного ребёнка добавите позже в профиле."}
+                  : isPregnant && !hasChild
+                    ? "Открыли недели, схватки, шевеления и визиты. После родов добавите малыша в профиле."
+                    : isPregnant && hasChild
+                      ? "И беременность, и малыш — Мая будет в курсе обоих контекстов."
+                      : "Всё готово — можно начинать. Ещё одного ребёнка добавите позже в профиле."}
               </p>
               {accountEmail && (
                 <p className="mt-2 text-xs text-muted">Аккаунт: {accountEmail}</p>
@@ -764,30 +949,28 @@ export function OnboardingFlow({
         </div>
 
         <div className="shrink-0 space-y-2 pt-2">
-          {step < lastStep &&
-          !(mode === "first" && step === 3 && !(emailOk || emailVerified)) ? (
+          {flowStep !== "finish" &&
+          !(flowStep === "email" && !(emailOk || emailVerified)) ? (
             <button
               type="button"
               onClick={goNext}
               className="w-full rounded-2xl bg-accent py-3.5 text-sm font-semibold text-[#ffffff] hover:bg-accent-hot"
             >
-              {step === 0 ? "Начать" : "Далее"}
+              {flowStep === "who" ? "Продолжить" : "Далее"}
             </button>
           ) : null}
 
-          {mode === "first" &&
-            step === 3 &&
-            (emailOk || emailVerified) && (
-              <button
-                type="button"
-                onClick={goNext}
-                className="w-full rounded-2xl bg-accent py-3.5 text-sm font-semibold text-[#ffffff] hover:bg-accent-hot"
-              >
-                Далее
-              </button>
-            )}
+          {flowStep === "email" && (emailOk || emailVerified) && (
+            <button
+              type="button"
+              onClick={goNext}
+              className="w-full rounded-2xl bg-accent py-3.5 text-sm font-semibold text-[#ffffff] hover:bg-accent-hot"
+            >
+              Далее
+            </button>
+          )}
 
-          {step === lastStep && (
+          {flowStep === "finish" && (
             <>
               <button
                 type="button"

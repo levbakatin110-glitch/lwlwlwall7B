@@ -36,6 +36,11 @@ import {
   type PaidPlanId,
   type SubscriptionState,
 } from "./subscription";
+import {
+  emptyPregnancy,
+  PREGNANCY_MODULE_IDS,
+  type PregnancyProfile,
+} from "./pregnancy";
 import type {
   ChatMessage,
   ChildProfile,
@@ -64,6 +69,9 @@ type AppState = {
   journals: Record<string, JournalEntry[]>;
   messages: ChatMessage[];
   demoWardrobeSeeded: boolean;
+
+  /** Беременность (профиль мамы, общий) */
+  pregnancy: PregnancyProfile;
 
   sidebarOpen: boolean;
   pendingChatPrompt: string | null;
@@ -94,6 +102,9 @@ type AppState = {
   setDietPlan: (plan: DietPlan | null) => void;
   setAccountEmail: (email: string) => void;
   clearAccountEmail: () => void;
+  setPregnancy: (pregnancy: PregnancyProfile) => void;
+  /** Включить все дневники беременности у активного ребёнка/профиля */
+  enablePregnancyModules: () => void;
   activateSubscription: (planId: PaidPlanId) => void;
   clearSubscription: () => void;
   /** Списать 1 бесплатный запрос. false = лимит исчерпан */
@@ -225,6 +236,7 @@ export const useAppStore = create<AppState>()(
       themeDefaultV2: true,
       dietPlan: null,
       opsErrors: [],
+      pregnancy: emptyPregnancy(),
       subscription: emptySubscription(),
       aiChatUsage: emptyAiUsage(),
       accountEmail: null,
@@ -245,6 +257,17 @@ export const useAppStore = create<AppState>()(
         }),
       clearAccountEmail: () =>
         set({ accountEmail: null, emailVerified: false }),
+      setPregnancy: (pregnancy) => set({ pregnancy }),
+      enablePregnancyModules: () => {
+        const cur = get().enabledModules;
+        const next = [...cur];
+        for (const id of PREGNANCY_MODULE_IDS) {
+          if (!next.includes(id)) next.push(id);
+        }
+        withActiveSpace(get, set, {
+          enabledModules: next as ModuleId[],
+        });
+      },
       activateSubscription: (planId) =>
         set({ subscription: activatePaidPlan(planId) }),
       clearSubscription: () => {
@@ -642,6 +665,7 @@ export const useAppStore = create<AppState>()(
         modulesCareTrackersV1: state.modulesCareTrackersV1,
         dietPlan: state.dietPlan,
         opsErrors: state.opsErrors,
+        pregnancy: state.pregnancy,
         subscription: state.subscription,
         aiChatUsage: state.aiChatUsage,
         accountEmail: state.accountEmail,
@@ -651,6 +675,7 @@ export const useAppStore = create<AppState>()(
         if (!state) return;
         if (!state.opsErrors) state.opsErrors = [];
         if (!state.subscription) state.subscription = emptySubscription();
+        if (!state.pregnancy) state.pregnancy = emptyPregnancy();
         if (!state.aiChatUsage) state.aiChatUsage = emptyAiUsage();
         if (state.accountEmail === undefined) state.accountEmail = null;
         if (state.emailVerified == null) state.emailVerified = false;

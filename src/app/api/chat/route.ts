@@ -108,6 +108,7 @@ export async function POST(req: Request) {
       memoryStory: body.memoryStory ?? null,
       journals: body.journals ?? ({} as ClientChatPayload["journals"]),
       weather,
+      pregnancy: body.pregnancy ?? null,
     });
 
     const stream = await openai.chat.completions.create({
