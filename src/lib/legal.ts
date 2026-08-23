@@ -60,20 +60,20 @@ export const LEGAL_DOCS: {
 }[] = [
   {
     key: "offer",
-    href: "/документы/публичная-оферта",
+    href: "/legal/offer",
     label: "Публичная оферта",
     fileName: "1_Публичная_оферта.pdf",
   },
   {
     key: "privacy",
-    href: "/документы/политика-персональных-данных",
+    href: "/legal/privacy",
     label: "Политика обработки персональных данных",
     fileName: "2_Политика_персональных_данных.pdf",
   },
 ];
 
 export function legalDocHref(key: LegalDocKey): string {
-  return LEGAL_DOCS.find((d) => d.key === key)?.href ?? "/документы";
+  return LEGAL_DOCS.find((d) => d.key === key)?.href ?? "/legal";
 }
 
 export function legalDocAbsolute(key: LegalDocKey): string {

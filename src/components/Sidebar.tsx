@@ -243,7 +243,7 @@ export function Sidebar({
       })}
 
       <Link
-        href="/документы"
+        href="/legal"
         onClick={close}
         className="mt-6 px-3 text-[11px] text-muted underline underline-offset-2 hover:text-foreground"
       >

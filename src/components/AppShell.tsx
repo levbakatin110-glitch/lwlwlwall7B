@@ -19,10 +19,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isOpsPage = pathname === "/admin" || pathname.startsWith("/admin/");
   const isLegalPage =
-    pathname === "/документы" ||
-    pathname.startsWith("/документы/") ||
-    pathname === "/legal" ||
-    pathname.startsWith("/legal/");
+    pathname === "/legal" || pathname.startsWith("/legal/");
   const [menuOpen, setMenuOpen] = useState(false);
   const profile = useAppStore((s) => s.profile);
   const name = childDisplayName(profile);

@@ -24,7 +24,7 @@ export function CookieBanner() {
         <p className="text-xs leading-relaxed text-muted">
           Продолжая пользоваться сайтом, вы соглашаетесь с использованием cookie
           и условиями{" "}
-          <Link href="/документы/политика-персональных-данных" className="text-accent underline">
+          <Link href="/legal/privacy" className="text-accent underline">
             Политики обработки персональных данных
           </Link>
           .

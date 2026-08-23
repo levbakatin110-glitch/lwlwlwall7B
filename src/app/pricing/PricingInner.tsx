@@ -199,12 +199,12 @@ export default function PricingInner() {
       <p className="mt-4 text-[11px] leading-relaxed text-muted">
         Оплата через Prodamus. Premium привязывается к вашей почте в Мае
         {accountEmail ? ` (${accountEmail})` : ""}. Оплачивая, вы принимаете{" "}
-        <Link href="/документы/публичная-оферта" className="underline">
+        <Link href="/legal/offer" className="underline">
           публичную оферту
         </Link>{" "}
         и{" "}
         <Link
-          href="/документы/политика-персональных-данных"
+          href="/legal/privacy"
           className="underline"
         >
           политику персональных данных
@@ -213,8 +213,8 @@ export default function PricingInner() {
       </p>
       <p className="mt-2 text-[11px] text-muted">
         Все документы:{" "}
-        <Link href="/документы" className="underline">
-          /документы
+        <Link href="/legal" className="underline">
+          /legal
         </Link>
         . Услуги информационные, не заменяют консультацию врача.
       </p>

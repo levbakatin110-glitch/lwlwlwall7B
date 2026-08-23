@@ -21,7 +21,7 @@ export function LegalShell({
       <header className="border-b border-line bg-card/80 px-4 py-3 backdrop-blur">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
           <Link
-            href="/документы"
+            href="/legal"
             className="font-display text-lg font-semibold tracking-tight"
           >
             {LEGAL_BRAND}

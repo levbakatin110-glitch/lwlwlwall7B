@@ -147,7 +147,7 @@ export function EmailGate({ children }: { children: React.ReactNode }) {
                 <span>
                   Принимаю{" "}
                   <Link
-                    href="/документы/публичная-оферта"
+                    href="/legal/offer"
                     target="_blank"
                     className="text-accent underline"
                   >
@@ -165,7 +165,7 @@ export function EmailGate({ children }: { children: React.ReactNode }) {
                 <span>
                   Соглашаюсь с{" "}
                   <Link
-                    href="/документы/политика-персональных-данных"
+                    href="/legal/privacy"
                     target="_blank"
                     className="text-accent underline"
                   >

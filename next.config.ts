@@ -7,46 +7,46 @@ const nextConfig: NextConfig = {
   output: "standalone",
   async redirects() {
     return [
-      { source: "/legal", destination: "/документы", permanent: true },
+      // Кириллические URL → ASCII (Next.js ломает static export на /документы)
+      { source: "/документы", destination: "/legal", permanent: true },
       {
-        source: "/legal/offer",
-        destination: "/документы/публичная-оферта",
+        source: "/документы/публичная-оферта",
+        destination: "/legal/offer",
         permanent: true,
       },
       {
-        source: "/legal/privacy",
-        destination: "/документы/политика-персональных-данных",
-        permanent: true,
-      },
-      // старые лишние согласия → политика
-      {
-        source: "/legal/consent-pd",
-        destination: "/документы/политика-персональных-данных",
-        permanent: true,
-      },
-      {
-        source: "/legal/consent-marketing",
-        destination: "/документы/политика-персональных-данных",
-        permanent: true,
-      },
-      {
-        source: "/legal/consent-reviews",
-        destination: "/документы/политика-персональных-данных",
+        source: "/документы/политика-персональных-данных",
+        destination: "/legal/privacy",
         permanent: true,
       },
       {
         source: "/документы/согласие-обработка-пдн",
-        destination: "/документы/политика-персональных-данных",
+        destination: "/legal/privacy",
         permanent: true,
       },
       {
         source: "/документы/согласие-рассылка",
-        destination: "/документы/политика-персональных-данных",
+        destination: "/legal/privacy",
         permanent: true,
       },
       {
         source: "/документы/согласие-отзывы",
-        destination: "/документы/политика-персональных-данных",
+        destination: "/legal/privacy",
+        permanent: true,
+      },
+      {
+        source: "/legal/consent-pd",
+        destination: "/legal/privacy",
+        permanent: true,
+      },
+      {
+        source: "/legal/consent-marketing",
+        destination: "/legal/privacy",
+        permanent: true,
+      },
+      {
+        source: "/legal/consent-reviews",
+        destination: "/legal/privacy",
         permanent: true,
       },
     ];

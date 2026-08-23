@@ -179,7 +179,7 @@ export default function OfferPage() {
         3.1. Совершая акцепт, Заказчик даёт согласие на обработку персональных
         данных в соответствии с{" "}
         <Link
-          href="/документы/политика-персональных-данных"
+          href="/legal/privacy"
           className="text-accent underline"
         >
           Политикой обработки персональных данных
@@ -355,10 +355,10 @@ export default function OfferPage() {
       <p>
         8.3. Актуальная редакция Оферты размещена по адресу{" "}
         <Link
-          href="/документы/публичная-оферта"
+          href="/legal/offer"
           className="text-accent underline"
         >
-          {site}/документы/публичная-оферта
+          {site}/legal/offer
         </Link>
         .
       </p>

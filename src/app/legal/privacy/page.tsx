@@ -73,8 +73,8 @@ export default function PrivacyPage() {
       <p>
         1.3. Политика может изменяться; актуальная редакция публикуется на
         Сайте. Ознакомление реализуется путём посещения страниц раздела{" "}
-        <Link href="/документы" className="text-accent underline">
-          /документы
+        <Link href="/legal" className="text-accent underline">
+          /legal
         </Link>
         .
       </p>
