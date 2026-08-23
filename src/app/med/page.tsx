@@ -183,6 +183,21 @@ export default function MedCardPage() {
         </div>
       )}
 
+      <div className="grid grid-cols-2 gap-2">
+        <Link
+          href="/m/cycle"
+          className="rounded-2xl border border-line bg-card/70 px-3 py-3 text-sm font-medium"
+        >
+          Цикл →
+        </Link>
+        <Link
+          href="/m/preg_labs"
+          className="rounded-2xl border border-line bg-card/70 px-3 py-3 text-sm font-medium"
+        >
+          Фото анализа →
+        </Link>
+      </div>
+
       <button
         type="button"
         onClick={() => {

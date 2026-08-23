@@ -19,7 +19,7 @@ function loadFired(): Set<string> {
 
 function saveFired(set: Set<string>) {
   try {
-    localStorage.setItem(FIRED_KEY, JSON.stringify([...set].slice(-80)));
+    localStorage.setItem(FIRED_KEY, JSON.stringify([...set].slice(-120)));
   } catch {
     /* ignore */
   }
@@ -29,28 +29,47 @@ type DueItem = {
   id: string;
   text: string;
   at: string;
+  href: string;
 };
 
+function collectFromJournal(
+  entries: { id: string; value: string; note: string; fields?: Record<string, string | number> }[],
+  href: string,
+): { id: string; text: string; at: string; t: number; href: string }[] {
+  return entries
+    .map((e) => {
+      const at = String(e.fields?.remindAt || "");
+      if (!at) return null;
+      const t = new Date(at).getTime();
+      if (!Number.isFinite(t)) return null;
+      return {
+        id: `${href}-${e.id}`,
+        text: String(e.fields?.text || e.note || e.value),
+        at,
+        t,
+        href,
+      };
+    })
+    .filter(Boolean) as {
+    id: string;
+    text: string;
+    at: string;
+    t: number;
+    href: string;
+  }[];
+}
+
 export function RemindersHost() {
-  const entries = useAppStore((s) => s.journals.notes ?? []);
+  const notes = useAppStore((s) => s.journals.notes ?? []);
+  const meds = useAppStore((s) => s.journals.preg_meds ?? []);
   const [due, setDue] = useState<DueItem[]>([]);
 
   const candidates = useMemo(() => {
-    return entries
-      .map((e) => {
-        const at = String(e.fields?.remindAt || "");
-        if (!at) return null;
-        const t = new Date(at).getTime();
-        if (!Number.isFinite(t)) return null;
-        return {
-          id: e.id,
-          text: String(e.fields?.text || e.note || e.value),
-          at,
-          t,
-        };
-      })
-      .filter(Boolean) as { id: string; text: string; at: string; t: number }[];
-  }, [entries]);
+    return [
+      ...collectFromJournal(notes, "/m/notes"),
+      ...collectFromJournal(meds, "/m/preg_meds"),
+    ];
+  }, [notes, meds]);
 
   useEffect(() => {
     function check() {
@@ -62,7 +81,7 @@ export function RemindersHost() {
         if (c.t < now - 24 * 60 * 60 * 1000) continue;
         if (fired.has(c.id)) continue;
         fired.add(c.id);
-        fresh.push({ id: c.id, text: c.text, at: c.at });
+        fresh.push({ id: c.id, text: c.text, at: c.at, href: c.href });
         if (typeof Notification !== "undefined" && Notification.permission === "granted") {
           try {
             new Notification("Мая · напоминание", {
@@ -97,7 +116,7 @@ export function RemindersHost() {
             className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent"
             aria-hidden
           >
-            <MayaIcon name="notes" size={16} />
+            <MayaIcon name="health" size={16} />
           </span>
           <div className="min-w-0 flex-1">
             <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-accent">
@@ -105,10 +124,10 @@ export function RemindersHost() {
             </p>
             <p className="mt-0.5 text-sm font-medium leading-snug">{item.text}</p>
             <Link
-              href="/m/notes"
+              href={item.href}
               className="mt-1 inline-block text-[11px] font-semibold text-accent"
             >
-              Открыть заметки
+              Открыть
             </Link>
           </div>
           <button

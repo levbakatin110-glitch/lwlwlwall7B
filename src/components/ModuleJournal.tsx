@@ -18,6 +18,10 @@ import { WaterTracker } from "@/components/trackers/WaterTracker";
 import { PregnancyWeekPanel } from "@/components/pregnancy/PregnancyWeekPanel";
 import { ContractionsTracker } from "@/components/pregnancy/ContractionsTracker";
 import { KicksTracker } from "@/components/pregnancy/KicksTracker";
+import { MedsTracker } from "@/components/pregnancy/MedsTracker";
+import { MedicalPhotoTracker } from "@/components/pregnancy/MedicalPhotoTracker";
+import { MomSleepCalendar } from "@/components/pregnancy/MomSleepCalendar";
+import { CycleTracker } from "@/components/cycle/CycleTracker";
 import { IconBadge } from "@/components/icons/MayaIcon";
 import { hintForDiary } from "@/lib/diary-hints";
 import { isDietLikeModule } from "@/lib/diet";
@@ -303,6 +307,8 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
       "contractions",
       "kicks",
       "preg_sleep",
+      "cycle",
+      "preg_meds",
     ].includes(moduleId);
 
   const growthPoints: GrowthPoint[] = useMemo(() => {
@@ -547,7 +553,22 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
       )}
       {moduleId === "preg_sleep" && (
         <div className="mt-4">
-          <SleepTracker journalId="preg_sleep" />
+          <MomSleepCalendar />
+        </div>
+      )}
+      {moduleId === "cycle" && (
+        <div className="mt-4">
+          <CycleTracker />
+        </div>
+      )}
+      {moduleId === "preg_meds" && (
+        <div className="mt-4">
+          <MedsTracker />
+        </div>
+      )}
+      {(moduleId === "preg_labs" || moduleId === "preg_docs") && (
+        <div className="mt-4">
+          <MedicalPhotoTracker moduleId={moduleId} />
         </div>
       )}
       {moduleId === "birth_plan" && (
@@ -595,6 +616,8 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
           "contractions",
           "kicks",
           "preg_sleep",
+          "cycle",
+          "preg_meds",
         ].includes(moduleId) && (
         <DiaryQuickActions moduleId={moduleId} onPrefill={focusAdd} />
       )}
