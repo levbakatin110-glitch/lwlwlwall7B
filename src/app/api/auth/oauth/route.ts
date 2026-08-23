@@ -11,7 +11,7 @@ import {
 export const runtime = "nodejs";
 
 function isProvider(v: string): v is OAuthProvider {
-  return v === "vk" || v === "mailru";
+  return v === "mailru";
 }
 
 export async function GET() {
@@ -38,9 +38,7 @@ export async function POST(req: Request) {
     return Response.json(
       {
         error:
-          provider === "vk"
-            ? "Вход через VK ещё не настроен (нужны VK_CLIENT_ID / SECRET на сервере)"
-            : "Вход через Mail.ru ещё не настроен (нужны MAILRU_CLIENT_ID / SECRET на сервере)",
+          "Вход через Mail.ru ещё не настроен (нужны MAILRU_CLIENT_ID / SECRET на сервере)",
       },
       { status: 503 },
     );

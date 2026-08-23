@@ -6,7 +6,7 @@ import {
   RUSSIAN_EMAIL_HINT,
 } from "@/lib/email-codes";
 
-export type OAuthProvider = "vk" | "mailru";
+export type OAuthProvider = "mailru";
 
 type OAuthTicket = {
   email: string;
@@ -52,26 +52,22 @@ export function siteOrigin(): string {
 }
 
 export function oauthCallbackUrl(provider: OAuthProvider): string {
-  const base = `${siteOrigin()}/api/auth/oauth/${provider}/callback`;
   // Mail.ru требует точное совпадение; в их доках часто со слэшем в конце
-  return provider === "mailru" ? `${base}/` : base;
+  return `${siteOrigin()}/api/auth/oauth/${provider}/callback/`;
 }
 
 export function providerConfigured(provider: OAuthProvider): boolean {
-  if (provider === "vk") {
+  if (provider === "mailru") {
     return Boolean(
-      process.env.VK_CLIENT_ID?.trim() && process.env.VK_CLIENT_SECRET?.trim(),
+      process.env.MAILRU_CLIENT_ID?.trim() &&
+        process.env.MAILRU_CLIENT_SECRET?.trim(),
     );
   }
-  return Boolean(
-    process.env.MAILRU_CLIENT_ID?.trim() &&
-      process.env.MAILRU_CLIENT_SECRET?.trim(),
-  );
+  return false;
 }
 
 export function providersStatus(): Record<OAuthProvider, boolean> {
   return {
-    vk: providerConfigured("vk"),
     mailru: providerConfigured("mailru"),
   };
 }
@@ -146,7 +142,7 @@ export function parseOAuthState(
     const data = JSON.parse(
       fromB64url(body).toString("utf8"),
     ) as OAuthStatePayload;
-    if (data.p !== "vk" && data.p !== "mailru") {
+    if (data.p !== "mailru") {
       return { ok: false, error: "Неизвестный провайдер" };
     }
     if (Date.now() - data.t > 15 * 60_000) {
@@ -232,95 +228,19 @@ export function buildAuthUrl(
   provider: OAuthProvider,
   state: string,
   challenge: string,
-  deviceId: string,
+  _deviceId: string,
 ): string {
-  if (provider === "vk") {
-    const clientId = process.env.VK_CLIENT_ID!.trim();
-    const params = new URLSearchParams({
-      response_type: "code",
-      client_id: clientId,
-      redirect_uri: oauthCallbackUrl("vk"),
-      state,
-      code_challenge: challenge,
-      code_challenge_method: "S256",
-      scope: "email",
-      device_id: deviceId,
-    });
-    return `https://id.vk.ru/authorize?${params}`;
-  }
-
   const clientId = process.env.MAILRU_CLIENT_ID!.trim();
   const params = new URLSearchParams({
     response_type: "code",
     client_id: clientId,
-    redirect_uri: oauthCallbackUrl("mailru"),
+    redirect_uri: oauthCallbackUrl(provider),
     state,
     code_challenge: challenge,
     code_challenge_method: "S256",
     scope: "openid email profile",
   });
   return `https://oauth.mail.ru/login?${params}`;
-}
-
-export async function exchangeVkCode(input: {
-  code: string;
-  deviceId: string;
-  verifier: string;
-}): Promise<string> {
-  const clientId = process.env.VK_CLIENT_ID!.trim();
-  const clientSecret = process.env.VK_CLIENT_SECRET!.trim();
-  const body = new URLSearchParams({
-    grant_type: "authorization_code",
-    code: input.code,
-    code_verifier: input.verifier,
-    client_id: clientId,
-    client_secret: clientSecret,
-    redirect_uri: oauthCallbackUrl("vk"),
-    device_id: input.deviceId,
-    state: "maya",
-  });
-  const tokenRes = await fetch("https://id.vk.ru/oauth2/auth", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body,
-  });
-  const tokenData = (await tokenRes.json()) as {
-    access_token?: string;
-    error?: string;
-    error_description?: string;
-    email?: string;
-  };
-  if (!tokenRes.ok || !tokenData.access_token) {
-    throw new Error(
-      tokenData.error_description ||
-        tokenData.error ||
-        "Не удалось получить токен VK",
-    );
-  }
-
-  if (tokenData.email) {
-    return assertRussianEmail(tokenData.email);
-  }
-
-  const infoRes = await fetch("https://id.vk.ru/oauth2/user_info", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      access_token: tokenData.access_token,
-      client_id: clientId,
-    }),
-  });
-  const info = (await infoRes.json()) as {
-    user?: { email?: string };
-    error?: string;
-  };
-  const email = info.user?.email;
-  if (!infoRes.ok || !email) {
-    throw new Error(
-      "VK не вернул email. Разрешите доступ к почте или войдите кодом на Mail.ru / Яндекс.",
-    );
-  }
-  return assertRussianEmail(email);
 }
 
 export async function exchangeMailruCode(input: {

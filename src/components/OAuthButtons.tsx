@@ -4,8 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { trackEvent } from "@/lib/analytics-client";
 import { useAppStore } from "@/lib/store";
 
-type OAuthProvider = "vk" | "mailru";
-
 type Props = {
   mode: "login" | "register";
   consentsOk?: boolean;
@@ -23,11 +21,8 @@ export function OAuthButtons({
   const onErrorRef = useRef(onError);
   onErrorRef.current = onError;
   const handledTicket = useRef(false);
-  const [available, setAvailable] = useState<Record<OAuthProvider, boolean>>({
-    vk: true,
-    mailru: true,
-  });
-  const [busy, setBusy] = useState<OAuthProvider | null>(null);
+  const [mailruOk, setMailruOk] = useState(true);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -35,8 +30,8 @@ export function OAuthButtons({
       try {
         const res = await fetch("/api/auth/oauth");
         if (!res.ok) return;
-        const data = (await res.json()) as Record<OAuthProvider, boolean>;
-        if (!cancelled) setAvailable(data);
+        const data = (await res.json()) as { mailru?: boolean };
+        if (!cancelled) setMailruOk(Boolean(data.mailru));
       } catch {
         /* ok */
       }
@@ -100,18 +95,18 @@ export function OAuthButtons({
     };
   }, [mode, setAccountEmail]);
 
-  async function start(provider: OAuthProvider) {
+  async function startMailru() {
     if (mode === "register" && !consentsOk) {
       onErrorRef.current?.("Отметьте обязательные согласия под формой");
       return;
     }
-    setBusy(provider);
+    setBusy(true);
     onErrorRef.current?.("");
     try {
       const res = await fetch("/api/auth/oauth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ provider, mode, returnTo }),
+        body: JSON.stringify({ provider: "mailru", mode, returnTo }),
       });
       const data = (await res.json()) as { error?: string; url?: string };
       if (!res.ok || !data.url) {
@@ -120,7 +115,7 @@ export function OAuthButtons({
       window.location.href = data.url;
     } catch (e) {
       onErrorRef.current?.(e instanceof Error ? e.message : "Ошибка");
-      setBusy(null);
+      setBusy(false);
     }
   }
 
@@ -133,44 +128,18 @@ export function OAuthButtons({
 
       <button
         type="button"
-        disabled={busy !== null || (mode === "register" && !consentsOk)}
-        onClick={() => void start("vk")}
-        className="flex w-full items-center justify-center gap-2.5 rounded-2xl border border-line bg-card py-3 text-sm font-medium text-foreground transition hover:border-accent/40 disabled:opacity-50"
-      >
-        <VkIcon />
-        {busy === "vk"
-          ? "Перенаправляю…"
-          : available.vk
-            ? "Войти с VK ID"
-            : "VK ID (нужна настройка)"}
-      </button>
-
-      <button
-        type="button"
-        disabled={busy !== null || (mode === "register" && !consentsOk)}
-        onClick={() => void start("mailru")}
+        disabled={busy || (mode === "register" && !consentsOk)}
+        onClick={() => void startMailru()}
         className="flex w-full items-center justify-center gap-2.5 rounded-2xl border border-line bg-card py-3 text-sm font-medium text-foreground transition hover:border-accent/40 disabled:opacity-50"
       >
         <MailRuIcon />
-        {busy === "mailru"
+        {busy
           ? "Перенаправляю…"
-          : available.mailru
+          : mailruOk
             ? "Войти с Mail.ru"
             : "Mail.ru (нужна настройка)"}
       </button>
     </div>
-  );
-}
-
-function VkIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden>
-      <rect width="24" height="24" rx="5" fill="#0077FF" />
-      <path
-        fill="#fff"
-        d="M12.8 16.5h-1.5s-.3 0-.4-.2c-.1-.2-.4-.9-.9-1.7-.7-1-1.2-1.2-1.3-1.3-.1-.1-.2-.1-.3 0l-.1.5s0 .8-.5.8h-1.1c-.7 0-1.5-.2-2.3-1.3-.9-1.3-2.3-4.1-2.3-4.1s0-.2.1-.3c.1-.1.3-.1.3-.1h1.6s.1 0 .2.1c.1.1.2.3.3.5.5 1.2 1.1 2.3 1.4 2.3.1 0 .2 0 .2-.3v-1.4c0-.4 0-.7-.2-.8-.2-.1 0-.2.3-.2h2.1s.3 0 .4.2c.1.1 0 .4 0 .6v2c0 .2 0 .4.2.4.1 0 .3 0 .6-.4.6-.7 1.1-1.8 1.5-2.9 0-.1.1-.2.2-.3.1-.1.3-.1.3-.1h1.6s.4 0 .5.3c.1.2 0 .4-.1.6-.5 1-1.1 2-1.6 2.8-.1.2-.2.3 0 .5.1.1.5.5.8.8.4.4.8.8.9 1.1.1.3-.1.5-.4.5z"
-      />
-    </svg>
   );
 }
 
