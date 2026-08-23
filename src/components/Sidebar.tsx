@@ -241,6 +241,14 @@ export function Sidebar({
           </Link>
         );
       })}
+
+      <Link
+        href="/документы"
+        onClick={close}
+        className="mt-6 px-3 text-[11px] text-muted underline underline-offset-2 hover:text-foreground"
+      >
+        Документы · оферта
+      </Link>
     </nav>
   );
 

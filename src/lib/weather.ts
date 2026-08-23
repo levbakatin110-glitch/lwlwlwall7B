@@ -1,5 +1,6 @@
 import type { WeatherSnapshot } from "./types";
 import { distanceKm, LOCATION_MISMATCH_KM } from "./geo";
+import { fetchWithTimeout } from "./fetch-timeout";
 
 const WEATHER_CODE_RU: Record<number, string> = {
   0: "ясно",
@@ -22,6 +23,8 @@ const WEATHER_CODE_RU: Record<number, string> = {
   82: "сильный ливень",
   95: "гроза",
 };
+
+import { fetchWithTimeout } from "@/lib/fetch-timeout";
 
 export function weatherDescription(code: number): string {
   return WEATHER_CODE_RU[code] ?? `код погоды ${code}`;
@@ -87,7 +90,10 @@ async function fetchWeatherAt(
   weatherUrl.searchParams.set("wind_speed_unit", "kmh");
   weatherUrl.searchParams.set("timezone", "auto");
 
-  const wRes = await fetch(weatherUrl.toString(), { cache: "no-store" });
+  const wRes = await fetchWithTimeout(weatherUrl.toString(), {
+    cache: "no-store",
+    timeoutMs: 2500,
+  });
   if (!wRes.ok) return null;
   const data = (await wRes.json()) as {
     current?: {
@@ -138,7 +144,10 @@ export async function geocodeCity(
   // Для мам в РФ чаще нужен российский город
   geoUrl.searchParams.set("countryCode", "RU");
 
-  const geoRes = await fetch(geoUrl.toString(), { next: { revalidate: 3600 } });
+  const geoRes = await fetchWithTimeout(geoUrl.toString(), {
+    next: { revalidate: 3600 },
+    timeoutMs: 2500,
+  });
   if (!geoRes.ok) return null;
   const geo = (await geoRes.json()) as {
     results?: {
@@ -159,7 +168,10 @@ export async function geocodeCity(
     fallback.searchParams.set("count", "3");
     fallback.searchParams.set("language", "ru");
     fallback.searchParams.set("format", "json");
-    const fbRes = await fetch(fallback.toString(), { next: { revalidate: 3600 } });
+    const fbRes = await fetchWithTimeout(fallback.toString(), {
+      next: { revalidate: 3600 },
+      timeoutMs: 2500,
+    });
     if (fbRes.ok) {
       const fb = (await fbRes.json()) as {
         results?: { name: string; latitude: number; longitude: number }[];
@@ -200,12 +212,13 @@ export async function reverseGeocode(
   url.searchParams.set("accept-language", "ru");
   url.searchParams.set("zoom", "10");
 
-  const res = await fetch(url.toString(), {
+  const res = await fetchWithTimeout(url.toString(), {
     headers: {
       "User-Agent": "MayaMomAssistant/1.0 (local; weather city detect)",
       Accept: "application/json",
     },
     next: { revalidate: 3600 },
+    timeoutMs: 2500,
   });
   if (!res.ok) return null;
 

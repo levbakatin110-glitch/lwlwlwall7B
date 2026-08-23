@@ -129,6 +129,10 @@ export function OnboardingFlow({
   const [emailBusy, setEmailBusy] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [emailOk, setEmailOk] = useState(false);
+  /** register | login | recover — у Маи нет пароля, вход по коду на почту */
+  const [authMode, setAuthMode] = useState<"register" | "login" | "recover">(
+    "register",
+  );
   const fileRef = useRef<HTMLInputElement>(null);
   const isFirstSave = useRef(mode === "first");
 
@@ -283,13 +287,20 @@ export function OnboardingFlow({
       if (!res.ok) throw new Error(data.error || "Неверный код");
       setAccountEmail(data.email || trimmed);
       setEmailOk(true);
-      trackEvent("register");
+      trackEvent(authMode === "register" ? "register" : "login");
       setStep(4);
     } catch (e) {
       setEmailError(e instanceof Error ? e.message : "Ошибка проверки");
     } finally {
       setEmailBusy(false);
     }
+  }
+
+  function switchAuthMode(next: "register" | "login" | "recover") {
+    setAuthMode(next);
+    setCodeSent(false);
+    setCode("");
+    setEmailError(null);
   }
 
   async function finish(andAddAnother: boolean) {
@@ -569,13 +580,25 @@ export function OnboardingFlow({
           {mode === "first" && step === 3 && (
             <div className="maya-rise flex h-full flex-col justify-center py-6">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-accent">
-                Регистрация
+                {authMode === "register"
+                  ? "Регистрация"
+                  : authMode === "login"
+                    ? "Вход"
+                    : "Восстановление"}
               </p>
               <h1 className="font-display mt-3 text-3xl font-semibold tracking-tight">
-                Ваша почта
+                {authMode === "register"
+                  ? "Ваша почта"
+                  : authMode === "login"
+                    ? "С возвращением"
+                    : "Доступ к аккаунту"}
               </h1>
               <p className="mt-3 text-sm leading-relaxed text-muted">
-                Пришлём код подтверждения — так сохранится аккаунт и подписка.
+                {authMode === "register"
+                  ? "Пришлём код подтверждения — так сохранится аккаунт и подписка."
+                  : authMode === "login"
+                    ? "Вход по коду на почту — пароль в Мае не нужен."
+                    : "В Мае нет пароля. Введите почту аккаунта — пришлём новый код для входа."}
               </p>
 
               {(emailOk || emailVerified) && (
@@ -632,7 +655,11 @@ export function OnboardingFlow({
                       onClick={() => void sendCode()}
                       className="w-full rounded-2xl bg-accent py-3.5 text-sm font-semibold text-[#ffffff] disabled:opacity-50"
                     >
-                      {emailBusy ? "Отправляю…" : "Получить код"}
+                      {emailBusy
+                        ? "Отправляю…"
+                        : authMode === "register"
+                          ? "Получить код"
+                          : "Получить код для входа"}
                     </button>
                   ) : (
                     <div className="space-y-2">
@@ -642,7 +669,11 @@ export function OnboardingFlow({
                         onClick={() => void verifyCode()}
                         className="w-full rounded-2xl bg-accent py-3.5 text-sm font-semibold text-[#ffffff] disabled:opacity-50"
                       >
-                        {emailBusy ? "Проверяю…" : "Подтвердить"}
+                        {emailBusy
+                          ? "Проверяю…"
+                          : authMode === "register"
+                            ? "Подтвердить"
+                            : "Войти"}
                       </button>
                       <button
                         type="button"
@@ -654,6 +685,52 @@ export function OnboardingFlow({
                       </button>
                     </div>
                   )}
+
+                  <div className="flex flex-col gap-2 pt-2 text-center text-sm">
+                    {authMode === "register" ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => switchAuthMode("login")}
+                          className="text-accent underline underline-offset-2"
+                        >
+                          Уже есть аккаунт? Войти
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => switchAuthMode("recover")}
+                          className="text-muted underline underline-offset-2"
+                        >
+                          Забыли пароль?
+                        </button>
+                      </>
+                    ) : authMode === "login" ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => switchAuthMode("register")}
+                          className="text-accent underline underline-offset-2"
+                        >
+                          Нет аккаунта? Зарегистрироваться
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => switchAuthMode("recover")}
+                          className="text-muted underline underline-offset-2"
+                        >
+                          Забыли пароль?
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => switchAuthMode("login")}
+                        className="text-accent underline underline-offset-2"
+                      >
+                        ← Назад ко входу
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -669,8 +746,9 @@ export function OnboardingFlow({
                 {titleName} в Мае
               </h1>
               <p className="mt-3 text-sm leading-relaxed text-muted">
-                Можно сразу добавить ещё одного ребёнка — у каждого будут свои
-                дневники, гардероб и чат.
+                {mode === "add"
+                  ? "Ребёнок сохранён. Можно сразу добавить ещё одного или вернуться в Маю."
+                  : "Всё готово — можно начинать. Ещё одного ребёнка добавите позже в профиле."}
               </p>
               {accountEmail && (
                 <p className="mt-2 text-xs text-muted">Аккаунт: {accountEmail}</p>
@@ -719,14 +797,16 @@ export function OnboardingFlow({
               >
                 {mode === "add" ? "Сохранить ребёнка" : "Начать с Маей"}
               </button>
-              <button
-                type="button"
-                disabled={saving}
-                onClick={() => void finish(true)}
-                className="w-full rounded-2xl border border-line bg-card/70 py-3.5 text-sm font-semibold text-foreground disabled:opacity-50"
-              >
-                Сохранить и добавить ещё
-              </button>
+              {mode === "add" && (
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => void finish(true)}
+                  className="w-full rounded-2xl border border-line bg-card/70 py-3.5 text-sm font-semibold text-foreground disabled:opacity-50"
+                >
+                  Сохранить и добавить ещё
+                </button>
+              )}
             </>
           )}
         </div>

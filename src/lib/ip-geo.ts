@@ -1,6 +1,7 @@
 /** Геолокация по IP (запасной вариант, когда GPS в браузере недоступен). */
 
 import type { NextRequest } from "next/server";
+import { fetchWithTimeout } from "@/lib/fetch-timeout";
 
 export type IpGeo = {
   latitude: number;
@@ -43,9 +44,9 @@ export async function lookupIpGeo(ip: string): Promise<IpGeo | null> {
   const clean = ip.startsWith("::ffff:") ? ip.slice(7) : ip;
 
   try {
-    const res = await fetch(
+    const res = await fetchWithTimeout(
       `http://ip-api.com/json/${encodeURIComponent(clean)}?fields=status,lat,lon,city,country,proxy,hosting`,
-      { cache: "no-store" },
+      { cache: "no-store", timeoutMs: 2000 },
     );
     if (!res.ok) return null;
     const data = (await res.json()) as {

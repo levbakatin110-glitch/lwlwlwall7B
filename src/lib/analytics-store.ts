@@ -4,6 +4,7 @@ import { join } from "path";
 export type AnalyticsEventName =
   | "visit"
   | "register"
+  | "login"
   | "onboarding_done"
   | "chat_send"
   | "pricing_view"
@@ -59,6 +60,7 @@ function save(store: Store) {
 const ALLOWED = new Set<AnalyticsEventName>([
   "visit",
   "register",
+  "login",
   "onboarding_done",
   "chat_send",
   "pricing_view",
@@ -94,6 +96,7 @@ export type DayStats = {
   day: string;
   visit: number;
   register: number;
+  login: number;
   onboarding_done: number;
   chat_send: number;
   pricing_view: number;
@@ -121,6 +124,7 @@ export function getAnalyticsSummary(days = 14): AnalyticsSummary {
   const totals = {
     visit: 0,
     register: 0,
+    login: 0,
     onboarding_done: 0,
     chat_send: 0,
     pricing_view: 0,
@@ -138,6 +142,7 @@ export function getAnalyticsSummary(days = 14): AnalyticsSummary {
         day,
         visit: 0,
         register: 0,
+        login: 0,
         onboarding_done: 0,
         chat_send: 0,
         pricing_view: 0,

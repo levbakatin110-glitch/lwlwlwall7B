@@ -11,12 +11,18 @@ import { Sidebar } from "./Sidebar";
 import { ThemeSync } from "./ThemeSync";
 import { ThemeToggle } from "./ThemeToggle";
 import { WhiteNoisePlayer } from "./WhiteNoisePlayer";
+import { CookieBanner } from "./legal/CookieBanner";
 import { childDisplayName } from "@/lib/children";
 import { useAppStore } from "@/lib/store";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isOpsPage = pathname === "/admin" || pathname.startsWith("/admin/");
+  const isLegalPage =
+    pathname === "/документы" ||
+    pathname.startsWith("/документы/") ||
+    pathname === "/legal" ||
+    pathname.startsWith("/legal/");
   const [menuOpen, setMenuOpen] = useState(false);
   const profile = useAppStore((s) => s.profile);
   const name = childDisplayName(profile);
@@ -32,12 +38,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Регистрация — на весь экран, без сайдбара
-  if (pathname === "/register") {
+  // Регистрация / юр. документы — на весь экран, без сайдбара и онбординга
+  if (pathname === "/register" || isLegalPage) {
     return (
       <>
         <ThemeSync />
         <div className="min-h-dvh bg-background text-foreground">{children}</div>
+        {isLegalPage ? <CookieBanner /> : null}
       </>
     );
   }
@@ -47,6 +54,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <ThemeSync />
       <AnalyticsVisitBeacon />
       <SubscriptionSync />
+      <CookieBanner />
       <div className="flex h-dvh max-h-dvh overflow-hidden bg-background pt-[env(safe-area-inset-top)] text-foreground">
         <Sidebar mobileOpen={menuOpen} onMobileOpenChange={setMenuOpen} />
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">

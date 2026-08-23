@@ -137,8 +137,8 @@ export function ChatView() {
       },
       {
         enableHighAccuracy: true,
-        maximumAge: 0,
-        timeout: 20000,
+        maximumAge: 60_000,
+        timeout: 4000,
       },
     );
   }
@@ -148,7 +148,10 @@ export function ChatView() {
     longitude: number;
   } | null> {
     try {
-      const res = await fetch("/api/geo-ip", { cache: "no-store" });
+      const res = await fetch("/api/geo-ip", {
+        cache: "no-store",
+        signal: AbortSignal.timeout(2000),
+      });
       if (res.ok) {
         const data = (await res.json()) as {
           ok?: boolean;
@@ -373,7 +376,11 @@ export function ChatView() {
       try {
         let sendCoords = coords;
         if (!sendCoords) {
-          sendCoords = await fallbackIpLocation();
+          // Не ждём гео дольше 1.5с — иначе чат упирается в 504 nginx
+          sendCoords = await Promise.race([
+            fallbackIpLocation(),
+            new Promise<null>((r) => setTimeout(() => r(null), 1500)),
+          ]);
         }
         const liveProfile = useAppStore.getState().profile;
 

@@ -13,6 +13,8 @@ export function createOpenAI() {
   return new OpenAI({
     apiKey,
     baseURL,
+    timeout: 45_000,
+    maxRetries: 1,
   });
 }
 

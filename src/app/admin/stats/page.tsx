@@ -9,6 +9,7 @@ const PASS_KEY = "maya-analytics-pass";
 const LABELS: Record<string, string> = {
   visit: "Визиты",
   register: "Регистрации",
+  login: "Входы",
   onboarding_done: "Анкеты",
   chat_send: "Сообщения в чат",
   pricing_view: "Смотрели цены",
@@ -150,6 +151,7 @@ export default function AnalyticsPage() {
               "visit",
               "uniqueVisitors",
               "register",
+              "login",
               "onboarding_done",
               "chat_send",
               "pricing_view",

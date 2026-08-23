@@ -22,6 +22,7 @@ export function trackEvent(
   name:
     | "visit"
     | "register"
+    | "login"
     | "onboarding_done"
     | "chat_send"
     | "pricing_view"

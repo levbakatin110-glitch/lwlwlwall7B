@@ -1,5 +1,6 @@
 import { buildSystemPrompt, type ClientChatPayload } from "@/lib/ai-context";
 import { trackAnalyticsEvent } from "@/lib/analytics-store";
+import { withTimeout } from "@/lib/fetch-timeout";
 import { clientIpFromRequest, lookupIpGeo } from "@/lib/ip-geo";
 import {
   checkIpChatLimit,
@@ -10,6 +11,8 @@ import { pushServerOpsError } from "@/lib/ops-log";
 import { encodeWeatherHeader, resolveWeather } from "@/lib/weather";
 
 export const runtime = "nodejs";
+
+const WEATHER_BUDGET_MS = 2800;
 
 export async function POST(req: Request) {
   const openai = createOpenAI();
@@ -65,7 +68,11 @@ export async function POST(req: Request) {
       Number.isFinite(coords.latitude) &&
       Number.isFinite(coords.longitude);
     if (!hasCoords) {
-      const ipGeo = await lookupIpGeo(clientIpFromRequest(req));
+      const ipGeo = await withTimeout(
+        lookupIpGeo(clientIpFromRequest(req)),
+        2000,
+        null,
+      );
       if (ipGeo) {
         coords = { latitude: ipGeo.latitude, longitude: ipGeo.longitude };
         if (!body.profile?.city?.trim() && ipGeo.city && body.profile) {
@@ -77,10 +84,19 @@ export async function POST(req: Request) {
       }
     }
 
-    const resolved = await resolveWeather({
-      city: body.profile?.city,
-      coords,
-    });
+    const resolved = await withTimeout(
+      resolveWeather({
+        city: body.profile?.city,
+        coords,
+      }),
+      WEATHER_BUDGET_MS,
+      {
+        weather: null,
+        vpnSuspect: false,
+        source: "none" as const,
+        needCity: !body.profile?.city?.trim(),
+      },
+    );
     const weather = resolved.weather;
 
     const system = buildSystemPrompt({
