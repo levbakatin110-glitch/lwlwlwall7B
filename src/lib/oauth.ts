@@ -1,7 +1,7 @@
 import { createHmac, randomBytes, timingSafeEqual } from "crypto";
 import { isValidEmail, normalizeEmail } from "@/lib/email-codes";
 
-export type OAuthProvider = "google" | "yandex";
+export type OAuthProvider = "google";
 
 type OAuthTicket = {
   email: string;
@@ -44,16 +44,12 @@ export function providerConfigured(provider: OAuthProvider): boolean {
         process.env.GOOGLE_CLIENT_SECRET?.trim(),
     );
   }
-  return Boolean(
-    process.env.YANDEX_CLIENT_ID?.trim() &&
-      process.env.YANDEX_CLIENT_SECRET?.trim(),
-  );
+  return false;
 }
 
 export function providersStatus(): Record<OAuthProvider, boolean> {
   return {
     google: providerConfigured("google"),
-    yandex: providerConfigured("yandex"),
   };
 }
 
@@ -116,7 +112,7 @@ export function parseOAuthState(
   }
   try {
     const data = JSON.parse(fromB64url(body).toString("utf8")) as OAuthStatePayload;
-    if (data.p !== "google" && data.p !== "yandex") {
+    if (data.p !== "google") {
       return { ok: false, error: "Неизвестный провайдер" };
     }
     if (Date.now() - data.t > 15 * 60_000) {
@@ -168,19 +164,6 @@ export function googleAuthUrl(state: string): string {
   return `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
 }
 
-export function yandexAuthUrl(state: string): string {
-  const clientId = process.env.YANDEX_CLIENT_ID!.trim();
-  const params = new URLSearchParams({
-    response_type: "code",
-    client_id: clientId,
-    redirect_uri: oauthCallbackUrl("yandex"),
-    force_confirm: "yes",
-    scope: "login:email login:info",
-    state,
-  });
-  return `https://oauth.yandex.ru/authorize?${params}`;
-}
-
 export async function exchangeGoogleCode(code: string): Promise<string> {
   const body = new URLSearchParams({
     code,
@@ -221,52 +204,6 @@ export async function exchangeGoogleCode(code: string): Promise<string> {
     throw new Error("Email в Google не подтверждён");
   }
   return normalizeEmail(info.email);
-}
-
-export async function exchangeYandexCode(code: string): Promise<string> {
-  const body = new URLSearchParams({
-    grant_type: "authorization_code",
-    code,
-    client_id: process.env.YANDEX_CLIENT_ID!.trim(),
-    client_secret: process.env.YANDEX_CLIENT_SECRET!.trim(),
-  });
-  const tokenRes = await fetch("https://oauth.yandex.ru/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body,
-  });
-  const tokenData = (await tokenRes.json()) as {
-    access_token?: string;
-    error?: string;
-    error_description?: string;
-  };
-  if (!tokenRes.ok || !tokenData.access_token) {
-    throw new Error(
-      tokenData.error_description ||
-        tokenData.error ||
-        "Не удалось получить токен Яндекс",
-    );
-  }
-  const infoRes = await fetch("https://login.yandex.ru/info?format=json", {
-    headers: { Authorization: `OAuth ${tokenData.access_token}` },
-  });
-  const info = (await infoRes.json()) as {
-    default_email?: string;
-    emails?: string[];
-    error?: string;
-  };
-  if (!infoRes.ok) {
-    throw new Error("Яндекс не вернул профиль");
-  }
-  const email = normalizeEmail(
-    info.default_email || info.emails?.[0] || "",
-  );
-  if (!isValidEmail(email)) {
-    throw new Error(
-      "В Яндекс ID нет email. Добавьте почту в аккаунте Яндекса или войдите по коду.",
-    );
-  }
-  return email;
 }
 
 export function safeReturnTo(raw: string | null | undefined): string {

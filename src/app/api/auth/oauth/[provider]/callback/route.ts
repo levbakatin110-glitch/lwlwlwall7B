@@ -1,7 +1,6 @@
 import {
   createOAuthTicket,
   exchangeGoogleCode,
-  exchangeYandexCode,
   parseOAuthState,
   providerConfigured,
   safeReturnTo,
@@ -14,7 +13,7 @@ export const runtime = "nodejs";
 type Ctx = { params: Promise<{ provider: string }> };
 
 function isProvider(v: string): v is OAuthProvider {
-  return v === "google" || v === "yandex";
+  return v === "google";
 }
 
 function redirectError(returnTo: string, message: string) {
@@ -29,12 +28,7 @@ export async function GET(req: Request, ctx: Ctx) {
     return redirectError("/register", "Неизвестный провайдер");
   }
   if (!providerConfigured(raw)) {
-    return redirectError(
-      "/register",
-      raw === "google"
-        ? "Google OAuth не настроен на сервере"
-        : "Яндекс OAuth не настроен на сервере",
-    );
+    return redirectError("/register", "Google OAuth не настроен на сервере");
   }
 
   const url = new URL(req.url);
@@ -47,10 +41,7 @@ export async function GET(req: Request, ctx: Ctx) {
   const returnTo = parsed.ok ? safeReturnTo(parsed.data.r) : "/register";
 
   if (err) {
-    return redirectError(
-      returnTo,
-      errDesc || err || "Вход отменён",
-    );
+    return redirectError(returnTo, errDesc || err || "Вход отменён");
   }
   if (!code) {
     return redirectError(returnTo, "Нет кода авторизации");
@@ -60,17 +51,11 @@ export async function GET(req: Request, ctx: Ctx) {
   }
 
   try {
-    const email =
-      raw === "google"
-        ? await exchangeGoogleCode(code)
-        : await exchangeYandexCode(code);
+    const email = await exchangeGoogleCode(code);
     const ticket = createOAuthTicket(email);
     const dest = new URL(returnTo, siteOrigin());
     dest.searchParams.set("oauth", ticket);
-    dest.searchParams.set(
-      "oauth_provider",
-      raw === "google" ? "google" : "yandex",
-    );
+    dest.searchParams.set("oauth_provider", "google");
     return Response.redirect(dest.toString(), 302);
   } catch (e) {
     return redirectError(

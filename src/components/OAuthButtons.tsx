@@ -4,8 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { trackEvent } from "@/lib/analytics-client";
 import { useAppStore } from "@/lib/store";
 
-type OAuthProvider = "google" | "yandex";
-
 type Props = {
   mode: "login" | "register";
   /** Для регистрации — сначала согласия */
@@ -24,11 +22,8 @@ export function OAuthButtons({
   const onErrorRef = useRef(onError);
   onErrorRef.current = onError;
   const handledTicket = useRef(false);
-  const [available, setAvailable] = useState<Record<OAuthProvider, boolean>>({
-    google: true,
-    yandex: true,
-  });
-  const [busy, setBusy] = useState<OAuthProvider | null>(null);
+  const [googleOk, setGoogleOk] = useState(true);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -36,8 +31,8 @@ export function OAuthButtons({
       try {
         const res = await fetch("/api/auth/oauth");
         if (!res.ok) return;
-        const data = (await res.json()) as Record<OAuthProvider, boolean>;
-        if (!cancelled) setAvailable(data);
+        const data = (await res.json()) as { google?: boolean };
+        if (!cancelled) setGoogleOk(Boolean(data.google));
       } catch {
         /* кнопки всё равно покажем — сервер ответит ошибкой при клике */
       }
@@ -101,18 +96,18 @@ export function OAuthButtons({
     };
   }, [mode, setAccountEmail]);
 
-  async function start(provider: OAuthProvider) {
+  async function startGoogle() {
     if (mode === "register" && !consentsOk) {
       onErrorRef.current?.("Отметьте обязательные согласия под формой");
       return;
     }
-    setBusy(provider);
+    setBusy(true);
     onErrorRef.current?.("");
     try {
       const res = await fetch("/api/auth/oauth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ provider, mode, returnTo }),
+        body: JSON.stringify({ provider: "google", mode, returnTo }),
       });
       const data = (await res.json()) as { error?: string; url?: string };
       if (!res.ok || !data.url) {
@@ -121,7 +116,7 @@ export function OAuthButtons({
       window.location.href = data.url;
     } catch (e) {
       onErrorRef.current?.(e instanceof Error ? e.message : "Ошибка");
-      setBusy(null);
+      setBusy(false);
     }
   }
 
@@ -134,30 +129,16 @@ export function OAuthButtons({
 
       <button
         type="button"
-        disabled={busy !== null || (mode === "register" && !consentsOk)}
-        onClick={() => void start("google")}
+        disabled={busy || (mode === "register" && !consentsOk)}
+        onClick={() => void startGoogle()}
         className="flex w-full items-center justify-center gap-2.5 rounded-2xl border border-line bg-card py-3 text-sm font-medium text-foreground transition hover:border-accent/40 disabled:opacity-50"
       >
         <GoogleIcon />
-        {busy === "google"
+        {busy
           ? "Перенаправляю…"
-          : available.google
+          : googleOk
             ? "Войти с Google"
             : "Google (нужна настройка)"}
-      </button>
-
-      <button
-        type="button"
-        disabled={busy !== null || (mode === "register" && !consentsOk)}
-        onClick={() => void start("yandex")}
-        className="flex w-full items-center justify-center gap-2.5 rounded-2xl border border-line bg-card py-3 text-sm font-medium text-foreground transition hover:border-accent/40 disabled:opacity-50"
-      >
-        <YandexIcon />
-        {busy === "yandex"
-          ? "Перенаправляю…"
-          : available.yandex
-            ? "Войти с Яндекс ID"
-            : "Яндекс ID (нужна настройка)"}
       </button>
     </div>
   );
@@ -181,18 +162,6 @@ function GoogleIcon() {
       <path
         fill="#1976D2"
         d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.2-4.1 5.6l.1.1 6.3 5.2C39.4 36.3 44 30.7 44 24c0-1.3-.1-2.5-.4-3.5z"
-      />
-    </svg>
-  );
-}
-
-function YandexIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden>
-      <rect width="24" height="24" rx="5" fill="#FC3F1D" />
-      <path
-        fill="#fff"
-        d="M13.2 18.5h-2.1V5.5h2.7c2.6 0 4.2 1.4 4.2 3.7 0 1.7-1 3-2.5 3.5l3 5.8h-2.4l-2.7-5.4H13.2v5.4zm0-7.3h.6c1.3 0 2.1-.7 2.1-1.9s-.8-1.9-2.1-1.9h-.6v3.8z"
       />
     </svg>
   );
