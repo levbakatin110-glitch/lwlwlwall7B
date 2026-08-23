@@ -24,8 +24,6 @@ const WEATHER_CODE_RU: Record<number, string> = {
   95: "гроза",
 };
 
-import { fetchWithTimeout } from "@/lib/fetch-timeout";
-
 export function weatherDescription(code: number): string {
   return WEATHER_CODE_RU[code] ?? `код погоды ${code}`;
 }
