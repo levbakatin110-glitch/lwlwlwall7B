@@ -52,8 +52,12 @@ export function siteOrigin(): string {
 }
 
 export function oauthCallbackUrl(provider: OAuthProvider): string {
-  // Mail.ru требует точное совпадение; в их доках часто со слэшем в конце
-  return `${siteOrigin()}/api/auth/oauth/${provider}/callback/`;
+  if (provider === "mailru") {
+    const custom = process.env.MAILRU_REDIRECT_URI?.trim();
+    if (custom) return custom;
+  }
+  // Без завершающего слэша — так же должно быть в кабинете Mail.ru
+  return `${siteOrigin()}/api/auth/oauth/${provider}/callback`;
 }
 
 export function providerConfigured(provider: OAuthProvider): boolean {
@@ -66,9 +70,14 @@ export function providerConfigured(provider: OAuthProvider): boolean {
   return false;
 }
 
-export function providersStatus(): Record<OAuthProvider, boolean> {
+export function providersStatus(): {
+  mailru: boolean;
+  /** Точный redirect_uri, который уходит в Mail.ru — скопируй в кабинет 1:1 */
+  mailruRedirectUri: string;
+} {
   return {
     mailru: providerConfigured("mailru"),
+    mailruRedirectUri: oauthCallbackUrl("mailru"),
   };
 }
 
