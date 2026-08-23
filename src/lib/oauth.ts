@@ -55,8 +55,9 @@ export function oauthCallbackUrl(provider: OAuthProvider): string {
   if (provider === "mailru") {
     const custom = process.env.MAILRU_REDIRECT_URI?.trim();
     if (custom) return custom;
+    // Mail.ru в доках требует URI со «/» на конце
+    return `${siteOrigin()}/api/auth/oauth/mailru/callback/`;
   }
-  // Без завершающего слэша — так же должно быть в кабинете Mail.ru
   return `${siteOrigin()}/api/auth/oauth/${provider}/callback`;
 }
 
