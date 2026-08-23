@@ -9,6 +9,14 @@ export type PregnancyProfile = {
   /** Вес до беременности, кг */
   startWeightKg?: number;
   notes?: string;
+  /** Следит за циклом (отдельный трек) */
+  trackCycle?: boolean;
+  /** План родов — свободный текст */
+  birthPlan?: string;
+  /** Вопросы к врачу */
+  doctorQuestions?: string;
+  /** Экстренные контакты */
+  emergencyContacts?: string;
 };
 
 export const PREGNANCY_MODULE_IDS = [
@@ -20,7 +28,14 @@ export const PREGNANCY_MODULE_IDS = [
   "preg_symptoms",
   "preg_visits",
   "preg_belly",
+  "preg_meds",
+  "preg_labs",
+  "preg_docs",
+  "preg_sleep",
+  "birth_plan",
 ] as const;
+
+export const CYCLE_MODULE_IDS = ["cycle"] as const;
 
 export type PregnancyModuleId = (typeof PREGNANCY_MODULE_IDS)[number];
 
@@ -32,15 +47,57 @@ export function emptyPregnancy(): PregnancyProfile {
   return { active: false, dueDate: "" };
 }
 
+/** Полных дней беременности от ЛМП или от ПДР−280. */
+export function pregnancyAgeDays(
+  dueDate: string,
+  lmpDate?: string,
+  now = new Date(),
+): number | null {
+  let start: Date | null = null;
+  if (lmpDate?.trim()) {
+    const d = new Date(`${lmpDate}T12:00:00`);
+    if (!Number.isNaN(d.getTime())) start = d;
+  }
+  if (!start && dueDate?.trim()) {
+    const due = new Date(`${dueDate}T12:00:00`);
+    if (!Number.isNaN(due.getTime())) {
+      start = new Date(due);
+      start.setDate(start.getDate() - 280);
+    }
+  }
+  if (!start) return null;
+  const days = Math.floor(
+    (now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24),
+  );
+  return Math.max(0, Math.min(300, days));
+}
+
+/** «38 нед. 6 дн.» */
+export function pregnancyAgeLabel(
+  dueDate: string,
+  lmpDate?: string,
+  now = new Date(),
+): string | null {
+  const days = pregnancyAgeDays(dueDate, lmpDate, now);
+  if (days == null) return null;
+  const w = Math.floor(days / 7);
+  const d = days % 7;
+  return `${w} нед. ${d} дн.`;
+}
+
 /** Неделя беременности 1…42 по ПДР (40 недель от зачатия ≈ ПДР). */
 export function pregnancyWeek(dueDate: string, now = new Date()): number | null {
-  if (!dueDate?.trim()) return null;
-  const due = new Date(`${dueDate}T12:00:00`);
-  if (Number.isNaN(due.getTime())) return null;
-  const msLeft = due.getTime() - now.getTime();
-  const daysLeft = Math.ceil(msLeft / (1000 * 60 * 60 * 24));
-  const week = 40 - Math.floor(daysLeft / 7);
-  return Math.max(1, Math.min(42, week));
+  const days = pregnancyAgeDays(dueDate, undefined, now);
+  if (days == null) {
+    if (!dueDate?.trim()) return null;
+    const due = new Date(`${dueDate}T12:00:00`);
+    if (Number.isNaN(due.getTime())) return null;
+    const msLeft = due.getTime() - now.getTime();
+    const daysLeft = Math.ceil(msLeft / (1000 * 60 * 60 * 24));
+    const week = 40 - Math.floor(daysLeft / 7);
+    return Math.max(1, Math.min(42, week));
+  }
+  return Math.max(1, Math.min(42, Math.floor(days / 7) || 1));
 }
 
 export function daysUntilDue(dueDate: string, now = new Date()): number | null {

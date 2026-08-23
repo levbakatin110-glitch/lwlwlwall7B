@@ -206,7 +206,13 @@ export type ModuleId =
   | "preg_pressure"
   | "preg_symptoms"
   | "preg_visits"
-  | "preg_belly";
+  | "preg_belly"
+  | "preg_meds"
+  | "preg_labs"
+  | "preg_docs"
+  | "preg_sleep"
+  | "birth_plan"
+  | "cycle";
 
 export type AnyModuleId = ModuleId | (string & {});
 

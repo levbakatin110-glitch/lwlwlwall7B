@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import {
   daysUntilDue,
   dueDateFromLmp,
+  pregnancyAgeLabel,
   pregnancyWeek,
   trimesterLabel,
   weekBlurb,
@@ -68,7 +69,8 @@ export function PregnancyWeekPanel() {
             {trimesterLabel(week)}
           </p>
           <p className="font-display mt-1 text-3xl font-semibold tracking-tight">
-            {week}-я неделя
+            {pregnancyAgeLabel(pregnancy.dueDate, pregnancy.lmpDate) ??
+              `${week}-я неделя`}
           </p>
           <p className="mt-2 text-sm text-muted">
             Малыш примерно как {blurb?.size}.{" "}

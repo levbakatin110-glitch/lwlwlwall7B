@@ -38,20 +38,35 @@ function fmt(sec: number) {
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
-export function SleepTracker() {
+export function SleepTracker({
+  journalId = "sleep",
+}: {
+  journalId?: string;
+}) {
   const addJournalEntry = useAppStore((s) => s.addJournalEntry);
+  const storageKey = journalId === "sleep" ? KEY : `${KEY}-${journalId}`;
   const [live, setLive] = useState<SleepLive | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [flash, setFlash] = useState(false);
   const [hint, setHint] = useState<string | null>(null);
 
   useEffect(() => {
-    setLive(load());
-  }, []);
+    try {
+      const raw = sessionStorage.getItem(storageKey);
+      setLive(raw ? (JSON.parse(raw) as SleepLive) : null);
+    } catch {
+      setLive(null);
+    }
+  }, [storageKey]);
 
   useEffect(() => {
-    save(live);
-  }, [live]);
+    try {
+      if (!live) sessionStorage.removeItem(storageKey);
+      else sessionStorage.setItem(storageKey, JSON.stringify(live));
+    } catch {
+      /* */
+    }
+  }, [live, storageKey]);
 
   useEffect(() => {
     if (!live) return;
@@ -74,7 +89,11 @@ export function SleepTracker() {
     // короткий тап по ошибке — не пишем в дневник
     if (elapsed < 15) {
       setLive(null);
-      setHint("Слишком коротко (меньше 15 сек) — не записала. Если малыш реально поспал, засеките снова.");
+      setHint(
+        journalId === "preg_sleep"
+          ? "Слишком коротко (меньше 15 сек) — не записала. Засеките снова, если реально отдыхали."
+          : "Слишком коротко (меньше 15 сек) — не записала. Если малыш реально поспал, засеките снова.",
+      );
       return;
     }
     const start = new Date(live.startedAt);
@@ -82,7 +101,7 @@ export function SleepTracker() {
     const pad = (n: number) => String(n).padStart(2, "0");
     const range = `${pad(start.getHours())}:${pad(start.getMinutes())}–${pad(end.getHours())}:${pad(end.getMinutes())}`;
     const label = live.kind === "night" ? "ночь" : "дневной сон";
-    addJournalEntry("sleep", {
+    addJournalEntry(journalId, {
       date: start.toISOString().slice(0, 10),
       value: `${label} ${range} · ${fmt(elapsed)}`,
       note: "",

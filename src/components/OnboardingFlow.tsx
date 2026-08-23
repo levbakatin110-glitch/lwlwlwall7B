@@ -139,9 +139,11 @@ export function OnboardingFlow({
 
   const setPregnancy = useAppStore((s) => s.setPregnancy);
   const enablePregnancyModules = useAppStore((s) => s.enablePregnancyModules);
+  const enableCycleModule = useAppStore((s) => s.enableCycleModule);
 
   const [isPregnant, setIsPregnant] = useState(false);
   const [hasChild, setHasChild] = useState(mode === "add");
+  const [trackCycle, setTrackCycle] = useState(false);
   const [pregDue, setPregDue] = useState("");
   const [pregLmp, setPregLmp] = useState("");
   const [pregStartWeight, setPregStartWeight] = useState("");
@@ -223,7 +225,7 @@ export function OnboardingFlow({
   }
 
   function validateWho(): boolean {
-    if (!isPregnant && !hasChild) {
+    if (!isPregnant && !hasChild && !trackCycle) {
       setErrors({ who: "Выберите хотя бы один вариант" });
       return false;
     }
@@ -276,8 +278,13 @@ export function OnboardingFlow({
   }
 
   function persistPregnancy() {
+    if (trackCycle) enableCycleModule();
     if (!isPregnant) {
-      setPregnancy({ active: false, dueDate: "" });
+      setPregnancy({
+        active: false,
+        dueDate: "",
+        trackCycle: trackCycle || undefined,
+      });
       return;
     }
     let due = pregDue.trim();
@@ -287,6 +294,7 @@ export function OnboardingFlow({
       dueDate: due,
       lmpDate: pregLmp.trim() || undefined,
       startWeightKg: parseRuNumber(pregStartWeight) ?? undefined,
+      trackCycle: trackCycle || undefined,
     };
     setPregnancy(profile);
     enablePregnancyModules();
@@ -303,7 +311,7 @@ export function OnboardingFlow({
         seedCurrentGrowth();
         babySaved.current = true;
       } else {
-        // Только беременность — плейсхолдер профиля, чтобы приложение работало
+        // Беременность и/или цикл без ребёнка — плейсхолдер профиля
         setProfile(
           emptyChildProfile({
             id: activeChildId,
@@ -492,6 +500,13 @@ export function OnboardingFlow({
                     toggle: () => setHasChild((v) => !v),
                     title: "У меня есть ребёнок",
                     sub: "Дневники, чат и рост малыша",
+                  },
+                  {
+                    key: "cycle" as const,
+                    on: trackCycle,
+                    toggle: () => setTrackCycle((v) => !v),
+                    title: "Слежу за своим циклом",
+                    sub: "Трекер цикла и самочувствия",
                   },
                 ] as const
               ).map((opt) => (
@@ -924,16 +939,20 @@ export function OnboardingFlow({
               <h1 className="font-display mt-3 text-3xl font-semibold tracking-tight">
                 {isPregnant && !hasChild
                   ? "Беременность в Мае"
-                  : `${titleName} в Мае`}
+                  : trackCycle && !hasChild && !isPregnant
+                    ? "Цикл в Мае"
+                    : `${titleName} в Мае`}
               </h1>
               <p className="mt-3 text-sm leading-relaxed text-muted">
                 {mode === "add"
                   ? "Ребёнок сохранён. Можно сразу добавить ещё одного или вернуться в Маю."
                   : isPregnant && !hasChild
-                    ? "Открыли недели, схватки, шевеления и визиты. После родов добавите малыша в профиле."
-                    : isPregnant && hasChild
-                      ? "И беременность, и малыш — Мая будет в курсе обоих контекстов."
-                      : "Всё готово — можно начинать. Ещё одного ребёнка добавите позже в профиле."}
+                    ? "Открыли мед. карту, недели, схватки и сон мамы. После родов добавите малыша в профиле."
+                    : trackCycle && !hasChild && !isPregnant
+                      ? "Трекер цикла готов. Можно писать Мае про самочувствие."
+                      : isPregnant && hasChild
+                        ? "И беременность, и малыш — Мая будет в курсе обоих контекстов."
+                        : "Всё готово — можно начинать. Ещё одного ребёнка добавите позже в профиле."}
               </p>
               {accountEmail && (
                 <p className="mt-2 text-xs text-muted">Аккаунт: {accountEmail}</p>

@@ -302,6 +302,7 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
       "pregnancy",
       "contractions",
       "kicks",
+      "preg_sleep",
     ].includes(moduleId);
 
   const growthPoints: GrowthPoint[] = useMemo(() => {
@@ -544,6 +545,22 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
           <KicksTracker />
         </div>
       )}
+      {moduleId === "preg_sleep" && (
+        <div className="mt-4">
+          <SleepTracker journalId="preg_sleep" />
+        </div>
+      )}
+      {moduleId === "birth_plan" && (
+        <div className="mt-4 rounded-2xl border border-line bg-card/60 p-4 text-sm">
+          <p className="text-muted">
+            Полный план родов и PDF — в{" "}
+            <Link href="/med" className="text-accent underline">
+              Мед. карте
+            </Link>
+            . Здесь можно коротко фиксировать пункты.
+          </p>
+        </div>
+      )}
 
       {/* Профессиональный калькулятор — и для /m/diet, и для старых «своих» диет */}
       {isDietPage && (
@@ -577,6 +594,7 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
           "pregnancy",
           "contractions",
           "kicks",
+          "preg_sleep",
         ].includes(moduleId) && (
         <DiaryQuickActions moduleId={moduleId} onPrefill={focusAdd} />
       )}

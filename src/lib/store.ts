@@ -105,6 +105,7 @@ type AppState = {
   setPregnancy: (pregnancy: PregnancyProfile) => void;
   /** Включить все дневники беременности у активного ребёнка/профиля */
   enablePregnancyModules: () => void;
+  enableCycleModule: () => void;
   activateSubscription: (planId: PaidPlanId) => void;
   clearSubscription: () => void;
   /** Списать 1 бесплатный запрос. false = лимит исчерпан */
@@ -266,6 +267,13 @@ export const useAppStore = create<AppState>()(
         }
         withActiveSpace(get, set, {
           enabledModules: next as ModuleId[],
+        });
+      },
+      enableCycleModule: () => {
+        const cur = get().enabledModules;
+        if (cur.includes("cycle")) return;
+        withActiveSpace(get, set, {
+          enabledModules: [...cur, "cycle"] as ModuleId[],
         });
       },
       activateSubscription: (planId) =>

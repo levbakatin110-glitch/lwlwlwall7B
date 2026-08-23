@@ -31,7 +31,7 @@ export const FREE_CHAT_LIMIT = 3;
  */
 export const BASE_MONTH_RUB = 1990;
 
-/** На бесплатном: базовые дневники малыша + весь блок беременности */
+/** На бесплатном: базовые дневники малыша + беременность + цикл */
 export const FREE_MODULE_IDS = [
   "growth",
   "breastfeeding",
@@ -44,6 +44,12 @@ export const FREE_MODULE_IDS = [
   "preg_symptoms",
   "preg_visits",
   "preg_belly",
+  "preg_meds",
+  "preg_labs",
+  "preg_docs",
+  "preg_sleep",
+  "birth_plan",
+  "cycle",
 ] as const;
 
 export type FreeModuleId = (typeof FREE_MODULE_IDS)[number];
@@ -82,6 +88,12 @@ export function clampModulesForPlan(
         "preg_symptoms",
         "preg_visits",
         "preg_belly",
+        "preg_meds",
+        "preg_labs",
+        "preg_docs",
+        "preg_sleep",
+        "birth_plan",
+        "cycle",
       ];
       for (const id of allBuiltins) {
         if (!list.includes(id)) list.push(id);

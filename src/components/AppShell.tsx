@@ -12,6 +12,7 @@ import { ThemeSync } from "./ThemeSync";
 import { ThemeToggle } from "./ThemeToggle";
 import { WhiteNoisePlayer } from "./WhiteNoisePlayer";
 import { CookieBanner } from "./legal/CookieBanner";
+import { PregnancyStatusBanner } from "./pregnancy/PregnancyStatusBanner";
 import { childDisplayName } from "@/lib/children";
 import { useAppStore } from "@/lib/store";
 
@@ -84,6 +85,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </span>
             <ThemeToggle compact />
           </header>
+          <PregnancyStatusBanner />
           <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden pb-[env(safe-area-inset-bottom)]">
             {children}
           </main>
