@@ -16,10 +16,6 @@ function isStandalone() {
   );
 }
 
-function isIos() {
-  return /iPad|iPhone|iPod/.test(navigator.userAgent);
-}
-
 /** Блок «Поставить на экран» — в профиле / меню */
 export function InstallAppCard() {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(
@@ -57,17 +53,29 @@ export function InstallAppCard() {
         Иконка на рабочий стол — без Play Market и App Store. Открывается в один
         тап, как у «обычных» приложений.
       </p>
-      {isIos() ? (
-        <p className="mt-3 text-sm leading-relaxed text-foreground/90">
-          В <strong>Safari</strong>: кнопка «Поделиться» →{" "}
-          <strong>«На экран Домой»</strong> → Добавить.
-        </p>
-      ) : (
-        <p className="mt-3 text-sm leading-relaxed text-foreground/90">
-          В <strong>Chrome</strong>: меню <strong>⋮</strong> → «Установить
-          приложение» или «На главный экран».
-        </p>
-      )}
+
+      <div className="mt-3 space-y-3 text-sm leading-relaxed text-foreground/90">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+            iPhone / iPad
+          </p>
+          <p className="mt-1">
+            Откройте сайт в <strong>Safari</strong> (не в Chrome) → кнопка{" "}
+            <strong>«Поделиться»</strong> (квадрат со стрелкой вверх) →{" "}
+            <strong>«На экран „Домой“»</strong> → «Добавить».
+          </p>
+        </div>
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+            Android
+          </p>
+          <p className="mt-1">
+            В <strong>Chrome</strong>: меню <strong>⋮</strong> → «Установить
+            приложение» или «На главный экран».
+          </p>
+        </div>
+      </div>
+
       {deferred && (
         <button
           type="button"
