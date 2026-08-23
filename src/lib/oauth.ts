@@ -52,7 +52,9 @@ export function siteOrigin(): string {
 }
 
 export function oauthCallbackUrl(provider: OAuthProvider): string {
-  return `${siteOrigin()}/api/auth/oauth/${provider}/callback`;
+  const base = `${siteOrigin()}/api/auth/oauth/${provider}/callback`;
+  // Mail.ru требует точное совпадение; в их доках часто со слэшем в конце
+  return provider === "mailru" ? `${base}/` : base;
 }
 
 export function providerConfigured(provider: OAuthProvider): boolean {
