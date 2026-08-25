@@ -3,8 +3,8 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // Скрыть английскую панель разработчика поверх сайта
   devIndicators: false,
-  // Удобнее выкладывать на VPS / Node-хостинг
-  output: "standalone",
+  // Не standalone: на VPS pm2 запускает `next start` (см. pm2 logs).
+  // standalone ломает next start → 500 / required-server-files.json
   async redirects() {
     return [
       // Кириллические URL → ASCII (Next.js ломает static export на /документы)
