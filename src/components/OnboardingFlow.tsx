@@ -1141,9 +1141,16 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    const unsub = useAppStore.persist.onFinishHydration(() => setHydrated(true));
+    const unsub = useAppStore.persist.onFinishHydration(() =>
+      setHydrated(true),
+    );
     setHydrated(useAppStore.persist.hasHydrated());
-    return unsub;
+    // Страховка: не зависать на «Мая…» если storage тормозит
+    const t = window.setTimeout(() => setHydrated(true), 2000);
+    return () => {
+      unsub();
+      window.clearTimeout(t);
+    };
   }, []);
 
   if (!hydrated) {
