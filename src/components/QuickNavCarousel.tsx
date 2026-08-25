@@ -33,7 +33,7 @@ function buildQuickItems(
 ): QuickItem[] {
   const items: QuickItem[] = [
     { href: "/", label: "Чат", icon: "chat" },
-    { href: "/community", label: "Кружок", icon: "circle" },
+    { href: "/community", label: "Общение", icon: "circle" },
   ];
 
   for (const id of POPULAR_ORDER) {

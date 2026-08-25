@@ -840,6 +840,13 @@ export function ChatView() {
                       </button>
                     ))}
                   </div>
+                  <Link
+                    href="/community"
+                    className="mt-5 inline-flex items-center gap-2 rounded-2xl border border-accent/25 bg-accent-soft/70 px-4 py-2.5 text-sm font-semibold text-foreground transition hover:border-accent/40"
+                  >
+                    <MayaIcon name="circle" size={18} className="text-accent" />
+                    Общение — чат с другими в Мае
+                  </Link>
                 </div>
               </div>
             )}

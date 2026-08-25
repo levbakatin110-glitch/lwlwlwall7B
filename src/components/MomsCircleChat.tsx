@@ -195,13 +195,14 @@ export function MomsCircleChat() {
     <div className="mx-auto flex h-[calc(100dvh-7.5rem)] max-w-2xl flex-col md:h-[calc(100dvh-2rem)]">
       <header className="shrink-0 pb-3">
         <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-accent">
-          Кружок мам
+          Для всех в Мае
         </p>
         <h1 className="font-display mt-1 text-3xl font-semibold tracking-tight text-foreground">
-          Тёплый чат
+          Общение
         </h1>
         <p className="mt-1.5 text-sm leading-relaxed text-muted">
-          Мамы между собой — поддержка, мелочи дня и «я тоже так». Без нравоучений.
+          Беременность, малыш, цикл — пишите друг другу. Поддержка и живой чат,
+          без нравоучений.
           {onlineHint ? (
             <span className="ml-1 text-accent"> · онлайн</span>
           ) : (
@@ -293,8 +294,8 @@ export function MomsCircleChat() {
             <div className="rounded-2xl border border-dashed border-accent/30 bg-accent-soft/40 px-4 py-3 text-sm">
               <p className="font-medium text-foreground">Войдите, чтобы писать</p>
               <p className="mt-1 text-muted">
-                Читать можно всем, а писать — с почтой в профиле. Так кружок
-                остаётся живым и своим.
+                Читать можно всем. Писать — любому с аккаунтом в Мае (беременность,
+                малыш, цикл — без разницы).
               </p>
               <Link
                 href="/profile"
