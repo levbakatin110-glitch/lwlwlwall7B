@@ -18,7 +18,7 @@ export default function ProfilePage() {
   const accountEmail = useAppStore((s) => s.accountEmail);
   const emailVerified = useAppStore((s) => s.emailVerified);
   const setAccountEmail = useAppStore((s) => s.setAccountEmail);
-  const clearAccountEmail = useAppStore((s) => s.clearAccountEmail);
+  const logoutAccount = useAppStore((s) => s.logoutAccount);
   const [form, setForm] = useState<ChildProfile>(profile);
   const [saved, setSaved] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -142,8 +142,9 @@ export default function ProfilePage() {
             <button
               type="button"
               onClick={() => {
-                clearAccountEmail();
-                window.location.href = "/register";
+                logoutAccount();
+                // Полная перезагрузка — сразу анкета, без старого экрана
+                window.location.href = "/";
               }}
               className="rounded-xl border border-line px-3.5 py-2 text-sm font-medium text-muted transition hover:border-accent/40 hover:text-foreground"
             >

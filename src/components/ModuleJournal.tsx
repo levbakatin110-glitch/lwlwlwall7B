@@ -13,6 +13,7 @@ import { SolidsTracker } from "@/components/feeding/SolidsTracker";
 import { DietTracker } from "@/components/diet/DietTracker";
 import { DiaperTracker } from "@/components/trackers/DiaperTracker";
 import { NotesTracker } from "@/components/trackers/NotesTracker";
+import { VaccinesTracker } from "@/components/trackers/VaccinesTracker";
 import { WalkTracker } from "@/components/trackers/WalkTracker";
 import { WaterTracker } from "@/components/trackers/WaterTracker";
 import { PregnancyWeekPanel } from "@/components/pregnancy/PregnancyWeekPanel";
@@ -539,6 +540,11 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
       {moduleId === "diaper" && (
         <div className="mt-4">
           <DiaperTracker />
+        </div>
+      )}
+      {moduleId === "vaccines" && (
+        <div className="mt-4">
+          <VaccinesTracker />
         </div>
       )}
       {moduleId === "notes" && (

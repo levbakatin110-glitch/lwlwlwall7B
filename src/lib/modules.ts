@@ -64,7 +64,7 @@ export const OPTIONAL_MODULES: ModuleDef[] = [
     id: "vaccines",
     title: "Прививки",
     shortTitle: "Прививки",
-    description: "Сделанные прививки.",
+    description: "Календарь, плюсы и минусы, побочки и даты.",
     icon: "vaccines",
     valueLabel: "Прививка",
     valuePlaceholder: "АКДС, 3 мес.",

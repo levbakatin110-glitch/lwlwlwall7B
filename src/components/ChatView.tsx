@@ -10,6 +10,7 @@ import { RecipeOfDayCard } from "@/components/RecipeOfDayCard";
 import { CHAT_PROMPTS } from "@/components/TipsCarousel";
 import { VpnHintBanner } from "@/components/VpnHintBanner";
 import { WeatherWidget } from "@/components/WeatherWidget";
+import { WardrobeChatCard } from "@/components/WardrobeChatCard";
 import {
   SketchBackdrop,
   SketchDoodles,
@@ -578,8 +579,30 @@ export function ChatView() {
               .filter((x): x is { id: string; name: string } => Boolean(x))
           : undefined;
 
+        const hasWardrobePicks = Boolean(wardrobePhotos && wardrobePhotos.length > 0);
+        const wardrobeCard =
+          wantWeatherWidget
+            ? hasWardrobePicks
+              ? {
+                  mode: "items" as const,
+                  title: "Подборка из гардероба",
+                  body: "Это вещи малыша, которые сейчас лучше всего подходят под погоду.",
+                  cta: "Открыть гардероб",
+                }
+              : {
+                  mode: "add" as const,
+                  title: state.wardrobe.length
+                    ? "В гардеробе пока нечего надеть на эту погоду"
+                    : "Добавьте вещи в гардероб",
+                  body: state.wardrobe.length
+                    ? "Мая советует только из ваших фото. Сейчас подходящих нет — добавьте лёгкую одежду под жару или то, что реально носите."
+                    : "Гардероб нужен, чтобы Мая не гадала «что надеть», а выбирала из реальных вещей малыша под погоду.",
+                  cta: "Добавить в гардероб",
+                }
+            : undefined;
+
         const weatherForMsg: WeatherSnapshot | undefined =
-          weatherSnap && (wantWeatherWidget || (wardrobePhotos && wardrobePhotos.length > 0))
+          weatherSnap && (wantWeatherWidget || hasWardrobePicks)
             ? weatherSnap
             : undefined;
 
@@ -599,6 +622,7 @@ export function ChatView() {
             ? offer
             : undefined,
           wardrobePhotos,
+          wardrobeCard,
           weather: weatherForMsg,
         });
       } catch (e) {
@@ -838,6 +862,16 @@ export function ChatView() {
                     weather={m.weather}
                     compact
                     className="maya-msg-in mb-3"
+                  />
+                )}
+
+                {m.role === "assistant" && m.wardrobeCard && (
+                  <WardrobeChatCard
+                    mode={m.wardrobeCard.mode}
+                    title={m.wardrobeCard.title}
+                    body={m.wardrobeCard.body}
+                    cta={m.wardrobeCard.cta}
+                    className="mb-3"
                   />
                 )}
 

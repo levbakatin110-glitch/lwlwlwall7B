@@ -23,6 +23,7 @@ export const ICON_NAMES = [
   "study",
   "pulse",
   "list",
+  "circle",
   "close",
   "edit",
   "plus",

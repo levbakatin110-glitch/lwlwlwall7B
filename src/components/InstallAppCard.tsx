@@ -50,8 +50,9 @@ export function InstallAppCard() {
         Мая как приложение
       </p>
       <p className="mt-1 text-sm text-muted">
-        Иконка на рабочий стол — без Play Market и App Store. Открывается в один
-        тап, как у «обычных» приложений.
+        Иконка на рабочий стол — без магазина. Ставьте из того же браузера, где
+        уже пользуетесь Маей (Chrome / Edge / Safari) — тогда профиль не
+        потеряется.
       </p>
 
       <div className="mt-3 space-y-3 text-sm leading-relaxed text-foreground/90">

@@ -182,6 +182,13 @@ export type ChatMessage = {
     name: string;
     imageData?: string;
   }[];
+  /** Мини-карточка гардероба в чате (как погода) */
+  wardrobeCard?: {
+    mode: "items" | "add";
+    title: string;
+    body: string;
+    cta: string;
+  };
   /** Снимок погоды для iOS-виджета в чате */
   weather?: WeatherSnapshot;
 };

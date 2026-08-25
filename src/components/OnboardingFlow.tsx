@@ -21,6 +21,11 @@ import { OAuthButtons } from "@/components/OAuthButtons";
 import {
   dueDateFromLmp,
 } from "@/lib/pregnancy";
+import {
+  clearOnboardingProgress,
+  loadOnboardingProgress,
+  saveOnboardingProgress,
+} from "@/lib/onboarding-progress";
 
 type FlowStep =
   | "who"
@@ -172,10 +177,92 @@ export function OnboardingFlow({
   const fileRef = useRef<HTMLInputElement>(null);
   const isFirstSave = useRef(mode === "first");
   const babySaved = useRef(false);
+  /** Не перезаписывать localStorage пустым черновиком до восстановления */
+  const [progressReady, setProgressReady] = useState(false);
+  const [canPersist, setCanPersist] = useState(false);
+  const restoredStep = useRef<string | null>(null);
+
+  // Восстановить анкету после Mail.ru / перезагрузки
+  useEffect(() => {
+    const saved = loadOnboardingProgress(mode);
+    if (saved) {
+      setIsPregnant(saved.isPregnant);
+      setHasChild(saved.hasChild);
+      setTrackCycle(saved.trackCycle);
+      setPregDue(saved.pregDue || "");
+      setPregLmp(saved.pregLmp || "");
+      setPregStartWeight(saved.pregStartWeight || "");
+      setDraft({
+        ...emptyDraft(),
+        ...saved.draft,
+        sex: saved.draft.sex || "unknown",
+      });
+      restoredStep.current = saved.step;
+    }
+    setProgressReady(true);
+  }, [mode]);
+
+  // После сборки flow — встать на сохранённый шаг; почту пропустить, если уже вошли
+  useEffect(() => {
+    if (!progressReady) return;
+    const key = restoredStep.current;
+    if (key) {
+      let idx = flow.indexOf(key as FlowStep);
+      if (idx < 0) idx = 0;
+      if (flow[idx] === "email" && emailVerified) {
+        idx = Math.min(idx + 1, flow.length - 1);
+      }
+      setStepIdx(idx);
+      restoredStep.current = null;
+    }
+    setCanPersist(true);
+  }, [progressReady, flow, emailVerified]);
+
+  // Если вошли через Mail.ru прямо на шаге email — сразу дальше
+  useEffect(() => {
+    if (!canPersist) return;
+    if (flowStep === "email" && emailVerified) {
+      setEmailOk(true);
+      setStepIdx((i) => {
+        const emailIdx = flow.indexOf("email");
+        if (emailIdx < 0 || i !== emailIdx) return i;
+        return Math.min(emailIdx + 1, flow.length - 1);
+      });
+    }
+  }, [emailVerified, flowStep, flow, canPersist]);
 
   useEffect(() => {
     setStepIdx((i) => Math.min(i, Math.max(0, flow.length - 1)));
   }, [flow.length]);
+
+  // Автосохранение прогресса
+  useEffect(() => {
+    if (!canPersist || mode !== "first") return;
+    saveOnboardingProgress({
+      v: 1,
+      mode,
+      step: flowStep,
+      isPregnant,
+      hasChild,
+      trackCycle,
+      pregDue,
+      pregLmp,
+      pregStartWeight,
+      draft,
+      updatedAt: Date.now(),
+    });
+  }, [
+    canPersist,
+    mode,
+    flowStep,
+    isPregnant,
+    hasChild,
+    trackCycle,
+    pregDue,
+    pregLmp,
+    pregStartWeight,
+    draft,
+  ]);
 
   const progress = stepIdx + 1;
   const totalProgress = flow.length;
@@ -424,6 +511,7 @@ export function OnboardingFlow({
         setStepIdx(flow.indexOf("baby1") >= 0 ? flow.indexOf("baby1") : 0);
       } else {
         trackEvent("onboarding_done");
+        clearOnboardingProgress();
         completeOnboarding();
         onClose?.();
       }
@@ -885,6 +973,22 @@ export function OnboardingFlow({
                       mode={authMode === "register" ? "register" : "login"}
                       returnTo="/"
                       onError={(msg) => setEmailError(msg || null)}
+                      onBeforeRedirect={() => {
+                        // На всякий случай сохранить прямо перед уходом на Mail.ru
+                        saveOnboardingProgress({
+                          v: 1,
+                          mode,
+                          step: "email",
+                          isPregnant,
+                          hasChild,
+                          trackCycle,
+                          pregDue,
+                          pregLmp,
+                          pregStartWeight,
+                          draft,
+                          updatedAt: Date.now(),
+                        });
+                      }}
                     />
                   )}
 

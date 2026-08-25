@@ -14,6 +14,7 @@ import type { ModuleId } from "@/lib/types";
 
 const CORE: { href: string; label: string; icon: IconName }[] = [
   { href: "/", label: "Чат с Маей", icon: "chat" },
+  { href: "/community", label: "Кружок мам", icon: "circle" },
   { href: "/summary", label: "Итоги дня", icon: "list" },
   { href: "/med", label: "Мед. карта", icon: "health" },
   { href: "/pricing", label: "Подписка", icon: "spark" },
@@ -115,7 +116,7 @@ export function Sidebar({
   ];
 
   const linkClass = (active: boolean) =>
-    `flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium tracking-tight transition ${
+    `flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-medium tracking-tight transition ${
       active
         ? "bg-accent-soft text-foreground ring-1 ring-line"
         : "text-muted hover:bg-card hover:text-foreground"
@@ -204,9 +205,9 @@ export function Sidebar({
   );
 
   const nav = (
-    <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-4">
+    <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-3">
       {childSwitcher}
-      <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted">
+      <p className="mb-1.5 px-2.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted">
         Навигация
       </p>
       {CORE.map((item) => (
@@ -220,12 +221,12 @@ export function Sidebar({
               : pathname === item.href || pathname.startsWith(`${item.href}/`),
           )}
         >
-          <MayaIcon name={item.icon} size={18} />
+          <MayaIcon name={item.icon} size={17} />
           <span>{item.label}</span>
         </Link>
       ))}
 
-      <p className="mb-2 mt-6 px-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted">
+      <p className="mb-1.5 mt-4 px-2.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted">
         {childDisplayName(profile)}
       </p>
       {visiblePinned.map((item) => (
@@ -237,7 +238,7 @@ export function Sidebar({
             pathname === item.href || pathname.startsWith(`${item.href}/`),
           )}
         >
-          <MayaIcon name={item.icon} size={18} />
+          <MayaIcon name={item.icon} size={17} />
           <span>{item.label}</span>
         </Link>
       ))}
@@ -251,7 +252,7 @@ export function Sidebar({
             onClick={close}
             className={linkClass(pathname === href)}
           >
-            <MayaIcon name={mod.icon} size={18} />
+            <MayaIcon name={mod.icon} size={17} />
             <span>{mod.shortTitle}</span>
           </Link>
         );
@@ -260,7 +261,7 @@ export function Sidebar({
       <Link
         href="/legal"
         onClick={close}
-        className="mt-6 px-3 text-[11px] text-muted underline underline-offset-2 hover:text-foreground"
+        className="mt-4 px-2.5 text-[11px] text-muted underline underline-offset-2 hover:text-foreground"
       >
         Документы · оферта
       </Link>

@@ -31,7 +31,7 @@ export function SidebarHeader({
 
   return (
     <div className="flex items-center gap-3">
-      <span className="flex h-11 w-11 shrink-0 overflow-hidden rounded-2xl bg-accent-soft ring-1 ring-line">
+      <span className="flex h-10 w-10 shrink-0 overflow-hidden rounded-xl bg-accent-soft ring-1 ring-line">
         {profile.photoData ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -40,22 +40,22 @@ export function SidebarHeader({
             className="h-full w-full object-cover"
           />
         ) : (
-          <span className="m-auto font-display text-lg font-semibold text-accent">
+          <span className="m-auto font-display text-base font-semibold text-accent">
             {initial}
           </span>
         )}
       </span>
 
       <div className="min-w-0 flex-1">
-        <p className="font-display truncate text-[1.35rem] font-semibold leading-none tracking-tight text-foreground">
+        <p className="font-display truncate text-lg font-semibold leading-none tracking-tight text-foreground">
           {name}
         </p>
-        <p className="mt-1.5 truncate text-[12px] capitalize leading-none text-muted">
+        <p className="mt-1 truncate text-[11px] capitalize leading-none text-muted">
           {today}
         </p>
       </div>
 
-      <div className="flex shrink-0 items-center gap-1.5">
+      <div className="flex shrink-0 items-center gap-1">
         <ThemeToggle compact />
         {trailing}
       </div>

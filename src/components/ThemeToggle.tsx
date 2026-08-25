@@ -14,7 +14,7 @@ export function ThemeToggle({ compact = false }: { compact?: boolean }) {
       aria-label={isBlush ? "Тёмная тема" : "Розовая тема"}
       title={isBlush ? "Тёмная тема" : "Розовая тема"}
       className={`inline-flex items-center gap-1.5 rounded-full border border-line bg-card font-semibold text-foreground shadow-sm transition hover:border-accent/40 hover:bg-accent-soft ${
-        compact ? "h-9 px-2.5 text-[11px]" : "h-10 px-3.5 text-xs"
+        compact ? "h-8 px-2.5 text-[11px]" : "h-10 px-3.5 text-xs"
       }`}
     >
       <span
@@ -25,7 +25,7 @@ export function ThemeToggle({ compact = false }: { compact?: boolean }) {
         }`}
         aria-hidden
       />
-      {isBlush ? "Тёмная" : "Розовая"}
+      Тема
     </button>
   );
 }

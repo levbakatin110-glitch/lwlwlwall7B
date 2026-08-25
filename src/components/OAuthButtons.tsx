@@ -9,6 +9,7 @@ type Props = {
   consentsOk?: boolean;
   returnTo?: string;
   onError?: (message: string) => void;
+  onBeforeRedirect?: () => void;
 };
 
 export function OAuthButtons({
@@ -16,6 +17,7 @@ export function OAuthButtons({
   consentsOk = true,
   returnTo = "/register",
   onError,
+  onBeforeRedirect,
 }: Props) {
   const setAccountEmail = useAppStore((s) => s.setAccountEmail);
   const onErrorRef = useRef(onError);
@@ -103,6 +105,7 @@ export function OAuthButtons({
     setBusy(true);
     onErrorRef.current?.("");
     try {
+      onBeforeRedirect?.();
       const res = await fetch("/api/auth/oauth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

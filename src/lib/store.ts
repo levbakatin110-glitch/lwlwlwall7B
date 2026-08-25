@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
 import {
   emptyChildProfile,
   emptyChildSpace,
@@ -22,6 +22,13 @@ import {
 } from "./ops-log";
 import { OPTIONAL_MODULES } from "./modules";
 import type { DietPlan } from "./diet-types";
+import { durableStateStorage } from "./durable-storage";
+import {
+  clearIdentityBackup,
+  readIdentityBackup,
+  writeIdentityBackup,
+} from "./identity-backup";
+import { clearOnboardingProgress } from "./onboarding-progress";
 import {
   activatePaidPlan,
   clampModulesForPlan,
@@ -105,6 +112,8 @@ type AppState = {
   setDietPlan: (plan: DietPlan | null) => void;
   setAccountEmail: (email: string) => void;
   clearAccountEmail: () => void;
+  /** Выход: сброс профиля и данных → снова анкета */
+  logoutAccount: () => void;
   setPregnancy: (pregnancy: Partial<PregnancyProfile> | PregnancyProfile) => void;
   /** Включить все дневники беременности у активного ребёнка/профиля */
   enablePregnancyModules: () => void;
@@ -288,13 +297,47 @@ export const useAppStore = create<AppState>()(
       },
       setTheme: (theme) => set({ theme }),
       setDietPlan: (plan) => set({ dietPlan: plan }),
-      setAccountEmail: (email) =>
-        set({
-          accountEmail: email.trim().toLowerCase(),
+      setAccountEmail: (email) => {
+        const accountEmail = email.trim().toLowerCase();
+        set({ accountEmail, emailVerified: true });
+        writeIdentityBackup({
+          onboardingDone: get().onboardingDone,
+          email: accountEmail,
           emailVerified: true,
-        }),
+          childName: get().profile?.name,
+        });
+      },
       clearAccountEmail: () =>
         set({ accountEmail: null, emailVerified: false }),
+      logoutAccount: () => {
+        const id = uid();
+        const profile = emptyChildProfile({ id });
+        const space = emptyChildSpace();
+        clearIdentityBackup();
+        clearOnboardingProgress();
+        set({
+          children: [profile],
+          activeChildId: id,
+          childSpaces: { [id]: space },
+          onboardingDone: false,
+          profile,
+          ...spaceSlice(space),
+          journals: overlayMomJournals(space.journals, {}),
+          pendingChatPrompt: null,
+          dismissedDiaryHints: [],
+          dietPlan: null,
+          opsErrors: [],
+          pregnancy: emptyPregnancy(),
+          momJournals: {},
+          subscription: emptySubscription(),
+          aiChatUsage: emptyAiUsage(),
+          accountEmail: null,
+          emailVerified: false,
+          modulesDefaultsSeededV1: true,
+          modulesCareTrackersV1: true,
+          demoWardrobeSeeded: false,
+        });
+      },
       setPregnancy: (patch) =>
         set((s) => ({
           pregnancy: { ...s.pregnancy, ...patch },
@@ -759,10 +802,19 @@ export const useAppStore = create<AppState>()(
         });
       },
 
-      completeOnboarding: () => set({ onboardingDone: true }),
+      completeOnboarding: () => {
+        set({ onboardingDone: true });
+        writeIdentityBackup({
+          onboardingDone: true,
+          email: get().accountEmail,
+          emailVerified: get().emailVerified,
+          childName: get().profile?.name,
+        });
+      },
     }),
     {
       name: "maya-mom-ai",
+      storage: createJSONStorage(() => durableStateStorage),
       partialize: (state) => ({
         children: state.children,
         activeChildId: state.activeChildId,
@@ -858,6 +910,57 @@ export const useAppStore = create<AppState>()(
               !state.profile?.birthDate &&
               !(state.messages?.length > 0);
             state.onboardingDone = !empty;
+          }
+        }
+
+        // Если в сторе «как новый», но есть паспорт / данные профиля —
+        // не гоняем анкету снова (часто после ярлыка / PWA).
+        {
+          const hasLife =
+            Boolean(state.profile?.name?.trim()) ||
+            Boolean(state.profile?.birthDate) ||
+            (state.messages?.length ?? 0) > 0 ||
+            (state.children?.some(
+              (c) => Boolean(c.name?.trim()) || Boolean(c.birthDate),
+            ) ??
+              false) ||
+            Object.values(state.journals ?? {}).some((e) => e.length > 0) ||
+            Object.values(state.childSpaces ?? {}).some(
+              (sp) =>
+                (sp.messages?.length ?? 0) > 0 ||
+                Object.values(sp.journals ?? {}).some((e) => e.length > 0),
+            );
+
+          if (hasLife && !state.onboardingDone) {
+            state.onboardingDone = true;
+          }
+
+          const identity = readIdentityBackup();
+          if (identity) {
+            if (identity.onboardingDone && !state.onboardingDone) {
+              state.onboardingDone = true;
+            }
+            if (identity.email && !state.accountEmail) {
+              state.accountEmail = identity.email;
+              state.emailVerified =
+                identity.emailVerified || Boolean(state.emailVerified);
+            }
+            if (identity.emailVerified && state.accountEmail) {
+              state.emailVerified = true;
+            }
+          }
+
+          if (
+            state.onboardingDone ||
+            state.emailVerified ||
+            state.accountEmail
+          ) {
+            writeIdentityBackup({
+              onboardingDone: Boolean(state.onboardingDone),
+              email: state.accountEmail,
+              emailVerified: Boolean(state.emailVerified),
+              childName: state.profile?.name,
+            });
           }
         }
 

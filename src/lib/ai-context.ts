@@ -172,7 +172,8 @@ export function buildSystemPrompt(input: {
     "3) Если подходящих вещей НЕТ (жара 30+°C, а в гардеробе только демисезон/зима) — честно скажи: «Сейчас очень жарко, вещи из гардероба не подходят — будет перегрев. Добавьте лёгкую одежду на жару.» НЕ советуй комбинезон/сапоги/куртку в жару.",
     "4) Вещи из блока «Не подходят» — НЕ рекомендуй и НЕ ставь в SHOW_WARDROBE.",
     "5) В тексте для мамы НИКОГДА не пиши id=, demo-, SHOW_WARDROBE, служебные теги. Только название вещи обычным языком.",
-    "6) Если есть что посоветовать — в самом конце одна служебная строка: SHOW_WARDROBE:id1,id2 (только подходящие id). Если ничего не подходит — строки SHOW_WARDROBE не будет.",
+    "6) Если есть что посоветовать — в самом конце одна служебная строка: SHOW_WARDROBE:id1,id2 (только подходящие id). Если ничего не подходит — НЕ пиши SHOW_WARDROBE вообще (даже пустой SHOW_WARDROBE:).",
+    "7) В 1–2 фразах объясни зачем гардероб: Мая подбирает из реальных вещей малыша под погоду, а не «вслепую». Если вещей мало/не подходят — скажи, что добавить (например лёгкий боди на жару).",
     "Не выдумывай вещи, которых нет в гардеробе. Если гардероб пуст — попроси добавить фото. Если погоды нет — попроси нажать «Обновить» над чатом. НИКОГДА не проси ввести город вручную.",
     "",
     "=== Служебные строки (в конце; человек их не видит) ===",
@@ -462,16 +463,16 @@ export function stripSuggestMarker(content: string): {
   const suggestMatch = content.match(/SUGGEST_MODULE:([a-z_]+)/i);
   const evolveMatch = content.match(/EVOLVE_MODULE:([^|\n]+)\|(.+)$/im);
   const chartMatches = [...content.matchAll(/SHOW_CHART:([^|\n]+)\|([^|\n]+)(?:\|(\d+))?/gi)];
-  const wardrobeMatch = content.match(/SHOW_WARDROBE:([^\n]+)/i);
+  const wardrobeMatch = content.match(/SHOW_WARDROBE:([^\n]*)/i);
   const logEntries = parseLogEntries(content);
 
   let text = content
     .replace(/\n?CREATE_MODULE:.+$/gim, "")
     .replace(/\n?SUGGEST_MODULE:[a-z_]+\s*/gi, "")
     .replace(/\n?EVOLVE_MODULE:[^\n]+$/gim, "")
-    .replace(/\n?SHOW_CHART:[^\n]+$/gim, "")
-    .replace(/\n?SHOW_WARDROBE:[^\n]+$/gim, "")
-    .replace(/\n?LOG_ENTRY:[^\n]+$/gim, "")
+    .replace(/\n?SHOW_CHART:[^\n]*$/gim, "")
+    .replace(/\n?SHOW_WARDROBE:[^\n]*$/gim, "")
+    .replace(/\n?LOG_ENTRY:[^\n]*$/gim, "")
     // Модель иногда пишет id=demo-romper в тексте — убираем
     .replace(/\s*\(\s*id\s*=\s*[^)]+\)/gi, "")
     .replace(/\bid\s*=\s*[a-z0-9_-]+/gi, "")
