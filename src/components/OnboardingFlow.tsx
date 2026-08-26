@@ -13,6 +13,7 @@ import { compressImageFile } from "@/lib/image";
 import { trackEvent } from "@/lib/analytics-client";
 import {
   markOnboardingDoneSticky,
+  readIdentityBackup,
   readOnboardingDoneSticky,
 } from "@/lib/identity-backup";
 import { useAppStore } from "@/lib/store";
@@ -1149,28 +1150,68 @@ export function OnboardingFlow({
   );
 }
 
+function peekLikelyOnboarded(): boolean {
+  try {
+    if (readOnboardingDoneSticky()) return true;
+  } catch {
+    /* ignore */
+  }
+  try {
+    const raw = localStorage.getItem("maya-mom-ai");
+    if (raw) {
+      const parsed = JSON.parse(raw) as {
+        state?: { onboardingDone?: boolean };
+        onboardingDone?: boolean;
+      };
+      const done = parsed?.state?.onboardingDone ?? parsed?.onboardingDone;
+      if (done) return true;
+    }
+  } catch {
+    /* ignore */
+  }
+  try {
+    const id = readIdentityBackup();
+    if (id?.onboardingDone) return true;
+  } catch {
+    /* ignore */
+  }
+  return false;
+}
+
 /**
  * Показывает онбординг новым пользователям.
  * Sticky-флаг не даёт снова кидать в анкету после сбоя/перезаписи стора.
+ * Пока zustand не поднялся из localStorage — только «Мая…», без мигания регистрации.
  */
 export function OnboardingGate({ children }: { children: React.ReactNode }) {
   const onboardingDone = useAppStore((s) => s.onboardingDone);
-  const [stickyDone, setStickyDone] = useState(false);
+  const [stickyDone, setStickyDone] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return peekLikelyOnboarded();
+  });
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     try {
-      setStickyDone(readOnboardingDoneSticky());
+      if (peekLikelyOnboarded()) setStickyDone(true);
     } catch {
       /* ignore */
     }
-    const finish = () => setHydrated(true);
+    const finish = () => {
+      try {
+        if (peekLikelyOnboarded()) setStickyDone(true);
+      } catch {
+        /* ignore */
+      }
+      setHydrated(true);
+    };
     if (useAppStore.persist.hasHydrated()) {
       finish();
       return;
     }
     const unsub = useAppStore.persist.onFinishHydration(finish);
-    const t = window.setTimeout(finish, 400);
+    // запасной выход, если persist завис — но не раньше, чем успеет подняться стор
+    const t = window.setTimeout(finish, 1500);
     return () => {
       unsub();
       window.clearTimeout(t);
@@ -1183,8 +1224,8 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
     setStickyDone(true);
   }, [onboardingDone]);
 
-  // Пока стор поднимается — не мигаем анкетой поверх уже прошедших
-  if (!hydrated && (stickyDone || onboardingDone)) {
+  // Всегда ждём гидрацию — иначе на долю секунды вспыхивает анкета/регистрация
+  if (!hydrated) {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-background text-sm text-muted">
         Мая…

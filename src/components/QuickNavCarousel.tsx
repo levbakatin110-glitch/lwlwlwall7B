@@ -22,11 +22,32 @@ const POPULAR_ORDER: ModuleId[] = [
   "notes",
 ];
 
+/** Короткие подписи под иконкой в узкой шапке */
+const NAV_LABEL: Partial<Record<ModuleId, string>> = {
+  growth: "Рост",
+  vaccines: "Прививки",
+  sleep: "Сон",
+  breastfeeding: "ГВ",
+  formula: "Смеси",
+  solids: "Прикорм",
+  diaper: "Подгуз.",
+  water: "Вода",
+  walk: "Прогулка",
+  health: "Здоровье",
+  notes: "Заметки",
+};
+
 type QuickItem = {
   href: string;
   label: string;
   icon: IconName;
 };
+
+function shortenLabel(raw: string, max = 9): string {
+  const t = raw.trim();
+  if (t.length <= max) return t;
+  return `${t.slice(0, max - 1)}…`;
+}
 
 function buildQuickItems(
   enabled: ModuleId[],
@@ -43,17 +64,16 @@ function buildQuickItems(
     if (!mod) continue;
     items.push({
       href: `/m/${id}`,
-      label: mod.shortTitle,
+      label: NAV_LABEL[id] ?? shortenLabel(mod.shortTitle),
       icon: mod.icon as IconName,
     });
   }
 
-  // Свои дневники — тоже в карусель (короткие ярлыки)
   for (const c of customModules.slice(0, 4)) {
     const def = customToDef(c);
     items.push({
       href: `/m/${def.id}`,
-      label: def.shortTitle,
+      label: shortenLabel(def.shortTitle),
       icon: def.icon as IconName,
     });
   }
@@ -63,7 +83,6 @@ function buildQuickItems(
     { href: "/memories", label: "Моменты", icon: "moments" },
   );
 
-  // без дублей по href
   const seen = new Set<string>();
   return items.filter((it) => {
     if (seen.has(it.href)) return false;
@@ -84,7 +103,7 @@ export function QuickNavCarousel({ className = "" }: { className?: string }) {
       aria-label="Быстрые разделы"
     >
       <div
-        className="flex snap-x snap-mandatory gap-1.5 overflow-x-auto overscroll-x-none scroll-smooth px-0.5 py-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="flex snap-x snap-mandatory gap-1 overflow-x-auto overscroll-x-none scroll-smooth px-0.5 py-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         style={{ WebkitOverflowScrolling: "touch" }}
       >
         {items.map((item) => {
@@ -99,13 +118,26 @@ export function QuickNavCarousel({ className = "" }: { className?: string }) {
               title={item.label}
               aria-label={item.label}
               aria-current={active ? "page" : undefined}
-              className={`flex h-9 w-9 shrink-0 snap-start items-center justify-center rounded-xl transition ${
-                active
-                  ? "bg-accent text-white shadow-sm"
-                  : "bg-accent-soft/80 text-foreground ring-1 ring-line hover:bg-accent-soft"
+              className={`flex w-[3.35rem] shrink-0 snap-start flex-col items-center gap-0.5 rounded-xl px-0.5 py-0.5 transition ${
+                active ? "bg-accent/10" : "hover:bg-accent-soft/50"
               }`}
             >
-              <MayaIcon name={item.icon} size={17} />
+              <span
+                className={`flex h-8 w-8 items-center justify-center rounded-xl transition ${
+                  active
+                    ? "bg-accent text-white shadow-sm"
+                    : "bg-accent-soft/80 text-foreground ring-1 ring-line"
+                }`}
+              >
+                <MayaIcon name={item.icon} size={16} />
+              </span>
+              <span
+                className={`w-full truncate text-center text-[9px] font-semibold leading-tight tracking-tight ${
+                  active ? "text-accent" : "text-muted"
+                }`}
+              >
+                {item.label}
+              </span>
             </Link>
           );
         })}

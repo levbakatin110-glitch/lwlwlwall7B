@@ -6,9 +6,9 @@ const nextConfig: NextConfig = {
   // Не standalone: на VPS pm2 запускает `next start` (см. pm2 logs).
   // standalone ломает next start → 500 / required-server-files.json
   experimental: {
-    // меньше шума от кривых POST (сканеры шлют Next-Action: x)
+    // кружки/видео в community и прочие формы
     serverActions: {
-      bodySizeLimit: "1mb",
+      bodySizeLimit: "12mb",
     },
   },
   async redirects() {

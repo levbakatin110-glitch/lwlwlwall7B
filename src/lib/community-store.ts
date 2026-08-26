@@ -47,7 +47,7 @@ const MAX_TEXT = 500;
 const MAX_AVATAR_BYTES = 180_000;
 const MAX_IMAGE_BYTES = 900_000;
 const MAX_VIDEO_BYTES = 12_000_000;
-const MAX_CIRCLE_BYTES = 8_000_000;
+const MAX_CIRCLE_BYTES = 3_000_000;
 
 const SEED: Omit<CommunityMessage, "id" | "createdAt">[] = [
   {
@@ -329,7 +329,9 @@ export async function addCommunityMessage(input: {
     }
     if (
       (kind === "video" || kind === "circle") &&
-      !mime.startsWith("video/")
+      mime &&
+      !mime.startsWith("video/") &&
+      mime !== "application/octet-stream"
     ) {
       return { ok: false, error: "Нужно видео" };
     }
@@ -356,7 +358,15 @@ export async function addCommunityMessage(input: {
 
   if (input.media) {
     ensureDirs();
-    const ext = extFromMime(input.media.mime, input.media.kind);
+    const mime =
+      input.media.mime && input.media.mime.startsWith("video/")
+        ? input.media.mime
+        : input.media.kind === "image"
+          ? input.media.mime || "image/jpeg"
+          : input.media.mime?.includes("mp4")
+            ? "video/mp4"
+            : "video/webm";
+    const ext = extFromMime(mime, input.media.kind);
     mediaFile = `${id}.${ext}`;
     mediaKind = input.media.kind;
     writeFileSync(join(MEDIA_DIR, mediaFile), input.media.buffer);

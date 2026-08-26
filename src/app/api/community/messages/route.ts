@@ -42,7 +42,15 @@ export async function POST(req: Request) {
             : f.type.startsWith("video/")
               ? "video"
               : "image";
-        media = { kind, buffer: buf, mime: f.type || "application/octet-stream" };
+        const mime =
+          f.type && f.type !== "application/octet-stream"
+            ? f.type
+            : kind === "image"
+              ? "image/jpeg"
+              : kind === "circle" || kind === "video"
+                ? "video/webm"
+                : "application/octet-stream";
+        media = { kind, buffer: buf, mime };
       }
 
       const result = await addCommunityMessage({

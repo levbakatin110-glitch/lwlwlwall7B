@@ -8,6 +8,10 @@ import {
   useState,
 } from "react";
 import Link from "next/link";
+import {
+  CircleNotePlayer,
+  CircleRecorder,
+} from "@/components/CircleRecorder";
 import { MayaIcon } from "@/components/icons/MayaIcon";
 import { childDisplayName } from "@/lib/children";
 import { compressImageFile } from "@/lib/image";
@@ -183,16 +187,7 @@ function MessageMedia({
     );
   }
   if (kind === "circle") {
-    return (
-      <div className="mt-1.5 flex justify-center">
-        <video
-          src={url}
-          controls
-          playsInline
-          className="h-44 w-44 rounded-full border-2 border-accent/30 object-cover bg-black"
-        />
-      </div>
-    );
+    return <CircleNotePlayer url={url} />;
   }
   return (
     <video
@@ -226,18 +221,11 @@ export function MomsCircleChat() {
   const [pendingKind, setPendingKind] = useState<MediaKind | null>(null);
   const [pendingPreview, setPendingPreview] = useState<string | null>(null);
   const [circleOpen, setCircleOpen] = useState(false);
-  const [recording, setRecording] = useState(false);
-  const [recordSecs, setRecordSecs] = useState(0);
 
   const listRef = useRef<HTMLDivElement>(null);
   const stickBottom = useRef(true);
   const avatarFileRef = useRef<HTMLInputElement>(null);
   const mediaFileRef = useRef<HTMLInputElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const mediaStreamRef = useRef<MediaStream | null>(null);
-  const recorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
-  const recordTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     const saved = loadProfile();
@@ -293,7 +281,6 @@ export function MomsCircleChat() {
 
   useEffect(() => {
     return () => {
-      stopCircleStream();
       if (pendingPreview) URL.revokeObjectURL(pendingPreview);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -388,84 +375,17 @@ export function MomsCircleChat() {
     }
   }
 
-  function stopCircleStream() {
-    if (recordTimerRef.current) {
-      window.clearInterval(recordTimerRef.current);
-      recordTimerRef.current = null;
-    }
-    recorderRef.current?.stop();
-    recorderRef.current = null;
-    mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
-    mediaStreamRef.current = null;
-    setRecording(false);
-    setRecordSecs(0);
-  }
-
-  async function openCircle() {
+  function openCircle() {
     setError(null);
     setCircleOpen(true);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-        video: { facingMode: "user", width: 480, height: 480 },
-      });
-      mediaStreamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
-    } catch {
-      setCircleOpen(false);
-      setError("Нет доступа к камере");
-    }
   }
 
-  function startCircleRecord() {
-    const stream = mediaStreamRef.current;
-    if (!stream) return;
-    chunksRef.current = [];
-    const mime = MediaRecorder.isTypeSupported("video/webm;codecs=vp8,opus")
-      ? "video/webm;codecs=vp8,opus"
-      : MediaRecorder.isTypeSupported("video/webm")
-        ? "video/webm"
-        : "";
-    const rec = mime
-      ? new MediaRecorder(stream, { mimeType: mime })
-      : new MediaRecorder(stream);
-    recorderRef.current = rec;
-    rec.ondataavailable = (ev) => {
-      if (ev.data.size > 0) chunksRef.current.push(ev.data);
-    };
-    rec.onstop = () => {
-      const blob = new Blob(chunksRef.current, {
-        type: rec.mimeType || "video/webm",
-      });
-      const file = new File([blob], "circle.webm", {
-        type: blob.type || "video/webm",
-      });
-      clearPendingMedia();
-      setPendingFile(file);
-      setPendingKind("circle");
-      setPendingPreview(URL.createObjectURL(blob));
-      stopCircleStream();
-      setCircleOpen(false);
-    };
-    rec.start(200);
-    setRecording(true);
-    setRecordSecs(0);
-    recordTimerRef.current = window.setInterval(() => {
-      setRecordSecs((s) => {
-        if (s >= 59) {
-          rec.stop();
-          return 60;
-        }
-        return s + 1;
-      });
-    }, 1000);
-  }
-
-  function stopCircleRecord() {
-    recorderRef.current?.stop();
+  function onCircleReady(file: File, previewUrl: string) {
+    clearPendingMedia();
+    setPendingFile(file);
+    setPendingKind("circle");
+    setPendingPreview(previewUrl);
+    setCircleOpen(false);
   }
 
   async function send(e?: FormEvent) {
@@ -482,10 +402,16 @@ export function MomsCircleChat() {
       form.set("text", body);
       const tag = buildBabyTag(commProfile.babyName, commProfile.babyBirth);
       if (tag) form.set("babyTag", tag);
-      if (commProfile.avatar) form.set("avatar", commProfile.avatar);
+      // аватар уже на сервере через /api/community/profile —
+      // не тащим data-URL вместе с кружком (из‑за этого был Load failed)
       if (pendingFile && pendingKind) {
+        if (pendingKind === "circle" && pendingFile.size > 2_800_000) {
+          throw new Error("Кружок слишком большой — запишите короче");
+        }
         form.set("mediaKind", pendingKind);
         form.set("file", pendingFile);
+      } else if (commProfile.avatar?.startsWith("data:image/")) {
+        form.set("avatar", commProfile.avatar);
       }
 
       const res = await fetch("/api/community/messages", {
@@ -510,7 +436,14 @@ export function MomsCircleChat() {
       }
       stickBottom.current = true;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Ошибка");
+      const raw = err instanceof Error ? err.message : "Ошибка";
+      setError(
+        /load failed|failed to fetch|networkerror|network error|fetch/i.test(
+          raw,
+        )
+          ? "Не отправилось — сеть или файл слишком большой. Запишите кружок короче."
+          : raw,
+      );
     } finally {
       setBusy(false);
     }
@@ -765,8 +698,11 @@ export function MomsCircleChat() {
                     ) : pendingKind === "circle" ? (
                       <video
                         src={pendingPreview}
-                        className="h-12 w-12 rounded-full object-cover"
+                        className="h-14 w-14 rounded-full object-cover ring-2 ring-accent/40"
                         muted
+                        playsInline
+                        autoPlay
+                        loop
                       />
                     ) : (
                       <video
@@ -816,7 +752,7 @@ export function MomsCircleChat() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => void openCircle()}
+                    onClick={openCircle}
                     className="flex h-11 w-10 shrink-0 items-center justify-center rounded-xl text-muted hover:bg-accent-soft hover:text-foreground"
                     aria-label="Записать кружок"
                     title="Кружок"
@@ -857,51 +793,10 @@ export function MomsCircleChat() {
       )}
 
       {circleOpen && (
-        <div className="fixed inset-0 z-[220] flex flex-col bg-black/90 px-4 py-6 text-white">
-          <div className="mb-4 flex items-center justify-between">
-            <p className="text-sm font-medium">Кружок</p>
-            <button
-              type="button"
-              onClick={() => {
-                stopCircleStream();
-                setCircleOpen(false);
-              }}
-              className="rounded-xl px-3 py-1.5 text-sm text-white/80"
-            >
-              Закрыть
-            </button>
-          </div>
-          <div className="flex flex-1 flex-col items-center justify-center gap-4">
-            <div className="relative h-64 w-64 overflow-hidden rounded-full border-4 border-accent/50 bg-black">
-              <video
-                ref={videoRef}
-                muted
-                playsInline
-                className="h-full w-full scale-x-[-1] object-cover"
-              />
-            </div>
-            <p className="text-sm text-white/70">
-              {recording ? `${recordSecs} с · до 60` : "Нажмите запись"}
-            </p>
-            {!recording ? (
-              <button
-                type="button"
-                onClick={startCircleRecord}
-                className="h-16 w-16 rounded-full border-4 border-white bg-accent"
-                aria-label="Начать запись"
-              />
-            ) : (
-              <button
-                type="button"
-                onClick={stopCircleRecord}
-                className="flex h-16 w-16 items-center justify-center rounded-full border-4 border-white bg-red-500"
-                aria-label="Стоп"
-              >
-                <span className="h-5 w-5 rounded-sm bg-white" />
-              </button>
-            )}
-          </div>
-        </div>
+        <CircleRecorder
+          onCancel={() => setCircleOpen(false)}
+          onReady={onCircleReady}
+        />
       )}
     </div>
   );
