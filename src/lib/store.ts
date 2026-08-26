@@ -7,6 +7,7 @@ import {
   durableStateStorage,
 } from "@/lib/durable-storage";
 import {
+  DEFAULT_ENABLED_MODULES,
   emptyChildProfile,
   emptyChildSpace,
   emptyJournals,
@@ -904,7 +905,7 @@ export const useAppStore = create<AppState>()(
           const space: ChildSpace = {
             enabledModules: legacy.enabledModules?.length
               ? legacy.enabledModules
-              : ["growth", "sleep", "breastfeeding", "formula", "solids"],
+              : [...DEFAULT_ENABLED_MODULES],
             customModules: legacy.customModules ?? [],
             wardrobe: legacy.wardrobe ?? [],
             memories: legacy.memories ?? [],
@@ -1072,27 +1073,20 @@ export const useAppStore = create<AppState>()(
           state.themeDefaultV2 = true;
         }
 
-        const defaults: ModuleId[] = ["growth", "breastfeeding", "water"];
+        const defaults: ModuleId[] = [...DEFAULT_ENABLED_MODULES];
         const next = [...(state.enabledModules ?? [])].filter(
           (id) => (id as string) !== "outfit",
         );
-        // Один раз: досеять бесплатный набор. Дальше пользователь может отключать
-        // (в рамках тарифа) — при следующей загрузке разделы НЕ возвращаются сами.
+        // Один раз: досеять стартовый набор. Дальше мама сама включает/выключает.
         let seededDefaults = false;
         if (!state.modulesDefaultsSeededV1) {
-          for (const mid of defaults) {
-            if (!next.includes(mid)) next.push(mid);
-          }
+          // чистый старт — только дефолты, без старого «всего сразу»
+          next.length = 0;
+          next.push(...defaults);
           for (const sid of Object.keys(state.childSpaces ?? {})) {
             const space = state.childSpaces[sid];
             if (!space) continue;
-            let mods = [...space.enabledModules].filter(
-              (id) => (id as string) !== "outfit",
-            );
-            for (const mid of defaults) {
-              if (!mods.includes(mid)) mods.push(mid);
-            }
-            space.enabledModules = mods;
+            space.enabledModules = [...defaults];
           }
           state.modulesDefaultsSeededV1 = true;
           seededDefaults = true;
@@ -1103,7 +1097,7 @@ export const useAppStore = create<AppState>()(
           state.modulesCareTrackersV1 = true;
         }
 
-        // Бесплатный тариф: только ГВ + рост/вес + вода
+        // Бесплатный тариф: только разрешённые дневники
         {
           const premium = isSubscriptionActive(state.subscription);
           const clamped = clampModulesForPlan(next, premium) as ModuleId[];
@@ -1128,7 +1122,7 @@ export const useAppStore = create<AppState>()(
         {
           const journals = { ...(state.journals ?? {}) };
           let touched = false;
-          for (const mid of ["growth", "breastfeeding", "water"] as ModuleId[]) {
+          for (const mid of defaults) {
             if (!journals[mid]) {
               journals[mid] = [];
               touched = true;

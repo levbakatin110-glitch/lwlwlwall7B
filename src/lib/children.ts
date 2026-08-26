@@ -51,7 +51,7 @@ export type ChildSpace = {
 
 export function emptyChildSpace(): ChildSpace {
   return {
-    enabledModules: ["growth", "breastfeeding", "water"],
+    enabledModules: [...DEFAULT_ENABLED_MODULES],
     customModules: [],
     wardrobe: [],
     memories: [],
@@ -61,6 +61,13 @@ export function emptyChildSpace(): ChildSpace {
     demoWardrobeSeeded: false,
   };
 }
+
+/** Стартовый набор дневников — остальное мама подключает в «Разделы» */
+export const DEFAULT_ENABLED_MODULES: ModuleId[] = [
+  "growth",
+  "vaccines",
+  "sleep",
+];
 
 /** Поднимает битый/частичный space после persist — иначе journals undefined роняет UI */
 export function ensureChildSpace(
@@ -73,7 +80,7 @@ export function ensureChildSpace(
   return {
     enabledModules: Array.isArray(sp.enabledModules)
       ? (sp.enabledModules as ModuleId[])
-      : base.enabledModules,
+      : [...DEFAULT_ENABLED_MODULES],
     customModules: Array.isArray(sp.customModules) ? sp.customModules : [],
     wardrobe: Array.isArray(sp.wardrobe) ? sp.wardrobe : [],
     memories: Array.isArray(sp.memories) ? sp.memories : [],

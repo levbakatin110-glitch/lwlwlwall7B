@@ -34,6 +34,8 @@ export const BASE_MONTH_RUB = 1990;
 /** На бесплатном: базовые дневники малыша + беременность + цикл */
 export const FREE_MODULE_IDS = [
   "growth",
+  "vaccines",
+  "sleep",
   "breastfeeding",
   "water",
   "pregnancy",

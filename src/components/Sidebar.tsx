@@ -19,7 +19,6 @@ const CORE: { href: string; label: string; icon: IconName }[] = [
   { href: "/med", label: "Мед. карта", icon: "health" },
   { href: "/pricing", label: "Подписка", icon: "spark" },
   { href: "/profile", label: "Профиль", icon: "profile" },
-  { href: "/modules", label: "Разделы", icon: "plus" },
 ];
 
 const PINNED_DIARIES: {
@@ -43,9 +42,10 @@ const PINNED_DIARIES: {
   { href: "/m/birth_plan", label: "План родов", icon: "spark", moduleId: "birth_plan" },
   { href: "/m/cycle", label: "Цикл", icon: "pulse", moduleId: "cycle" },
   { href: "/m/growth", label: "Рост и вес", icon: "growth", moduleId: "growth" },
+  { href: "/m/vaccines", label: "Прививки", icon: "vaccines", moduleId: "vaccines" },
+  { href: "/m/sleep", label: "Сон", icon: "sleep", moduleId: "sleep" },
   { href: "/m/breastfeeding", label: "ГВ · таймер", icon: "feeding", moduleId: "breastfeeding" },
   { href: "/m/formula", label: "Смеси", icon: "formula", moduleId: "formula" },
-  { href: "/m/sleep", label: "Сон", icon: "sleep", moduleId: "sleep" },
   { href: "/m/water", label: "Вода", icon: "water", moduleId: "water" },
   { href: "/m/walk", label: "Прогулка", icon: "walk", moduleId: "walk" },
   { href: "/m/diaper", label: "Подгузник", icon: "diaper", moduleId: "diaper" },
@@ -230,6 +230,23 @@ export function Sidebar({
       <p className="mb-1.5 mt-4 px-2.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted">
         {childDisplayName(profile)}
       </p>
+      <Link
+        href="/modules"
+        onClick={close}
+        className={`mb-1 flex items-center gap-2.5 rounded-xl border border-dashed border-accent/45 bg-accent-soft/50 px-2.5 py-2.5 text-[13px] font-semibold tracking-tight text-accent transition hover:border-accent/70 hover:bg-accent-soft ${
+          pathname === "/modules" || pathname.startsWith("/modules/")
+            ? "ring-1 ring-accent/35"
+            : ""
+        }`}
+      >
+        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent text-[var(--on-accent,#fff)]">
+          <MayaIcon name="plus" size={15} />
+        </span>
+        <span className="min-w-0 flex-1">Разделы</span>
+        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-accent/80">
+          ещё
+        </span>
+      </Link>
       {visiblePinned.map((item) => (
         <Link
           key={item.href}

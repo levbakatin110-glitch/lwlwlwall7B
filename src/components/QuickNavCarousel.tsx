@@ -9,11 +9,12 @@ import type { CustomModule, ModuleId } from "@/lib/types";
 
 /** Порядок «популярных» ярлыков в шапке — только включённые разделы */
 const POPULAR_ORDER: ModuleId[] = [
+  "growth",
+  "vaccines",
   "sleep",
-  "solids",
   "breastfeeding",
   "formula",
-  "growth",
+  "solids",
   "diaper",
   "water",
   "walk",
