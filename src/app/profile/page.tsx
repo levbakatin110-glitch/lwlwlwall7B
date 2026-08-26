@@ -232,7 +232,7 @@ export default function ProfilePage() {
         )}
       </div>
 
-      <div className="mt-5 flex gap-2 overflow-x-auto pb-1">
+      <div className="mt-5 flex gap-2 overflow-x-auto overscroll-x-none pb-1">
         {children.map((c) => {
           const active = c.id === activeChildId;
           return (

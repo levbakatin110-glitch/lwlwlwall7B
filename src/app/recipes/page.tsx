@@ -60,7 +60,7 @@ export default function RecipesPage() {
         <RecipeOfDayCard />
       </div>
 
-      <div className="mt-8 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="mt-8 flex gap-2 overflow-x-auto overscroll-x-none pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {FILTERS.map((f) => {
           const active = filter === f.id;
           return (

@@ -113,7 +113,7 @@ function CalendarGrid({
         </div>
       </div>
 
-      <div className="overflow-x-auto overscroll-x-contain">
+      <div className="overflow-x-auto overscroll-x-none">
         <table className="w-max min-w-full border-collapse text-left">
           <thead>
             <tr className="bg-background/70">
