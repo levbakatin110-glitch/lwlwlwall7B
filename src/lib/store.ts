@@ -28,7 +28,9 @@ import { OPTIONAL_MODULES } from "./modules";
 import type { DietPlan } from "./diet-types";
 import {
   clearIdentityBackup,
+  markOnboardingDoneSticky,
   readIdentityBackup,
+  readOnboardingDoneSticky,
   writeIdentityBackup,
 } from "./identity-backup";
 import { clearOnboardingProgress } from "./onboarding-progress";
@@ -807,6 +809,7 @@ export const useAppStore = create<AppState>()(
 
       completeOnboarding: () => {
         set({ onboardingDone: true });
+        markOnboardingDoneSticky();
         writeIdentityBackup({
           onboardingDone: true,
           email: get().accountEmail,
@@ -905,14 +908,19 @@ export const useAppStore = create<AppState>()(
           state.childSpaces = { [id]: space };
           state.profile = profile;
           Object.assign(state, spaceSlice(space));
-          // если уже что-то заполняли — онбординг не навязываем
-          state.onboardingDone = Boolean(
+          // Никогда не снимаем уже пройденную анкету при миграции
+          const lookedFilled = Boolean(
             profile.name?.trim() ||
               profile.birthDate ||
               (legacy.messages?.length ?? 0) > 0 ||
               (legacy.journals &&
                 Object.values(legacy.journals).some((e) => e.length > 0)),
           );
+          if (state.onboardingDone || readOnboardingDoneSticky()) {
+            state.onboardingDone = true;
+          } else {
+            state.onboardingDone = lookedFilled;
+          }
         } else {
           // синхронизировать зеркало с active
           const id = state.activeChildId || state.children[0].id;
@@ -952,6 +960,13 @@ export const useAppStore = create<AppState>()(
 
           if (hasLife && !state.onboardingDone) {
             state.onboardingDone = true;
+          }
+
+          if (readOnboardingDoneSticky()) {
+            state.onboardingDone = true;
+          }
+          if (state.onboardingDone) {
+            markOnboardingDoneSticky();
           }
 
           const identity = readIdentityBackup();

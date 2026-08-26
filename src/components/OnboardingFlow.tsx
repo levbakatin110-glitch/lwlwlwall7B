@@ -11,6 +11,10 @@ import {
 } from "@/lib/children";
 import { compressImageFile } from "@/lib/image";
 import { trackEvent } from "@/lib/analytics-client";
+import {
+  markOnboardingDoneSticky,
+  readOnboardingDoneSticky,
+} from "@/lib/identity-backup";
 import { useAppStore } from "@/lib/store";
 import type { ChildProfile, Sex } from "@/lib/types";
 import {
@@ -1131,19 +1135,49 @@ export function OnboardingFlow({
 }
 
 /**
- * Показывает онбординг новым пользователям. Не блокирует UI на hydrate.
- * Почта необязательна: аккаунт можно привязать позже в профиле.
+ * Показывает онбординг новым пользователям.
+ * Sticky-флаг не даёт снова кидать в анкету после сбоя/перезаписи стора.
  */
 export function OnboardingGate({ children }: { children: React.ReactNode }) {
   const onboardingDone = useAppStore((s) => s.onboardingDone);
+  const [stickyDone, setStickyDone] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
 
-  // Раньше ждали persist → «Мая…» навечно (Яндекс / пустой LS / старый билд).
-  // Persist догоняет в фоне; краткий мигающий онбординг лучше вечного белого экрана.
   useEffect(() => {
-    void useAppStore.persist.hasHydrated();
+    try {
+      setStickyDone(readOnboardingDoneSticky());
+    } catch {
+      /* ignore */
+    }
+    const finish = () => setHydrated(true);
+    if (useAppStore.persist.hasHydrated()) {
+      finish();
+      return;
+    }
+    const unsub = useAppStore.persist.onFinishHydration(finish);
+    const t = window.setTimeout(finish, 400);
+    return () => {
+      unsub();
+      window.clearTimeout(t);
+    };
   }, []);
 
-  if (!onboardingDone) {
+  useEffect(() => {
+    if (!onboardingDone) return;
+    markOnboardingDoneSticky();
+    setStickyDone(true);
+  }, [onboardingDone]);
+
+  // Пока стор поднимается — не мигаем анкетой поверх уже прошедших
+  if (!hydrated && (stickyDone || onboardingDone)) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-background text-sm text-muted">
+        Мая…
+      </div>
+    );
+  }
+
+  if (!onboardingDone && !stickyDone) {
     return <OnboardingFlow mode="first" />;
   }
 

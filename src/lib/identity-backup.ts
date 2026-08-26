@@ -11,9 +11,38 @@ export type MayaIdentity = {
 
 const LS_KEY = "maya-identity-v1";
 const COOKIE = "maya_id";
+/** Отдельный флаг «анкета уже пройдена» — не сбрасывается при сбое стора */
+const ONBOARDED_KEY = "maya-onboarded-v1";
 
 function canUseDom() {
   return typeof window !== "undefined" && typeof document !== "undefined";
+}
+
+export function markOnboardingDoneSticky(): void {
+  if (!canUseDom()) return;
+  try {
+    localStorage.setItem(ONBOARDED_KEY, "1");
+  } catch {
+    /* ignore */
+  }
+}
+
+export function clearOnboardingDoneSticky(): void {
+  if (!canUseDom()) return;
+  try {
+    localStorage.removeItem(ONBOARDED_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+export function readOnboardingDoneSticky(): boolean {
+  if (!canUseDom()) return false;
+  try {
+    return localStorage.getItem(ONBOARDED_KEY) === "1";
+  } catch {
+    return false;
+  }
 }
 
 export function readIdentityBackup(): MayaIdentity | null {
@@ -84,6 +113,7 @@ export function writeIdentityBackup(input: {
 
 export function clearIdentityBackup(): void {
   if (!canUseDom()) return;
+  clearOnboardingDoneSticky();
   try {
     localStorage.removeItem(LS_KEY);
   } catch {

@@ -14,7 +14,7 @@ const STORE = "kv";
 const THEME_KEY = "maya-theme";
 const WRITE_DEBOUNCE_MS = 400;
 /** Выше — режем base64 и дубли агрессивнее */
-const HEAVY_CHARS = 200_000;
+const HEAVY_CHARS = 500_000;
 const MAX_DATA_URL = 12_000;
 const MAX_MESSAGES = 40;
 const MAX_MEMORIES = 20;

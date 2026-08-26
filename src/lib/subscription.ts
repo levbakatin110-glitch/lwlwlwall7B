@@ -64,49 +64,10 @@ export function clampModulesForPlan(
   premium: boolean,
 ): string[] {
   const list = [...(modules ?? [])];
-  if (TEMP_UNLOCK_ALL || premium) {
-    // На время демо сразу включаем все встроенные дневники
-    if (TEMP_UNLOCK_ALL) {
-      const allBuiltins = [
-        "growth",
-        "breastfeeding",
-        "formula",
-        "solids",
-        "sleep",
-        "vaccines",
-        "health",
-        "diet",
-        "water",
-        "walk",
-        "diaper",
-        "notes",
-        "pregnancy",
-        "contractions",
-        "kicks",
-        "preg_weight",
-        "preg_pressure",
-        "preg_symptoms",
-        "preg_visits",
-        "preg_belly",
-        "preg_meds",
-        "preg_labs",
-        "preg_docs",
-        "preg_sleep",
-        "birth_plan",
-        "cycle",
-      ];
-      for (const id of allBuiltins) {
-        if (!list.includes(id)) list.push(id);
-      }
-    }
-    return list;
-  }
+  // Premium / демо: не навязываем все дневники обратно при «Отключить»
+  if (TEMP_UNLOCK_ALL || premium) return list;
   const allowed = FREE_MODULE_IDS as readonly string[];
-  const kept = list.filter((id) => allowed.includes(id));
-  for (const id of allowed) {
-    if (!kept.includes(id)) kept.push(id);
-  }
-  return kept;
+  return list.filter((id) => allowed.includes(id));
 }
 
 export type PlanDef = {
