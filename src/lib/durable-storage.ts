@@ -1,12 +1,9 @@
 /**
- * Надёжное хранилище для zustand persist:
- * localStorage сразу (синхронно) + зеркало в IndexedDB в фоне.
+ * Надёжное хранилище для zustand persist.
  *
- * Важно: hydrate не ждёт IndexedDB — иначе экран «Мая…» зависает
- * (Яндекс/часть браузеров).
- *
- * Запись дебаунсится и ловит QuotaExceeded / OOM при stringify —
- * иначе вкладка падает с «This page couldn't load» после записи в дневник.
+ * Главная причина «This page couldn't load» в Яндексе — раздутый
+ * maya-mom-ai (фото base64 + дубли journals/messages). При чтении/записи
+ * стор ужимаем; в layout есть аварийный скрипт до React.
  */
 
 import type { PersistStorage, StateStorage, StorageValue } from "zustand/middleware";
@@ -15,7 +12,13 @@ import { writeIdentityBackup } from "./identity-backup";
 const DB_NAME = "maya-durable-v1";
 const STORE = "kv";
 const THEME_KEY = "maya-theme";
-const WRITE_DEBOUNCE_MS = 280;
+const WRITE_DEBOUNCE_MS = 400;
+/** Выше — режем base64 и дубли агрессивнее */
+const HEAVY_CHARS = 700_000;
+const MAX_DATA_URL = 24_000;
+const MAX_MESSAGES = 60;
+const MAX_MEMORIES = 40;
+const MAX_WARDROBE = 40;
 
 function withTimeout<T>(p: Promise<T>, ms: number, fallback: T): Promise<T> {
   return new Promise((resolve) => {
@@ -152,6 +155,108 @@ function looksLikeStore(raw: string | null): raw is string {
   }
 }
 
+function stripHeavyDataUrl(v: unknown): unknown {
+  if (typeof v !== "string") return v;
+  if (v.startsWith("data:") && v.length > MAX_DATA_URL) return undefined;
+  return v;
+}
+
+function slimChild(c: Record<string, unknown>) {
+  const next = { ...c };
+  const photo = stripHeavyDataUrl(next.photoData);
+  if (photo === undefined) delete next.photoData;
+  else next.photoData = photo;
+  return next;
+}
+
+function slimSpace(sp: Record<string, unknown>, aggressive: boolean) {
+  const next = { ...sp };
+  const msgCap = aggressive ? 30 : MAX_MESSAGES;
+  const memCap = aggressive ? 15 : MAX_MEMORIES;
+  const wardCap = aggressive ? 20 : MAX_WARDROBE;
+
+  if (Array.isArray(next.messages)) {
+    next.messages = next.messages.slice(-msgCap).map((m: Record<string, unknown>) => {
+      const row = { ...m };
+      delete row.weather;
+      return row;
+    });
+  }
+  if (Array.isArray(next.wardrobe)) {
+    next.wardrobe = next.wardrobe.slice(0, wardCap).map((w: Record<string, unknown>) => {
+      const row = { ...w };
+      const img = stripHeavyDataUrl(row.imageData);
+      if (img === undefined) delete row.imageData;
+      else row.imageData = img;
+      const label = stripHeavyDataUrl(row.labelImageData);
+      if (label === undefined) delete row.labelImageData;
+      else row.labelImageData = label;
+      return row;
+    });
+  }
+  if (Array.isArray(next.memories)) {
+    next.memories = next.memories.slice(0, memCap).map((m: Record<string, unknown>) => {
+      const row = { ...m };
+      const img = stripHeavyDataUrl(row.imageData);
+      if (img === undefined) delete row.imageData;
+      else row.imageData = img;
+      return row;
+    });
+  }
+  return next;
+}
+
+/**
+ * Ужимает state внутри persist-payload (и старые дубли зеркал).
+ * Возвращает тот же объект (мутация) для экономии памяти.
+ */
+export function slimPersistPayload(
+  payload: PersistPayload,
+  opts?: { aggressive?: boolean },
+): PersistPayload {
+  try {
+    const state = payload.state as Record<string, unknown> | undefined;
+    if (!state || typeof state !== "object") return payload;
+
+    const aggressive = Boolean(opts?.aggressive);
+
+    // старые зеркала — в childSpaces уже есть
+    delete state.journals;
+    delete state.messages;
+    delete state.wardrobe;
+    delete state.memories;
+    delete state.memoryStory;
+    delete state.profile;
+    delete state.enabledModules;
+    delete state.customModules;
+    delete state.demoWardrobeSeeded;
+
+    if (Array.isArray(state.children)) {
+      state.children = state.children.map((c) =>
+        slimChild(c as Record<string, unknown>),
+      );
+    }
+
+    if (state.childSpaces && typeof state.childSpaces === "object") {
+      const spaces = state.childSpaces as Record<string, Record<string, unknown>>;
+      const out: Record<string, unknown> = {};
+      for (const [id, sp] of Object.entries(spaces)) {
+        out[id] = slimSpace(sp, aggressive);
+      }
+      state.childSpaces = out;
+    }
+
+    if (Array.isArray(state.opsErrors)) {
+      state.opsErrors = state.opsErrors.slice(0, 20);
+    }
+
+    payload.state = state;
+    return payload;
+  } catch {
+    return payload;
+  }
+}
+
 function syncIdentityFromPersistValue(name: string, value: string) {
   if (name !== "maya-mom-ai") return;
   try {
@@ -191,11 +296,27 @@ function syncIdentityFromPersistValue(name: string, value: string) {
   }
 }
 
+/** Аварийно ужать maya-mom-ai в localStorage (вызывать до React). */
+export function emergencySlimLocalStore(): void {
+  try {
+    const raw = localStorage.getItem("maya-mom-ai");
+    if (!raw || raw.length < HEAVY_CHARS) return;
+    const parsed = JSON.parse(raw) as PersistPayload;
+    slimPersistPayload(parsed, { aggressive: true });
+    const next = JSON.stringify(parsed);
+    localStorage.setItem("maya-mom-ai", next);
+    void idbSet("maya-mom-ai", next);
+  } catch {
+    try {
+      // крайний случай — лучше потерять тяжёлые фото, чем вкладку
+      localStorage.removeItem("maya-mom-ai");
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
 export const durableStateStorage: StateStorage = {
-  /**
-   * Синхронно, если есть localStorage — hydrate не зависает.
-   * IndexedDB только если LS пуст (и с таймаутом).
-   */
   getItem: (name) => {
     const fromLs = lsGet(name);
     if (looksLikeStore(fromLs)) {
@@ -229,11 +350,27 @@ export const durableStateStorage: StateStorage = {
 
 type PersistPayload = StorageValue<unknown>;
 
-/**
- * Обёртка над StateStorage: безопасный JSON + debounce записей.
- * Без этого stringify огромного стора (фото в гардеробе/моментах) на каждом
- * addJournalEntry иногда роняет вкладку Яндекс/Chrome.
- */
+function parseAndSlim(raw: string): PersistPayload | null {
+  try {
+    const aggressive = raw.length >= HEAVY_CHARS;
+    const parsed = JSON.parse(raw) as PersistPayload;
+    slimPersistPayload(parsed, { aggressive });
+    // если было тяжело — сразу перезапишем ужатое
+    if (aggressive) {
+      try {
+        const next = JSON.stringify(parsed);
+        lsSet("maya-mom-ai", next);
+        void idbSet("maya-mom-ai", next);
+      } catch {
+        /* ignore */
+      }
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
 export function createSafePersistStorage(
   getStorage: () => StateStorage,
 ): PersistStorage<unknown> {
@@ -246,35 +383,45 @@ export function createSafePersistStorage(
     pending = null;
     if (!job) return;
     try {
+      slimPersistPayload(job.value, { aggressive: false });
       const storage = getStorage();
-      const raw = JSON.stringify(job.value);
+      let raw = JSON.stringify(job.value);
+      if (raw.length >= HEAVY_CHARS) {
+        slimPersistPayload(job.value, { aggressive: true });
+        raw = JSON.stringify(job.value);
+      }
       storage.setItem(job.name, raw);
     } catch (err) {
       console.warn("[maya] persist skip (quota/OOM)", err);
+      try {
+        // ещё раз жёстче
+        if (job) {
+          slimPersistPayload(job.value, { aggressive: true });
+          getStorage().setItem(job.name, JSON.stringify(job.value));
+        }
+      } catch {
+        /* ignore */
+      }
     }
   }
 
   return {
     getItem: (name) => {
       try {
+        if (name === "maya-mom-ai") {
+          try {
+            emergencySlimLocalStore();
+          } catch {
+            /* ignore */
+          }
+        }
         const storage = getStorage();
         const raw = storage.getItem(name);
         if (raw == null) return null;
         if (raw instanceof Promise) {
-          return raw.then((s) => {
-            if (!s) return null;
-            try {
-              return JSON.parse(s) as PersistPayload;
-            } catch {
-              return null;
-            }
-          });
+          return raw.then((s) => (s ? parseAndSlim(s) : null));
         }
-        try {
-          return JSON.parse(raw) as PersistPayload;
-        } catch {
-          return null;
-        }
+        return parseAndSlim(raw);
       } catch {
         return null;
       }

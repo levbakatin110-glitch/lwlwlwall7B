@@ -4,7 +4,6 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { IconBadge, MayaIcon } from "@/components/icons/MayaIcon";
-import { WhiteNoiseWidget } from "@/components/WhiteNoiseWidget";
 import { OPTIONAL_MODULES, MODULE_BY_ID } from "@/lib/modules";
 import {
   isFreeModuleId,
@@ -98,7 +97,21 @@ export default function ModulesPage() {
       <p className="mb-3 mt-8 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
         Виджеты · рядом с дневниками
       </p>
-      <WhiteNoiseWidget />
+      <Link
+        href="/#noise"
+        className="flex items-center gap-3 rounded-2xl border border-line bg-card/70 px-4 py-3.5 transition hover:border-accent/35"
+      >
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent">
+          <MayaIcon name="sleep" size={18} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="font-display text-base font-semibold leading-snug">
+            Шум для сна
+          </p>
+          <p className="text-xs text-muted">Виджет · не дневник · на главной в «На кухне»</p>
+        </div>
+        <span className="text-sm font-semibold text-accent">→</span>
+      </Link>
 
       <p className="mb-3 mt-8 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
         Дневники
