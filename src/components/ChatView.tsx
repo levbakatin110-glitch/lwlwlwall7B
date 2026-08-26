@@ -792,7 +792,7 @@ export function ChatView() {
   const empty = messages.length === 0;
 
   return (
-    <div className="relative h-full min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
+    <div className="relative h-full min-h-0 flex-1 overflow-y-auto overscroll-none">
       <div className="relative z-10 mx-auto flex w-full max-w-3xl flex-col px-3 pb-2 pt-2 md:px-4 md:pt-3">
         {/* Чат на высоту экрана — ниже лента, листайте вниз */}
         <div className="flex min-h-[calc(100dvh-7.5rem)] flex-col md:min-h-[calc(100dvh-3.5rem)]">
@@ -802,7 +802,7 @@ export function ChatView() {
           >
           <div
             ref={listRef}
-            className="relative flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4"
+            className="relative flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-none p-4"
           >
             <div className="shrink-0 space-y-2">
               <HomeWeatherCard

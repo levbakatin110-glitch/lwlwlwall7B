@@ -47,6 +47,8 @@ export const viewport: Viewport = {
   themeColor: "#fff6f8",
   width: "device-width",
   initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
   viewportFit: "cover",
 };
 
@@ -60,7 +62,7 @@ export default function RootLayout({
       lang="ru"
       className={`${fraunces.variable} ${nunito.variable} h-full antialiased`}
     >
-      <body className="min-h-full bg-background font-sans text-foreground antialiased">
+      <body className="h-full overflow-hidden bg-background font-sans text-foreground antialiased">
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var q=location.search||"";var force=q.indexOf("fix=1")>=0;try{if(sessionStorage.getItem("maya-crash")==="1")force=true;}catch(e0){}if(force){try{localStorage.removeItem("maya-mom-ai");localStorage.removeItem("maya-theme");localStorage.removeItem("maya-identity-v1");localStorage.removeItem("maya-onboarding-progress-v1");localStorage.removeItem("maya-onboarded-v1");}catch(e1){}try{sessionStorage.removeItem("maya-crash");}catch(e2){}try{document.cookie="maya_id=; path=/; max-age=0; SameSite=Lax";}catch(e3){}if(q.indexOf("fix=1")>=0){try{history.replaceState(null,"",location.pathname+(location.hash||""));}catch(e4){}}}var k="maya-mom-ai";var r=localStorage.getItem(k);if(r){if(r.length>500000){try{localStorage.removeItem(k);}catch(e5){}}else{try{JSON.parse(r);}catch(e6){try{localStorage.removeItem(k);}catch(e7){}}}}var t=localStorage.getItem("maya-theme");if(t!=="dark"&&t!=="blush")t="blush";document.documentElement.setAttribute("data-theme",t);}catch(e){document.documentElement.setAttribute("data-theme","blush");}})();`,

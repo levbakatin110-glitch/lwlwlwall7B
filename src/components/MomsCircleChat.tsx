@@ -668,7 +668,7 @@ export function MomsCircleChat() {
               stickBottom.current =
                 el.scrollHeight - el.scrollTop - el.clientHeight < 80;
             }}
-            className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto px-3 py-3 sm:px-4"
+            className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto overscroll-none px-3 py-3 sm:px-4"
           >
             {messages.map((m) => {
               const mine = Boolean(myKey && m.authorKey === myKey);

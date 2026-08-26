@@ -84,7 +84,7 @@ export function QuickNavCarousel({ className = "" }: { className?: string }) {
       aria-label="Быстрые разделы"
     >
       <div
-        className="flex snap-x snap-mandatory gap-1.5 overflow-x-auto scroll-smooth px-0.5 py-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="flex snap-x snap-mandatory gap-1.5 overflow-x-auto overscroll-x-none scroll-smooth px-0.5 py-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         style={{ WebkitOverflowScrolling: "touch" }}
       >
         {items.map((item) => {
