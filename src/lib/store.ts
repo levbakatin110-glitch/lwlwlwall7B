@@ -848,8 +848,13 @@ export const useAppStore = create<AppState>()(
         accountEmail: state.accountEmail,
         emailVerified: state.emailVerified,
       }),
-      onRehydrateStorage: () => (state) => {
+      onRehydrateStorage: () => (state, error) => {
+        if (error) {
+          console.warn("[maya] rehydrate error", error);
+          return;
+        }
         if (!state) return;
+        try {
         if (!state.opsErrors) state.opsErrors = [];
         if (!state.subscription) state.subscription = emptySubscription();
         if (!state.pregnancy) state.pregnancy = emptyPregnancy();
@@ -1221,6 +1226,9 @@ export const useAppStore = create<AppState>()(
         // ensure journals keys
         for (const mod of OPTIONAL_MODULES) {
           if (!state.journals[mod.id]) state.journals[mod.id] = [];
+        }
+        } catch (err) {
+          console.warn("[maya] rehydrate migrate failed", err);
         }
       },
     },

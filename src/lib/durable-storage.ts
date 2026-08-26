@@ -14,11 +14,11 @@ const STORE = "kv";
 const THEME_KEY = "maya-theme";
 const WRITE_DEBOUNCE_MS = 400;
 /** Выше — режем base64 и дубли агрессивнее */
-const HEAVY_CHARS = 700_000;
-const MAX_DATA_URL = 24_000;
-const MAX_MESSAGES = 60;
-const MAX_MEMORIES = 40;
-const MAX_WARDROBE = 40;
+const HEAVY_CHARS = 400_000;
+const MAX_DATA_URL = 12_000;
+const MAX_MESSAGES = 40;
+const MAX_MEMORIES = 20;
+const MAX_WARDROBE = 25;
 
 type PersistPayload = StorageValue<unknown>;
 
@@ -343,26 +343,16 @@ export const durableStateStorage: StateStorage = {
       return fromLs;
     }
 
-    // LS пуст — hydrate сразу с нуля; IDB подтянем в фоне только если не гигантский
+    // LS пуст — hydrate сразу с нуля. Огромный IDB больше не возвращаем в LS
+    // (иначе на следующий заход JSON.parse в layout убивает вкладку везде).
     void idbGet(name).then((fromIdb) => {
       if (!looksLikeStore(fromIdb)) return;
-      if (name === "maya-mom-ai" && fromIdb!.length >= HEAVY_CHARS) {
-        try {
-          const parsed = JSON.parse(fromIdb!) as PersistPayload;
-          slimPersistPayload(parsed, { aggressive: true });
-          const next = JSON.stringify(parsed);
-          if (next.length < HEAVY_CHARS) {
-            lsSet(name, next);
-            void idbSet(name, next);
-          } else {
-            void idbDel(name);
-          }
-        } catch {
+      if (name === "maya-mom-ai") {
+        if (fromIdb!.length >= HEAVY_CHARS) {
           void idbDel(name);
+          return;
         }
-        return;
       }
-      // мелкий бэкап — можно вернуть в LS на следующий заход
       lsSet(name, fromIdb!);
     });
 
@@ -385,8 +375,8 @@ export const durableStateStorage: StateStorage = {
 };
 
 function parseAndSlim(raw: string): PersistPayload | null {
-  // Слишком большой — даже JSON.parse вешает вкладку. Лучше чистый старт.
-  if (raw.length >= HEAVY_CHARS * 2) {
+  // Любой крупный blob — удаляем без parse (parse = OOM = «couldn't load» во всех браузерах)
+  if (raw.length >= HEAVY_CHARS) {
     try {
       lsDel("maya-mom-ai");
       void idbDel("maya-mom-ai");
@@ -396,20 +386,16 @@ function parseAndSlim(raw: string): PersistPayload | null {
     return null;
   }
   try {
-    const aggressive = raw.length >= HEAVY_CHARS;
     const parsed = JSON.parse(raw) as PersistPayload;
-    slimPersistPayload(parsed, { aggressive });
-    if (aggressive) {
-      try {
-        const next = JSON.stringify(parsed);
-        lsSet("maya-mom-ai", next);
-        void idbSet("maya-mom-ai", next);
-      } catch {
-        /* ignore */
-      }
-    }
+    slimPersistPayload(parsed, { aggressive: false });
     return parsed;
   } catch {
+    try {
+      lsDel("maya-mom-ai");
+      void idbDel("maya-mom-ai");
+    } catch {
+      /* ignore */
+    }
     return null;
   }
 }
