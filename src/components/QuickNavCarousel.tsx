@@ -72,7 +72,7 @@ function buildQuickItems(
 }
 
 export function QuickNavCarousel({ className = "" }: { className?: string }) {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
   const enabledModules = useAppStore((s) => s.enabledModules);
   const customModules = useAppStore((s) => s.customModules);
   const items = buildQuickItems(enabledModules, customModules);

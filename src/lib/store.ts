@@ -956,7 +956,13 @@ export const useAppStore = create<AppState>()(
 
           const identity = readIdentityBackup();
           if (identity) {
-            if (identity.onboardingDone && !state.onboardingDone) {
+            // Не поднимать «онбординг пройден» по cookie на пустой стор —
+            // иначе пустой чат/меню падают → «Мая споткнулась».
+            if (
+              identity.onboardingDone &&
+              !state.onboardingDone &&
+              hasLife
+            ) {
               state.onboardingDone = true;
             }
             if (identity.email && !state.accountEmail) {

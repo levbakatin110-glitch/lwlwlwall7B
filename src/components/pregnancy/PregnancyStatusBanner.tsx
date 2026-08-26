@@ -8,7 +8,7 @@ import { useAppStore } from "@/lib/store";
 /** Плашка срока беременности — как у конкурентов, в стиле Маи */
 export function PregnancyStatusBanner() {
   const pregnancy = useAppStore((s) => s.pregnancy);
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
 
   if (!pregnancy?.active || !pregnancy.dueDate) return null;
   if (pathname === "/med" || pathname.startsWith("/legal")) return null;

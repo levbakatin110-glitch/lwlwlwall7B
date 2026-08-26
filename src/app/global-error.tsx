@@ -20,6 +20,15 @@ export default function GlobalError({
     } catch {
       /* ignore */
     }
+    try {
+      if (sessionStorage.getItem("maya-auto-repaired") !== "1") {
+        sessionStorage.setItem("maya-auto-repaired", "1");
+        void wipeAndReload();
+      }
+    } catch {
+      /* ignore */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once on crash
   }, [error]);
 
   async function wipeAndReload() {
@@ -32,6 +41,7 @@ export default function GlobalError({
       localStorage.removeItem("maya-mom-ai");
       localStorage.removeItem("maya-theme");
       localStorage.removeItem("maya-identity-v1");
+      localStorage.removeItem("maya-onboarding-progress-v1");
     } catch {
       /* ignore */
     }
@@ -41,7 +51,9 @@ export default function GlobalError({
       /* ignore */
     }
     try {
+      const keep = sessionStorage.getItem("maya-auto-repaired");
       sessionStorage.clear();
+      if (keep) sessionStorage.setItem("maya-auto-repaired", keep);
       sessionStorage.setItem("maya-crash", "1");
     } catch {
       /* ignore */
@@ -73,7 +85,7 @@ export default function GlobalError({
     } catch {
       /* ignore */
     }
-    window.location.href = "/?fix=1";
+    window.location.replace("/?fix=1");
   }
 
   return (

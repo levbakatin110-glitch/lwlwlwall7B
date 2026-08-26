@@ -62,7 +62,7 @@ export function Sidebar({
   mobileOpen?: boolean;
   onMobileOpenChange?: (open: boolean) => void;
 }) {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
   const enabledModules = useAppStore((s) => s.enabledModules);
   const customModules = useAppStore((s) => s.customModules);
   const childrenList = useAppStore((s) => s.children);
@@ -111,7 +111,8 @@ export function Sidebar({
   const extraDiaries = [
     ...enabledModules
       .filter((id) => !pinnedIds.has(id))
-      .map((id) => MODULE_BY_ID[id]),
+      .map((id) => MODULE_BY_ID[id])
+      .filter(Boolean),
     ...customModules.map(customToDef),
   ];
 

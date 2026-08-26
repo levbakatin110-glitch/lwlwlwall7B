@@ -18,7 +18,7 @@ import { childDisplayName } from "@/lib/children";
 import { useAppStore } from "@/lib/store";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
   const isOpsPage = pathname === "/admin" || pathname.startsWith("/admin/");
   const isLegalPage =
     pathname === "/legal" || pathname.startsWith("/legal/");
