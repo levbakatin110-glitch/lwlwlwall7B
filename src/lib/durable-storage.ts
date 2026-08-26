@@ -385,11 +385,20 @@ export const durableStateStorage: StateStorage = {
 };
 
 function parseAndSlim(raw: string): PersistPayload | null {
+  // Слишком большой — даже JSON.parse вешает вкладку. Лучше чистый старт.
+  if (raw.length >= HEAVY_CHARS * 2) {
+    try {
+      lsDel("maya-mom-ai");
+      void idbDel("maya-mom-ai");
+    } catch {
+      /* ignore */
+    }
+    return null;
+  }
   try {
     const aggressive = raw.length >= HEAVY_CHARS;
     const parsed = JSON.parse(raw) as PersistPayload;
     slimPersistPayload(parsed, { aggressive });
-    // если было тяжело — сразу перезапишем ужатое
     if (aggressive) {
       try {
         const next = JSON.stringify(parsed);

@@ -1138,15 +1138,20 @@ export const TEMP_OPEN_ACCESS = false;
 export function OnboardingGate({ children }: { children: React.ReactNode }) {
   const onboardingDone = useAppStore((s) => s.onboardingDone);
   const emailVerified = useAppStore((s) => s.emailVerified);
-  const [hydrated, setHydrated] = useState(false);
+  const [hydrated, setHydrated] = useState(() =>
+    typeof window !== "undefined" ? useAppStore.persist.hasHydrated() : false,
+  );
 
   useEffect(() => {
+    if (useAppStore.persist.hasHydrated()) {
+      setHydrated(true);
+      return;
+    }
     const unsub = useAppStore.persist.onFinishHydration(() =>
       setHydrated(true),
     );
-    setHydrated(useAppStore.persist.hasHydrated());
-    // Страховка: не зависать на «Мая…» если storage тормозит
-    const t = window.setTimeout(() => setHydrated(true), 800);
+    // Никогда не держим «Мая…» дольше мгновения — иначе Яндекс/IDB вешают экран
+    const t = window.setTimeout(() => setHydrated(true), 300);
     return () => {
       unsub();
       window.clearTimeout(t);
