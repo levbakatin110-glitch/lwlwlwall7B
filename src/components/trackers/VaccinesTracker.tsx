@@ -46,15 +46,15 @@ function formatRuDate(iso: string) {
 
 function toneClass(tone: DoseTone | undefined, done: boolean) {
   if (done) {
-    return "border-accent/50 bg-accent text-[var(--on-accent,#fff)] shadow-sm";
+    return "border-transparent bg-accent text-[var(--on-accent,#fff)] shadow-[0_1px_0_rgba(0,0,0,0.06)]";
   }
   if (tone === "risk") {
-    return "border-[#c4a0d8]/50 bg-[#e8d4f5] text-[#4a2a5c] dark:border-[#9b6fb8]/40 dark:bg-[#4a3560] dark:text-[#f0e4ff]";
+    return "border-[#d4b8e8]/70 bg-[linear-gradient(180deg,#f4e8fb,#ead6f6)] text-[#4a2a5c] dark:border-[#9b6fb8]/40 dark:bg-[#4a3560] dark:text-[#f0e4ff]";
   }
   if (tone === "catchup") {
-    return "border-emerald-500/40 bg-emerald-100 text-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-100";
+    return "border-emerald-400/45 bg-[linear-gradient(180deg,#ecfdf5,#d1fae5)] text-emerald-950 dark:bg-emerald-950/50 dark:text-emerald-100";
   }
-  return "border-amber-500/45 bg-amber-100 text-amber-950 dark:border-amber-400/35 dark:bg-amber-950/45 dark:text-amber-50";
+  return "border-amber-400/40 bg-[linear-gradient(180deg,#fffbeb,#fde68a)] text-amber-950 dark:border-amber-400/35 dark:bg-amber-950/45 dark:text-amber-50";
 }
 
 function dosesAtCol(v: VaccineInfo, colId: string): VaccineDose[] {
@@ -83,35 +83,50 @@ function CalendarGrid({
     (n, v) => n + v.doses.filter((d) => done.has(d.id)).length,
     0,
   );
+  const pct = total > 0 ? Math.round((count / total) * 100) : 0;
 
   return (
-    <section className="overflow-hidden rounded-[1.35rem] border border-line bg-card/90">
-      <div className="border-b border-line/70 px-3.5 py-3 sm:px-4">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="font-display text-lg font-semibold tracking-tight">
-            {title}
-          </h2>
-          <span className="text-xs font-medium text-muted">
-            {count}/{total}
-          </span>
+    <section className="overflow-hidden rounded-3xl border border-line/80 bg-card shadow-[0_10px_40px_-28px_rgba(80,40,60,0.35)]">
+      <div className="border-b border-line/60 bg-[linear-gradient(180deg,color-mix(in_oklab,var(--accent-soft)_55%,transparent),transparent)] px-4 py-3.5 sm:px-5">
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <h2 className="font-display text-lg font-semibold tracking-tight sm:text-xl">
+              {title}
+            </h2>
+            <p className="mt-0.5 text-xs text-muted">{subtitle}</p>
+          </div>
+          <div className="text-right">
+            <p className="font-display text-xl font-semibold tabular-nums text-accent">
+              {count}
+              <span className="text-sm font-medium text-muted">/{total}</span>
+            </p>
+            <p className="text-[10px] uppercase tracking-[0.14em] text-muted">
+              отмечено
+            </p>
+          </div>
         </div>
-        <p className="mt-0.5 text-xs text-muted">{subtitle}</p>
+        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-line/80">
+          <div
+            className="h-full rounded-full bg-accent transition-[width] duration-500"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
       </div>
 
       <div className="overflow-x-auto overscroll-x-contain">
         <table className="w-max min-w-full border-collapse text-left">
           <thead>
-            <tr className="bg-background/80">
+            <tr className="bg-background/70">
               <th
                 rowSpan={2}
-                className="sticky left-0 z-20 border-b border-r border-line bg-card px-2.5 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-muted shadow-[2px_0_6px_rgba(0,0,0,0.06)]"
+                className="sticky left-0 z-20 border-b border-r border-line bg-card px-3 py-2.5 text-left text-[10px] font-semibold uppercase tracking-[0.14em] text-muted shadow-[6px_0_12px_-8px_rgba(40,20,30,0.35)]"
               >
                 Прививка
               </th>
               {monthCols.length > 0 && (
                 <th
                   colSpan={monthCols.length}
-                  className="border-b border-line px-1 py-1.5 text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-800 dark:text-amber-200"
+                  className="border-b border-line px-1 py-1.5 text-center text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-800/90 dark:text-amber-200"
                 >
                   Месяцы
                 </th>
@@ -119,18 +134,18 @@ function CalendarGrid({
               {yearCols.length > 0 && (
                 <th
                   colSpan={yearCols.length}
-                  className="border-b border-l border-line px-1 py-1.5 text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-sky-800 dark:text-sky-200"
+                  className="border-b border-l border-line px-1 py-1.5 text-center text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-800/90 dark:text-sky-200"
                 >
                   Годы
                 </th>
               )}
             </tr>
-            <tr className="bg-background/60">
+            <tr className="bg-background/50">
               {ages.map((a) => (
                 <th
                   key={a.id}
-                  className={`border-b border-line px-0.5 py-1.5 text-center text-[11px] font-bold tabular-nums text-foreground ${
-                    a.band === "y" ? "border-l border-line/60" : ""
+                  className={`border-b border-line px-0.5 py-2 text-center text-[11px] font-bold tabular-nums text-foreground/90 ${
+                    a.band === "y" ? "border-l border-line/50" : ""
                   }`}
                 >
                   {a.label}
@@ -143,12 +158,12 @@ function CalendarGrid({
               <tr
                 key={v.id}
                 className={
-                  rowIdx % 2 === 0 ? "bg-card/40" : "bg-background/35"
+                  rowIdx % 2 === 0 ? "bg-card/50" : "bg-background/40"
                 }
               >
                 <th
                   scope="row"
-                  className="sticky left-0 z-10 max-w-[7.5rem] border-r border-line bg-inherit px-2.5 py-2 text-left text-[12px] font-semibold leading-snug text-foreground shadow-[2px_0_6px_rgba(0,0,0,0.05)] sm:max-w-[10rem] sm:text-[13px]"
+                  className="sticky left-0 z-10 max-w-[7.75rem] border-r border-line bg-inherit px-3 py-2.5 text-left text-[12px] font-semibold leading-snug text-foreground shadow-[6px_0_12px_-8px_rgba(40,20,30,0.28)] sm:max-w-[10.5rem] sm:text-[13px]"
                 >
                   {v.name}
                 </th>
@@ -157,14 +172,17 @@ function CalendarGrid({
                   return (
                     <td
                       key={a.id}
-                      className={`border-b border-line/50 px-0.5 py-1 align-middle ${
-                        a.band === "y" ? "border-l border-line/40" : ""
+                      className={`border-b border-line/40 px-0.5 py-1.5 align-middle ${
+                        a.band === "y" ? "border-l border-line/35" : ""
                       }`}
                     >
                       {doses.length === 0 ? (
-                        <span className="block h-8 w-11 sm:w-12" aria-hidden />
+                        <span
+                          className="mx-auto block h-2 w-2 rounded-full bg-line/70"
+                          aria-hidden
+                        />
                       ) : (
-                        <div className="flex flex-col items-center gap-0.5">
+                        <div className="flex flex-col items-center gap-1">
                           {doses.map((dose) => {
                             const entry = done.get(dose.id);
                             const isDone = Boolean(entry);
@@ -178,7 +196,7 @@ function CalendarGrid({
                                     : `${dose.label} · ${dose.ageHint} · отметить`
                                 }
                                 onClick={() => onCell(v, dose)}
-                                className={`flex h-8 min-w-[2.65rem] items-center justify-center rounded-md border px-1 text-[11px] font-bold tabular-nums transition active:scale-95 sm:min-w-[2.85rem] ${toneClass(
+                                className={`flex h-8 min-w-[2.75rem] items-center justify-center rounded-xl border px-1.5 text-[11px] font-bold tabular-nums transition hover:-translate-y-0.5 hover:shadow-sm active:scale-95 sm:min-w-[3rem] ${toneClass(
                                   dose.tone,
                                   isDone,
                                 )}`}
@@ -198,27 +216,27 @@ function CalendarGrid({
         </table>
       </div>
 
-      <div className="flex flex-wrap gap-3 border-t border-line/70 px-3.5 py-2.5 text-[10px] text-muted sm:px-4">
-        <span className="inline-flex items-center gap-1.5">
-          <span className="inline-block h-3 w-3 rounded-sm bg-amber-200 ring-1 ring-amber-500/40" />
+      <div className="flex flex-wrap gap-2 border-t border-line/60 px-4 py-3 text-[10px] text-muted sm:px-5">
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-background/60 px-2.5 py-1">
+          <span className="inline-block h-2.5 w-2.5 rounded-full bg-amber-300" />
           всем
         </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="inline-block h-3 w-3 rounded-sm bg-[#e8d4f5] ring-1 ring-[#c4a0d8]/50" />
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-background/60 px-2.5 py-1">
+          <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#d8b8ec]" />
           группа риска
         </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="inline-block h-3 w-3 rounded-sm bg-accent" />
-          была (нажмите ячейку)
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-background/60 px-2.5 py-1">
+          <span className="inline-block h-2.5 w-2.5 rounded-full bg-accent" />
+          была
         </span>
-        <span className="text-muted">V — вакцинация · RV — ревакцинация</span>
+        <span className="px-1 py-1 text-muted">V — вакцинация · RV — ревакцинация</span>
       </div>
     </section>
   );
 }
 
 export function VaccinesTracker() {
-  const entries = useAppStore((s) => s.journals.vaccines ?? []);
+  const entries = useAppStore((s) => s.journals?.vaccines ?? []);
   const addJournalEntry = useAppStore((s) => s.addJournalEntry);
   const removeJournalEntry = useAppStore((s) => s.removeJournalEntry);
 
@@ -312,13 +330,16 @@ export function VaccinesTracker() {
 
   return (
     <div className="maya-rise space-y-4">
-      <div className="rounded-[1.35rem] border border-line bg-card/80 p-4">
-        <h2 className="font-display text-xl font-semibold tracking-tight">
+      <div className="rounded-3xl border border-line/80 bg-[linear-gradient(165deg,color-mix(in_oklab,var(--accent-soft)_70%,var(--card)),var(--card))] p-4 shadow-[0_10px_40px_-28px_rgba(80,40,60,0.3)] sm:p-5">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-accent">
+          прививки
+        </p>
+        <h2 className="font-display mt-1 text-xl font-semibold tracking-tight sm:text-2xl">
           Календарь прививок
         </h2>
-        <p className="mt-1 text-sm text-muted">
-          Как в таблице РФ: возраст сверху, прививка слева. Листайте вбок ·
-          нажмите ячейку (V1, RV…), чтобы отметить визит.
+        <p className="mt-1.5 text-sm leading-relaxed text-muted">
+          Возраст сверху, прививка слева. Листайте вбок и нажмите ячейку (V1,
+          RV…), чтобы отметить визит.
         </p>
         {flash && (
           <p className="maya-msg-in mt-3 text-sm font-medium text-accent">

@@ -518,7 +518,13 @@ export function OnboardingFlow({
     draft.namePending || !draft.name.trim() ? "Малыш" : draft.name.trim();
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col bg-background text-foreground">
+    <div className="fixed inset-0 z-[200] flex flex-col bg-background text-foreground">
+      {mode === "add" && (
+        <div
+          className="absolute inset-0 bg-[color-mix(in_oklab,var(--background)_92%,#000)]"
+          aria-hidden
+        />
+      )}
       <div
         className="pointer-events-none absolute inset-0 opacity-80"
         style={{
@@ -528,6 +534,15 @@ export function OnboardingFlow({
       />
 
       <div className="relative mx-auto flex h-full w-full max-w-lg flex-col px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-[max(0.75rem,env(safe-area-inset-top))]">
+        {mode === "add" && (
+          <button
+            type="button"
+            onClick={() => onClose?.()}
+            className="mb-3 self-end rounded-xl border border-line bg-card/80 px-3 py-1.5 text-sm text-muted hover:text-foreground"
+          >
+            Закрыть
+          </button>
+        )}
         <div className="mb-5 flex gap-1.5">
           {Array.from({ length: totalProgress }).map((_, i) => (
             <div
