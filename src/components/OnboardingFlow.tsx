@@ -1134,37 +1134,16 @@ export function OnboardingFlow({
  */
 export const TEMP_OPEN_ACCESS = false;
 
-/** Ждёт persist и показывает онбординг новым пользователям */
+/** Показывает онбординг новым пользователям. Не блокирует UI на hydrate. */
 export function OnboardingGate({ children }: { children: React.ReactNode }) {
   const onboardingDone = useAppStore((s) => s.onboardingDone);
   const emailVerified = useAppStore((s) => s.emailVerified);
-  const [hydrated, setHydrated] = useState(() =>
-    typeof window !== "undefined" ? useAppStore.persist.hasHydrated() : false,
-  );
 
+  // Раньше ждали persist → «Мая…» навечно (Яндекс / пустой LS / старый билд).
+  // Persist догоняет в фоне; краткий мигающий онбординг лучше вечного белого экрана.
   useEffect(() => {
-    if (useAppStore.persist.hasHydrated()) {
-      setHydrated(true);
-      return;
-    }
-    const unsub = useAppStore.persist.onFinishHydration(() =>
-      setHydrated(true),
-    );
-    // Никогда не держим «Мая…» дольше мгновения — иначе Яндекс/IDB вешают экран
-    const t = window.setTimeout(() => setHydrated(true), 300);
-    return () => {
-      unsub();
-      window.clearTimeout(t);
-    };
+    void useAppStore.persist.hasHydrated();
   }, []);
-
-  if (!hydrated) {
-    return (
-      <div className="flex h-dvh items-center justify-center bg-background text-muted">
-        <p className="font-display text-lg">Мая…</p>
-      </div>
-    );
-  }
 
   // Временный просмотр: сразу в приложение
   if (TEMP_OPEN_ACCESS) {
