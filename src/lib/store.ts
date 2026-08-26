@@ -10,6 +10,7 @@ import {
   emptyChildProfile,
   emptyChildSpace,
   emptyJournals,
+  ensureChildSpace,
   uid,
   type ChildSpace,
 } from "./children";
@@ -211,11 +212,11 @@ function withActiveSpace(
   patch: Partial<ChildSpace> & Record<string, unknown>,
 ) {
   const id = get().activeChildId;
-  const prev = get().childSpaces[id] ?? emptyChildSpace();
+  const prev = ensureChildSpace(get().childSpaces[id]);
   const rawJournals =
     (patch.journals as Record<string, JournalEntry[]> | undefined) ??
     prev.journals;
-  const nextSpace: ChildSpace = {
+  const nextSpace = ensureChildSpace({
     ...prev,
     enabledModules: (patch.enabledModules as ModuleId[]) ?? prev.enabledModules,
     customModules: (patch.customModules as CustomModule[]) ?? prev.customModules,
@@ -229,10 +230,10 @@ function withActiveSpace(
     messages: (patch.messages as ChatMessage[]) ?? prev.messages,
     demoWardrobeSeeded:
       (patch.demoWardrobeSeeded as boolean) ?? prev.demoWardrobeSeeded,
-  };
+  });
   const mirrored = {
     ...spaceSlice(nextSpace),
-    journals: overlayMomJournals(nextSpace.journals, get().momJournals),
+    journals: overlayMomJournals(nextSpace.journals, get().momJournals ?? {}),
   };
   set({
     ...mirrored,
@@ -883,6 +884,15 @@ export const useAppStore = create<AppState>()(
           state.subscription = emptySubscription();
         }
 
+        // Нормализуем все childSpaces — битый space без journals ронял RemindersHost
+        if (state.childSpaces && typeof state.childSpaces === "object") {
+          const fixed: Record<string, ChildSpace> = {};
+          for (const [sid, sp] of Object.entries(state.childSpaces)) {
+            fixed[sid] = ensureChildSpace(sp);
+          }
+          state.childSpaces = fixed;
+        }
+
         // Миграция со старого формата (один profile без children)
         const legacy = state as AppState & { profile?: ChildProfile };
         if (!legacy.children?.length) {
@@ -926,12 +936,19 @@ export const useAppStore = create<AppState>()(
           const id = state.activeChildId || state.children[0].id;
           const child =
             state.children.find((c) => c.id === id) || state.children[0];
-          const space = state.childSpaces?.[id] ?? emptyChildSpace();
+          const space = ensureChildSpace(state.childSpaces?.[id]);
           state.activeChildId = child.id;
           state.profile = { ...child, id: child.id };
+          state.childSpaces = {
+            ...(state.childSpaces || {}),
+            [child.id]: space,
+          };
           Object.assign(state, spaceSlice(space));
+          state.journals = overlayMomJournals(
+            space.journals,
+            state.momJournals ?? {},
+          );
           if (state.onboardingDone == null) {
-            // пустой профиль → показать анкету; иначе не трогаем старых
             const empty =
               !state.profile?.name?.trim() &&
               !state.profile?.birthDate &&

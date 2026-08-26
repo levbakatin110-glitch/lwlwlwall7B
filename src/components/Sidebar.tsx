@@ -63,9 +63,9 @@ export function Sidebar({
   onMobileOpenChange?: (open: boolean) => void;
 }) {
   const pathname = usePathname() ?? "";
-  const enabledModules = useAppStore((s) => s.enabledModules);
-  const customModules = useAppStore((s) => s.customModules);
-  const childrenList = useAppStore((s) => s.children);
+  const enabledModules = useAppStore((s) => s.enabledModules ?? []);
+  const customModules = useAppStore((s) => s.customModules ?? []);
+  const childrenList = useAppStore((s) => s.children ?? []);
   const activeChildId = useAppStore((s) => s.activeChildId);
   const profile = useAppStore((s) => s.profile);
   const switchChild = useAppStore((s) => s.switchChild);

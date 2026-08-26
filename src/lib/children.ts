@@ -62,6 +62,28 @@ export function emptyChildSpace(): ChildSpace {
   };
 }
 
+/** Поднимает битый/частичный space после persist — иначе journals undefined роняет UI */
+export function ensureChildSpace(
+  sp?: Partial<ChildSpace> | null,
+): ChildSpace {
+  const base = emptyChildSpace();
+  if (!sp || typeof sp !== "object") return base;
+  const journalsIn =
+    sp.journals && typeof sp.journals === "object" ? sp.journals : {};
+  return {
+    enabledModules: Array.isArray(sp.enabledModules)
+      ? (sp.enabledModules as ModuleId[])
+      : base.enabledModules,
+    customModules: Array.isArray(sp.customModules) ? sp.customModules : [],
+    wardrobe: Array.isArray(sp.wardrobe) ? sp.wardrobe : [],
+    memories: Array.isArray(sp.memories) ? sp.memories : [],
+    memoryStory: sp.memoryStory ?? null,
+    journals: { ...emptyJournals(), ...journalsIn },
+    messages: Array.isArray(sp.messages) ? sp.messages : [],
+    demoWardrobeSeeded: Boolean(sp.demoWardrobeSeeded),
+  };
+}
+
 export function childDisplayName(c: ChildProfile | null | undefined): string {
   if (!c) return "Малыш";
   if (c.namePending) return "Малыш";

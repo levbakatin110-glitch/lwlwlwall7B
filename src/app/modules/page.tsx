@@ -14,8 +14,8 @@ import type { ModuleBlueprint, ModuleId } from "@/lib/types";
 
 export default function ModulesPage() {
   const router = useRouter();
-  const enabledModules = useAppStore((s) => s.enabledModules);
-  const customModules = useAppStore((s) => s.customModules);
+  const enabledModules = useAppStore((s) => s.enabledModules ?? []);
+  const customModules = useAppStore((s) => s.customModules ?? []);
   const toggleModule = useAppStore((s) => s.toggleModule);
   const enableModule = useAppStore((s) => s.enableModule);
   const addCustomModuleFromBlueprint = useAppStore((s) => s.addCustomModuleFromBlueprint);

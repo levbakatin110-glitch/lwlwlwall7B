@@ -60,14 +60,14 @@ type SpeechRec = {
 };
 
 export function ChatView() {
-  const messages = useAppStore((s) => s.messages);
+  const messages = useAppStore((s) => s.messages ?? []);
   const profile = useAppStore((s) => s.profile);
-  const enabledModules = useAppStore((s) => s.enabledModules);
-  const customModules = useAppStore((s) => s.customModules);
-  const wardrobe = useAppStore((s) => s.wardrobe);
-  const memories = useAppStore((s) => s.memories);
+  const enabledModules = useAppStore((s) => s.enabledModules ?? []);
+  const customModules = useAppStore((s) => s.customModules ?? []);
+  const wardrobe = useAppStore((s) => s.wardrobe ?? []);
+  const memories = useAppStore((s) => s.memories ?? []);
   const memoryStory = useAppStore((s) => s.memoryStory);
-  const journals = useAppStore((s) => s.journals);
+  const journals = useAppStore((s) => s.journals ?? {});
   const pregnancy = useAppStore((s) => s.pregnancy);
   const addMessage = useAppStore((s) => s.addMessage);
   const updateMessage = useAppStore((s) => s.updateMessage);

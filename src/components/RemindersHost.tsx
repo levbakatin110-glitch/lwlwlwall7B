@@ -66,8 +66,8 @@ function collectFromJournal(
 }
 
 export function RemindersHost() {
-  const notes = useAppStore((s) => s.journals.notes ?? []);
-  const meds = useAppStore((s) => s.journals.preg_meds ?? []);
+  const notes = useAppStore((s) => s.journals?.notes ?? []);
+  const meds = useAppStore((s) => s.journals?.preg_meds ?? []);
   const [due, setDue] = useState<DueItem[]>([]);
 
   const candidates = useMemo(() => {

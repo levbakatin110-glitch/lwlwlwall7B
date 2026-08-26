@@ -267,7 +267,9 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
   const premiumLocked =
     isBuiltinModuleId(moduleId) && !premium && !isFreeModuleId(moduleId);
   const enabledBuiltin = useAppStore((s) =>
-    isBuiltinModuleId(moduleId) ? s.enabledModules.includes(moduleId) : true,
+    isBuiltinModuleId(moduleId)
+      ? (s.enabledModules ?? []).includes(moduleId)
+      : true,
   );
   const enabled =
     Boolean(mod) &&
