@@ -4,13 +4,18 @@
  *
  * Важно: hydrate не ждёт IndexedDB — иначе экран «Мая…» зависает
  * (Яндекс/часть браузеров).
+ *
+ * Запись дебаунсится и ловит QuotaExceeded / OOM при stringify —
+ * иначе вкладка падает с «This page couldn't load» после записи в дневник.
  */
 
-import type { StateStorage } from "zustand/middleware";
+import type { PersistStorage, StateStorage, StorageValue } from "zustand/middleware";
 import { writeIdentityBackup } from "./identity-backup";
 
 const DB_NAME = "maya-durable-v1";
 const STORE = "kv";
+const THEME_KEY = "maya-theme";
+const WRITE_DEBOUNCE_MS = 280;
 
 function withTimeout<T>(p: Promise<T>, ms: number, fallback: T): Promise<T> {
   return new Promise((resolve) => {
@@ -156,16 +161,30 @@ function syncIdentityFromPersistValue(name: string, value: string) {
         accountEmail?: string | null;
         emailVerified?: boolean;
         profile?: { name?: string };
+        children?: { id?: string; name?: string }[];
+        activeChildId?: string;
+        theme?: string;
       };
     };
     const s = parsed.state;
-    if (s && (s.onboardingDone || s.accountEmail || s.emailVerified)) {
+    if (!s) return;
+    const active =
+      s.children?.find((c) => c.id === s.activeChildId) || s.children?.[0];
+    const childName = s.profile?.name || active?.name;
+    if (s.onboardingDone || s.accountEmail || s.emailVerified) {
       writeIdentityBackup({
         onboardingDone: Boolean(s.onboardingDone),
         email: s.accountEmail ?? null,
         emailVerified: Boolean(s.emailVerified),
-        childName: s.profile?.name,
+        childName,
       });
+    }
+    if (s.theme === "dark" || s.theme === "blush") {
+      try {
+        localStorage.setItem(THEME_KEY, s.theme);
+      } catch {
+        /* ignore */
+      }
     }
   } catch {
     /* ignore */
@@ -207,3 +226,81 @@ export const durableStateStorage: StateStorage = {
     void idbDel(name);
   },
 };
+
+type PersistPayload = StorageValue<unknown>;
+
+/**
+ * Обёртка над StateStorage: безопасный JSON + debounce записей.
+ * Без этого stringify огромного стора (фото в гардеробе/моментах) на каждом
+ * addJournalEntry иногда роняет вкладку Яндекс/Chrome.
+ */
+export function createSafePersistStorage(
+  getStorage: () => StateStorage,
+): PersistStorage<unknown> {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let pending: { name: string; value: PersistPayload } | null = null;
+
+  function flush() {
+    timer = null;
+    const job = pending;
+    pending = null;
+    if (!job) return;
+    try {
+      const storage = getStorage();
+      const raw = JSON.stringify(job.value);
+      storage.setItem(job.name, raw);
+    } catch (err) {
+      console.warn("[maya] persist skip (quota/OOM)", err);
+    }
+  }
+
+  return {
+    getItem: (name) => {
+      try {
+        const storage = getStorage();
+        const raw = storage.getItem(name);
+        if (raw == null) return null;
+        if (raw instanceof Promise) {
+          return raw.then((s) => {
+            if (!s) return null;
+            try {
+              return JSON.parse(s) as PersistPayload;
+            } catch {
+              return null;
+            }
+          });
+        }
+        try {
+          return JSON.parse(raw) as PersistPayload;
+        } catch {
+          return null;
+        }
+      } catch {
+        return null;
+      }
+    },
+    setItem: (name, value) => {
+      pending = { name, value };
+      if (timer != null) clearTimeout(timer);
+      if (typeof window === "undefined") {
+        flush();
+        return;
+      }
+      timer = setTimeout(flush, WRITE_DEBOUNCE_MS);
+    },
+    removeItem: (name) => {
+      if (timer != null) {
+        clearTimeout(timer);
+        timer = null;
+      }
+      pending = null;
+      try {
+        getStorage().removeItem(name);
+      } catch {
+        /* ignore */
+      }
+    },
+  };
+}
+
+export { THEME_KEY };

@@ -322,7 +322,7 @@ export function VaccinesTracker() {
   const [expandedId, setExpandedId] = useState<string | null>(
     CALENDAR_VACCINES[0]?.id ?? null,
   );
-  const [markDate, setMarkDate] = useState(localToday);
+  const [markDate, setMarkDate] = useState(() => localToday());
   const [markingDoseId, setMarkingDoseId] = useState<string | null>(null);
   const [customName, setCustomName] = useState("");
   const [flash, setFlash] = useState(false);
@@ -339,41 +339,58 @@ export function VaccinesTracker() {
   );
 
   function markDose(doseId: string) {
-    const vaccine = VACCINES_CATALOG.find((v) =>
-      v.doses.some((d) => d.id === doseId),
-    );
-    const dose = vaccine?.doses.find((d) => d.id === doseId);
-    if (!vaccine || !dose) return;
-    if (done.has(doseId)) return;
+    try {
+      const vaccine = VACCINES_CATALOG.find((v) =>
+        v.doses.some((d) => d.id === doseId),
+      );
+      const dose = vaccine?.doses.find((d) => d.id === doseId);
+      if (!vaccine || !dose) return;
+      if (done.has(doseId)) return;
 
-    addJournalEntry("vaccines", {
-      date: markDate || localToday(),
-      value: `${vaccine.name} · ${dose.label}`,
-      note: `визит · ориентир: ${dose.ageHint}`,
-      fields: {
-        vaccineId: vaccine.id,
-        doseId: dose.id,
-        status: "done",
-        group: vaccine.group,
-      },
-    });
-    setMarkingDoseId(null);
-    setFlash(true);
-    window.setTimeout(() => setFlash(false), 2000);
+      const date =
+        typeof markDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(markDate)
+          ? markDate
+          : localToday();
+
+      addJournalEntry("vaccines", {
+        date,
+        value: `${vaccine.name} · ${dose.label}`,
+        note: `визит · ориентир: ${dose.ageHint}`,
+        fields: {
+          vaccineId: vaccine.id,
+          doseId: dose.id,
+          status: "done",
+          group: vaccine.group,
+        },
+      });
+      setMarkingDoseId(null);
+      setFlash(true);
+      window.setTimeout(() => setFlash(false), 2000);
+    } catch (err) {
+      console.warn("[maya] mark vaccine failed", err);
+    }
   }
 
   function saveCustom() {
-    const name = customName.trim();
-    if (!name) return;
-    addJournalEntry("vaccines", {
-      date: markDate || localToday(),
-      value: name,
-      note: "своя запись · вне списков",
-      fields: { custom: 1, status: "done", group: "extra" },
-    });
-    setCustomName("");
-    setFlash(true);
-    window.setTimeout(() => setFlash(false), 2000);
+    try {
+      const name = customName.trim();
+      if (!name) return;
+      const date =
+        typeof markDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(markDate)
+          ? markDate
+          : localToday();
+      addJournalEntry("vaccines", {
+        date,
+        value: name,
+        note: "своя запись · вне списков",
+        fields: { custom: 1, status: "done", group: "extra" },
+      });
+      setCustomName("");
+      setFlash(true);
+      window.setTimeout(() => setFlash(false), 2000);
+    } catch (err) {
+      console.warn("[maya] custom vaccine failed", err);
+    }
   }
 
   return (

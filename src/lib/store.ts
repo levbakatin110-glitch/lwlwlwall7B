@@ -1,7 +1,11 @@
 "use client";
 
 import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
+import { persist } from "zustand/middleware";
+import {
+  createSafePersistStorage,
+  durableStateStorage,
+} from "@/lib/durable-storage";
 import {
   emptyChildProfile,
   emptyChildSpace,
@@ -22,7 +26,6 @@ import {
 } from "./ops-log";
 import { OPTIONAL_MODULES } from "./modules";
 import type { DietPlan } from "./diet-types";
-import { durableStateStorage } from "./durable-storage";
 import {
   clearIdentityBackup,
   readIdentityBackup,
@@ -814,29 +817,30 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: "maya-mom-ai",
-      storage: createJSONStorage(() => durableStateStorage),
+      storage: createSafePersistStorage(() => durableStateStorage),
+      // Не дублируем зеркала (journals/messages/wardrobe…) — они уже в childSpaces.
+      // Двойная запись раздувала localStorage и роняла вкладку при сохранении дневника.
       partialize: (state) => ({
         children: state.children,
         activeChildId: state.activeChildId,
-        childSpaces: state.childSpaces,
+        childSpaces: Object.fromEntries(
+          Object.entries(state.childSpaces ?? {}).map(([id, sp]) => [
+            id,
+            {
+              ...sp,
+              // чат не бесконечный в LS — иначе запись прививки роняет вкладку
+              messages: (sp.messages ?? []).slice(-100),
+            },
+          ]),
+        ),
         onboardingDone: state.onboardingDone,
-        // зеркала — чтобы старые селекторы и бэкап не ломались
-        profile: state.profile,
-        enabledModules: state.enabledModules,
-        customModules: state.customModules,
-        wardrobe: state.wardrobe,
-        memories: state.memories,
-        memoryStory: state.memoryStory,
-        journals: state.journals,
-        messages: state.messages,
         dismissedDiaryHints: state.dismissedDiaryHints,
-        demoWardrobeSeeded: state.demoWardrobeSeeded,
         theme: state.theme,
         themeDefaultV2: state.themeDefaultV2,
         modulesDefaultsSeededV1: state.modulesDefaultsSeededV1,
         modulesCareTrackersV1: state.modulesCareTrackersV1,
         dietPlan: state.dietPlan,
-        opsErrors: state.opsErrors,
+        opsErrors: (state.opsErrors ?? []).slice(0, 30),
         pregnancy: state.pregnancy,
         momJournals: state.momJournals,
         subscription: state.subscription,

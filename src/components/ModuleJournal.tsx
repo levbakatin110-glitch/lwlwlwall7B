@@ -304,6 +304,11 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
       "walk",
       "diaper",
       "notes",
+      "vaccines",
+      "sleep",
+      "breastfeeding",
+      "formula",
+      "solids",
       "pregnancy",
       "contractions",
       "kicks",
@@ -628,6 +633,12 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
           "water",
           "walk",
           "notes",
+          "vaccines",
+          "sleep",
+          "breastfeeding",
+          "formula",
+          "solids",
+          "diaper",
           "pregnancy",
           "contractions",
           "kicks",
@@ -775,6 +786,7 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
       </form>
       )}
 
+      {moduleId !== "vaccines" && (
       <ul className="mt-6 space-y-2">
         {entries.length === 0 && (
           <li className="rounded-2xl border border-dashed border-line bg-card/40 px-4 py-5 text-center text-sm text-muted">
@@ -806,6 +818,7 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
           </li>
         ))}
       </ul>
+      )}
     </div>
   );
 }

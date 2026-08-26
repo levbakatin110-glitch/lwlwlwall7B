@@ -59,7 +59,7 @@ export default function RootLayout({
       <body className="min-h-full bg-background font-sans text-foreground antialiased">
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var r=localStorage.getItem("maya-mom-ai");var t="blush";if(r){var s=JSON.parse(r).state;if(s&&(s.theme==="dark"||s.theme==="blush"))t=s.theme;}document.documentElement.setAttribute("data-theme",t);}catch(e){document.documentElement.setAttribute("data-theme","blush");}})();`,
+            __html: `(function(){try{var t=localStorage.getItem("maya-theme");if(t!=="dark"&&t!=="blush"){t="blush";var r=localStorage.getItem("maya-mom-ai");if(r&&r.length<500000){var s=JSON.parse(r).state;if(s&&(s.theme==="dark"||s.theme==="blush"))t=s.theme;}}document.documentElement.setAttribute("data-theme",t);}catch(e){document.documentElement.setAttribute("data-theme","blush");}})();`,
           }}
         />
         <AppShell>{children}</AppShell>
