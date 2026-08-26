@@ -8,9 +8,12 @@ import { MayaIcon, type IconName } from "@/components/icons/MayaIcon";
 import { SidebarHeader } from "@/components/SidebarHeader";
 import { SketchCorner, SketchSprig } from "@/components/illustrations/MayaSketch";
 import { childDisplayName } from "@/lib/children";
+import { LEGAL_OPERATOR } from "@/lib/legal";
 import { MODULE_BY_ID, customToDef } from "@/lib/modules";
 import { useAppStore } from "@/lib/store";
 import type { ModuleId } from "@/lib/types";
+
+const SUPPORT_MAIL = `mailto:${LEGAL_OPERATOR.supportEmail}`;
 
 const CORE: { href: string; label: string; icon: IconName }[] = [
   { href: "/", label: "Чат с Маей", icon: "chat" },
@@ -226,6 +229,15 @@ export function Sidebar({
           <span>{item.label}</span>
         </Link>
       ))}
+      <a
+        href={SUPPORT_MAIL}
+        onClick={close}
+        className={linkClass(false)}
+        title={LEGAL_OPERATOR.supportEmail}
+      >
+        <MayaIcon name="notes" size={17} />
+        <span>Поддержка</span>
+      </a>
 
       <p className="mb-1.5 mt-4 px-2.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted">
         {childDisplayName(profile)}
