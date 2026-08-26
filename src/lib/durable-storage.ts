@@ -20,6 +20,8 @@ const MAX_MESSAGES = 60;
 const MAX_MEMORIES = 40;
 const MAX_WARDROBE = 40;
 
+type PersistPayload = StorageValue<unknown>;
+
 function withTimeout<T>(p: Promise<T>, ms: number, fallback: T): Promise<T> {
   return new Promise((resolve) => {
     const t = window.setTimeout(() => resolve(fallback), ms);
@@ -317,20 +319,54 @@ export function emergencySlimLocalStore(): void {
 }
 
 export const durableStateStorage: StateStorage = {
+  /**
+   * Синхронно из localStorage. IndexedDB не блокирует hydrate:
+   * иначе после «удалил всё» огромный IDB снова вешает экран «Мая…».
+   */
   getItem: (name) => {
     const fromLs = lsGet(name);
     if (looksLikeStore(fromLs)) {
-      void idbSet(name, fromLs!);
+      if (fromLs!.length >= HEAVY_CHARS && name === "maya-mom-ai") {
+        try {
+          emergencySlimLocalStore();
+          const slimmed = lsGet(name);
+          if (looksLikeStore(slimmed)) {
+            void idbSet(name, slimmed!);
+            return slimmed;
+          }
+        } catch {
+          /* fall through */
+        }
+      } else {
+        void idbSet(name, fromLs!);
+      }
       return fromLs;
     }
 
-    return idbGet(name).then((fromIdb) => {
-      if (looksLikeStore(fromIdb)) {
-        lsSet(name, fromIdb!);
-        return fromIdb;
+    // LS пуст — hydrate сразу с нуля; IDB подтянем в фоне только если не гигантский
+    void idbGet(name).then((fromIdb) => {
+      if (!looksLikeStore(fromIdb)) return;
+      if (name === "maya-mom-ai" && fromIdb!.length >= HEAVY_CHARS) {
+        try {
+          const parsed = JSON.parse(fromIdb!) as PersistPayload;
+          slimPersistPayload(parsed, { aggressive: true });
+          const next = JSON.stringify(parsed);
+          if (next.length < HEAVY_CHARS) {
+            lsSet(name, next);
+            void idbSet(name, next);
+          } else {
+            void idbDel(name);
+          }
+        } catch {
+          void idbDel(name);
+        }
+        return;
       }
-      return fromLs;
+      // мелкий бэкап — можно вернуть в LS на следующий заход
+      lsSet(name, fromIdb!);
     });
+
+    return null;
   },
 
   setItem: (name, value) => {
@@ -347,8 +383,6 @@ export const durableStateStorage: StateStorage = {
     void idbDel(name);
   },
 };
-
-type PersistPayload = StorageValue<unknown>;
 
 function parseAndSlim(raw: string): PersistPayload | null {
   try {

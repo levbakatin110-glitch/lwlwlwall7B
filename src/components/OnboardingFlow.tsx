@@ -1146,7 +1146,7 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
     );
     setHydrated(useAppStore.persist.hasHydrated());
     // Страховка: не зависать на «Мая…» если storage тормозит
-    const t = window.setTimeout(() => setHydrated(true), 2000);
+    const t = window.setTimeout(() => setHydrated(true), 800);
     return () => {
       unsub();
       window.clearTimeout(t);
