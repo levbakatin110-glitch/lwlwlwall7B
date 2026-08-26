@@ -5,6 +5,12 @@ const nextConfig: NextConfig = {
   devIndicators: false,
   // Не standalone: на VPS pm2 запускает `next start` (см. pm2 logs).
   // standalone ломает next start → 500 / required-server-files.json
+  experimental: {
+    // меньше шума от кривых POST (сканеры шлют Next-Action: x)
+    serverActions: {
+      bodySizeLimit: "1mb",
+    },
+  },
   async redirects() {
     return [
       // Кириллические URL → ASCII (Next.js ломает static export на /документы)
