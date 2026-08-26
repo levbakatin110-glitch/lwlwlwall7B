@@ -26,7 +26,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const profile = useAppStore((s) => s.profile);
   const name = childDisplayName(profile);
-  const initial = name.slice(0, 1).toUpperCase();
+  const initial = (name || "М").slice(0, 1).toUpperCase();
+  const photo =
+    profile && typeof profile.photoData === "string" ? profile.photoData : "";
 
   // Служебная страница — без меню мамского приложения
   if (isOpsPage) {
@@ -76,10 +78,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <MayaIcon name={menuOpen ? "close" : "list"} size={18} />
               </button>
               <span className="flex h-8 w-8 shrink-0 overflow-hidden rounded-xl bg-accent-soft ring-1 ring-line">
-                {profile.photoData ? (
+                {photo ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={profile.photoData}
+                    src={photo}
                     alt=""
                     className="h-full w-full object-cover"
                   />

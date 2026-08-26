@@ -855,6 +855,16 @@ export const useAppStore = create<AppState>()(
         }
         if (!state) return;
         try {
+        // Битые поля профиля (name: null и т.п.) роняли AppShell → английский треугольник
+        if (Array.isArray(state.children)) {
+          state.children = state.children.map((c) =>
+            emptyChildProfile({
+              ...c,
+              id: c?.id || uid(),
+              name: typeof c?.name === "string" ? c.name : "",
+            }),
+          );
+        }
         if (!state.opsErrors) state.opsErrors = [];
         if (!state.subscription) state.subscription = emptySubscription();
         if (!state.pregnancy) state.pregnancy = emptyPregnancy();

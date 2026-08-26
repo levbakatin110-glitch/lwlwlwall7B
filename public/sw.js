@@ -1,5 +1,5 @@
 /* PWA shell — без кэша JS/CSS Next (иначе на телефоне старая Мая) */
-const CACHE = "maya-shell-v7";
+const CACHE = "maya-shell-v8";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();

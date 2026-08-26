@@ -64,8 +64,9 @@ export function emptyChildSpace(): ChildSpace {
 
 export function childDisplayName(c: ChildProfile | null | undefined): string {
   if (!c) return "Малыш";
-  if (c.namePending || !c.name.trim()) return "Малыш";
-  return c.name.trim();
+  if (c.namePending) return "Малыш";
+  const name = typeof c.name === "string" ? c.name.trim() : "";
+  return name || "Малыш";
 }
 
 /** Разумные диапазоны для онбординга / профиля */

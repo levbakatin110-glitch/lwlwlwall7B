@@ -110,9 +110,10 @@ export function buildSystemPrompt(input: {
     weather,
     pregnancy,
   } = input;
-  const name = profile.namePending
+  const rawName = typeof profile?.name === "string" ? profile.name.trim() : "";
+  const name = profile?.namePending
     ? "малыш (имя ещё не выбрали)"
-    : profile.name.trim() || "малыш (имя пока не указано)";
+    : rawName || "малыш (имя пока не указано)";
 
   const connectedTitles = [
     ...enabledModules.map((id) => MODULE_BY_ID[id].title),
