@@ -1181,37 +1181,42 @@ function peekLikelyOnboarded(): boolean {
 /**
  * Показывает онбординг новым пользователям.
  * Sticky-флаг не даёт снова кидать в анкету после сбоя/перезаписи стора.
- * Пока zustand не поднялся из localStorage — только «Мая…», без мигания регистрации.
+ * sticky читаем только в effect — иначе SSR≠клиент и кнопки «тупят» после гидрации.
  */
 export function OnboardingGate({ children }: { children: React.ReactNode }) {
   const onboardingDone = useAppStore((s) => s.onboardingDone);
-  const [stickyDone, setStickyDone] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return peekLikelyOnboarded();
-  });
-  const [hydrated, setHydrated] = useState(false);
+  const [stickyDone, setStickyDone] = useState(false);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    let likely = false;
     try {
-      if (peekLikelyOnboarded()) setStickyDone(true);
+      likely = peekLikelyOnboarded();
+      if (likely) setStickyDone(true);
     } catch {
       /* ignore */
     }
+
     const finish = () => {
       try {
         if (peekLikelyOnboarded()) setStickyDone(true);
       } catch {
         /* ignore */
       }
-      setHydrated(true);
+      setReady(true);
     };
+
+    // Уже были в приложении — сразу отпускаем UI, persist догонит
+    if (likely) {
+      setReady(true);
+    }
+
     if (useAppStore.persist.hasHydrated()) {
       finish();
       return;
     }
     const unsub = useAppStore.persist.onFinishHydration(finish);
-    // запасной выход, если persist завис — но не раньше, чем успеет подняться стор
-    const t = window.setTimeout(finish, 1500);
+    const t = window.setTimeout(finish, 600);
     return () => {
       unsub();
       window.clearTimeout(t);
@@ -1224,8 +1229,7 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
     setStickyDone(true);
   }, [onboardingDone]);
 
-  // Всегда ждём гидрацию — иначе на долю секунды вспыхивает анкета/регистрация
-  if (!hydrated) {
+  if (!ready && !stickyDone && !onboardingDone) {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-background text-sm text-muted">
         Мая…
@@ -1233,9 +1237,17 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!onboardingDone && !stickyDone) {
-    return <OnboardingFlow mode="first" />;
+  if (stickyDone || onboardingDone) {
+    return <>{children}</>;
   }
 
-  return <>{children}</>;
+  if (!ready) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-background text-sm text-muted">
+        Мая…
+      </div>
+    );
+  }
+
+  return <OnboardingFlow mode="first" />;
 }
