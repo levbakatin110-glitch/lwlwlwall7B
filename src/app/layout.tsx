@@ -4,6 +4,9 @@ import { AppShell } from "@/components/AppShell";
 import { PwaRegister } from "@/components/PwaRegister";
 import "./globals.css";
 
+/** Не кэшировать HTML-оболочку на год — иначе вечный «Мая…» после старого билда */
+export const dynamic = "force-dynamic";
+
 const fraunces = Fraunces({
   variable: "--font-fraunces",
   subsets: ["latin", "latin-ext"],
