@@ -6,7 +6,7 @@ import { ChatNewsFeed } from "@/components/ChatNewsFeed";
 import { HomeWeatherCard } from "@/components/HomeWeatherCard";
 import { JournalEntryChip } from "@/components/JournalEntryChip";
 import { LogPreviewSheet, type LogPreviewData } from "@/components/LogPreviewSheet";
-import { RecipeOfDayCard } from "@/components/RecipeOfDayCard";
+import { KitchenCarousel } from "@/components/KitchenCarousel";
 import { CHAT_PROMPTS } from "@/components/TipsCarousel";
 import { VpnHintBanner } from "@/components/VpnHintBanner";
 import { WeatherWidget } from "@/components/WeatherWidget";
@@ -1170,7 +1170,7 @@ export function ChatView() {
                   На кухне
                 </h2>
                 <p className="mt-0.5 text-xs text-muted">
-                  Рецепт дня — каждый день новый
+                  Рецепт дня, потом — шум для сна
                 </p>
               </div>
               <Link
@@ -1180,7 +1180,7 @@ export function ChatView() {
                 Все →
               </Link>
             </div>
-            <RecipeOfDayCard />
+            <KitchenCarousel />
           </section>
 
           <ChatNewsFeed

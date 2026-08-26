@@ -4,7 +4,7 @@ import { MomsCircleChat } from "@/components/MomsCircleChat";
 
 export default function CommunityPage() {
   return (
-    <div className="maya-rise px-1 py-1 sm:px-2 sm:py-2">
+    <div className="flex h-full min-h-0 w-full flex-1 flex-col">
       <MomsCircleChat />
     </div>
   );

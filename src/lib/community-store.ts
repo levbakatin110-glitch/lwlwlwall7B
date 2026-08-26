@@ -8,9 +8,11 @@ export type CommunityMessage = {
   /** Хэш почты — без сырого email в ответах клиенту */
   authorKey: string;
   displayName: string;
-  city?: string;
+  /** data URL или пусто */
+  avatar?: string;
+  /** мини-тег: «Ваня · 12.03.2024» */
+  babyTag?: string;
   text: string;
-  mood?: string;
 };
 
 type Store = { messages: CommunityMessage[] };
@@ -19,27 +21,26 @@ const DATA_DIR = join(process.cwd(), "data");
 const DATA_FILE = join(DATA_DIR, "community-messages.json");
 const MAX_MESSAGES = 400;
 const MAX_TEXT = 500;
+/** ~80 KB — иначе файл сообщений раздувается */
+const MAX_AVATAR_CHARS = 80_000;
 
 const SEED: Omit<CommunityMessage, "id" | "createdAt">[] = [
   {
     authorKey: "maya",
     displayName: "Мая",
-    text: "Добро пожаловать в общение Маи 💛 Здесь можно выдохнуть и поболтать — беременность, малыш, цикл. Без оценок.",
-    mood: "💛",
+    text: "Добро пожаловать. Пишите спокойно — беременность, малыш, быт. Без оценок.",
   },
   {
     authorKey: "seed-lena",
     displayName: "Лена",
-    city: "Казань",
-    text: "Кто тоже ночью гуглит «нормально ли…» и потом смеётся над собой утром?",
-    mood: "😴",
+    babyTag: "Миша · 03.01.2025",
+    text: "Кто тоже ночью гуглит «нормально ли…» и утром смеётся?",
   },
   {
     authorKey: "seed-masha",
     displayName: "Маша",
-    city: "Москва",
-    text: "На 28 неделе впервые спокойно выдохнула: «я справлюсь». Если вы тоже в пути — вы не одна 💛",
-    mood: "☀️",
+    babyTag: "28 нед.",
+    text: "Если вы тоже в ожидании — вы не одна.",
   },
 ];
 
@@ -95,24 +96,12 @@ export function listCommunityMessages(limit = 80): CommunityMessage[] {
   return all.slice(-Math.min(120, Math.max(20, limit)));
 }
 
-/** Только сообщения новее указанного id (для «живого» чата) */
-export function listCommunityMessagesAfter(
-  afterId: string | null | undefined,
-  limit = 80,
-): CommunityMessage[] {
-  const all = load().messages;
-  if (!afterId) return listCommunityMessages(limit);
-  const idx = all.findIndex((m) => m.id === afterId);
-  if (idx < 0) return listCommunityMessages(limit);
-  return all.slice(idx + 1);
-}
-
 export function addCommunityMessage(input: {
   email: string;
   displayName: string;
   text: string;
-  city?: string;
-  mood?: string;
+  avatar?: string;
+  babyTag?: string;
 }): { ok: true; message: CommunityMessage } | { ok: false; error: string } {
   const email = input.email.trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -121,26 +110,34 @@ export function addCommunityMessage(input: {
 
   const displayName = input.displayName.trim().slice(0, 32);
   if (displayName.length < 2) {
-    return { ok: false, error: "Как вас зовут в кружке? Хотя бы 2 буквы" };
+    return { ok: false, error: "Сначала укажите имя (хотя бы 2 буквы)" };
   }
 
   const text = input.text.trim().slice(0, MAX_TEXT);
   if (text.length < 1) {
-    return { ok: false, error: "Напишите хоть пару слов" };
+    return { ok: false, error: "Пустое сообщение" };
   }
   if (/https?:\/\/|www\./i.test(text)) {
-    return { ok: false, error: "Ссылки пока лучше не кидать — только живое общение" };
+    return { ok: false, error: "Ссылки пока нельзя" };
   }
 
-  const mood = input.mood?.trim().slice(0, 4) || undefined;
-  const city = input.city?.trim().slice(0, 40) || undefined;
+  let avatar = input.avatar?.trim() || undefined;
+  if (avatar) {
+    if (!avatar.startsWith("data:image/")) {
+      return { ok: false, error: "Неверный формат фото" };
+    }
+    if (avatar.length > MAX_AVATAR_CHARS) {
+      avatar = undefined;
+    }
+  }
+
+  const babyTag = input.babyTag?.trim().slice(0, 48) || undefined;
   const authorKey = authorKeyFromEmail(email);
 
   const store = load();
-  // антиспам: не чаще раза в 4 сек от одного автора
   const last = [...store.messages].reverse().find((m) => m.authorKey === authorKey);
-  if (last && Date.now() - new Date(last.createdAt).getTime() < 4000) {
-    return { ok: false, error: "Секундочку… можно чуть помедленнее 💛" };
+  if (last && Date.now() - new Date(last.createdAt).getTime() < 3000) {
+    return { ok: false, error: "Подождите пару секунд" };
   }
 
   const message: CommunityMessage = {
@@ -148,9 +145,9 @@ export function addCommunityMessage(input: {
     createdAt: new Date().toISOString(),
     authorKey,
     displayName,
-    city,
+    avatar,
+    babyTag,
     text,
-    mood,
   };
 
   store.messages.push(message);

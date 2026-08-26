@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { IconBadge, MayaIcon } from "@/components/icons/MayaIcon";
+import { WhiteNoiseWidget } from "@/components/WhiteNoiseWidget";
 import { OPTIONAL_MODULES, MODULE_BY_ID } from "@/lib/modules";
 import {
   isFreeModuleId,
@@ -94,7 +95,15 @@ export default function ModulesPage() {
         <span className="text-sm font-semibold text-accent">→</span>
       </Link>
 
-      <div className="mt-6">
+      <p className="mb-3 mt-8 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+        Виджеты · рядом с дневниками
+      </p>
+      <WhiteNoiseWidget />
+
+      <p className="mb-3 mt-8 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+        Дневники
+      </p>
+      <div className="mt-0">
         {!showForm ? (
           <button
             type="button"

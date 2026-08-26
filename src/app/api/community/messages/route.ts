@@ -19,8 +19,8 @@ export async function POST(req: Request) {
     email?: string;
     displayName?: string;
     text?: string;
-    city?: string;
-    mood?: string;
+    avatar?: string;
+    babyTag?: string;
   };
   try {
     body = (await req.json()) as typeof body;
@@ -32,8 +32,8 @@ export async function POST(req: Request) {
     email: String(body.email || ""),
     displayName: String(body.displayName || ""),
     text: String(body.text || ""),
-    city: body.city ? String(body.city) : undefined,
-    mood: body.mood ? String(body.mood) : undefined,
+    avatar: body.avatar ? String(body.avatar) : undefined,
+    babyTag: body.babyTag ? String(body.babyTag) : undefined,
   });
 
   if (!result.ok) {
