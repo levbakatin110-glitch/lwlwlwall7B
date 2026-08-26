@@ -418,10 +418,7 @@ export function OnboardingFlow({
     if (flowStep === "who" && !validateWho()) return;
     if (flowStep === "preg" && !validatePreg()) return;
     if (flowStep === "baby1" && !validateStep2()) return;
-    if (mode === "first" && flowStep === "email" && !emailOk && !emailVerified) {
-      setEmailError("Сначала подтвердите почту кодом из письма");
-      return;
-    }
+    // Почта необязательна — можно пропустить
     setStepIdx((s) => Math.min(flow.length - 1, s + 1));
   }
 
@@ -490,12 +487,6 @@ export function OnboardingFlow({
   }
 
   async function finish(andAddAnother: boolean) {
-    if (mode === "first" && !emailOk && !emailVerified) {
-      setEmailError("Нужна подтверждённая почта");
-      const emailIdx = flow.indexOf("email");
-      if (emailIdx >= 0) setStepIdx(emailIdx);
-      return;
-    }
     setSaving(true);
     try {
       persistPregnancy();
@@ -1079,8 +1070,7 @@ export function OnboardingFlow({
         </div>
 
         <div className="shrink-0 space-y-2 pt-2">
-          {flowStep !== "finish" &&
-          !(flowStep === "email" && !(emailOk || emailVerified)) ? (
+          {flowStep !== "finish" && flowStep !== "email" ? (
             <button
               type="button"
               onClick={goNext}
@@ -1090,14 +1080,27 @@ export function OnboardingFlow({
             </button>
           ) : null}
 
-          {flowStep === "email" && (emailOk || emailVerified) && (
-            <button
-              type="button"
-              onClick={goNext}
-              className="w-full rounded-2xl bg-accent py-3.5 text-sm font-semibold text-[#ffffff] hover:bg-accent-hot"
-            >
-              Далее
-            </button>
+          {flowStep === "email" && (
+            <>
+              {(emailOk || emailVerified) && (
+                <button
+                  type="button"
+                  onClick={goNext}
+                  className="w-full rounded-2xl bg-accent py-3.5 text-sm font-semibold text-[#ffffff] hover:bg-accent-hot"
+                >
+                  Далее
+                </button>
+              )}
+              {!(emailOk || emailVerified) && (
+                <button
+                  type="button"
+                  onClick={goNext}
+                  className="w-full rounded-2xl border border-line bg-card/70 py-3.5 text-sm font-semibold text-foreground"
+                >
+                  Пропустить — сразу к Мае
+                </button>
+              )}
+            </>
           )}
 
           {flowStep === "finish" && (
@@ -1129,15 +1132,11 @@ export function OnboardingFlow({
 }
 
 /**
- * ВРЕМЕННО открытый доступ (показ коллеге): без анкеты и без почты.
- * Вернуть false, когда нужно снова включить вход.
+ * Показывает онбординг новым пользователям. Не блокирует UI на hydrate.
+ * Почта необязательна: аккаунт можно привязать позже в профиле.
  */
-export const TEMP_OPEN_ACCESS = false;
-
-/** Показывает онбординг новым пользователям. Не блокирует UI на hydrate. */
 export function OnboardingGate({ children }: { children: React.ReactNode }) {
   const onboardingDone = useAppStore((s) => s.onboardingDone);
-  const emailVerified = useAppStore((s) => s.emailVerified);
 
   // Раньше ждали persist → «Мая…» навечно (Яндекс / пустой LS / старый билд).
   // Persist догоняет в фоне; краткий мигающий онбординг лучше вечного белого экрана.
@@ -1145,18 +1144,8 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
     void useAppStore.persist.hasHydrated();
   }, []);
 
-  // Временный просмотр: сразу в приложение
-  if (TEMP_OPEN_ACCESS) {
-    return <>{children}</>;
-  }
-
   if (!onboardingDone) {
     return <OnboardingFlow mode="first" />;
-  }
-
-  // Анкету прошли раньше без почты — всё равно требуем регистрацию
-  if (!emailVerified) {
-    return <EmailGate>{children}</EmailGate>;
   }
 
   return <>{children}</>;
