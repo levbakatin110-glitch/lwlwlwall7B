@@ -206,7 +206,7 @@ export function Sidebar({
   );
 
   const nav = (
-    <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-3">
+    <nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto overscroll-contain p-3">
       {childSwitcher}
       <p className="mb-1.5 px-2.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted">
         Навигация
@@ -308,7 +308,7 @@ export function Sidebar({
         />
         <aside
           id="maya-mobile-menu"
-          className="absolute left-0 top-0 flex h-full w-[min(82%,20rem)] flex-col bg-card shadow-2xl ring-1 ring-line"
+          className="absolute left-0 top-0 flex h-full min-h-0 w-[min(82%,20rem)] flex-col overflow-hidden bg-card shadow-2xl ring-1 ring-line"
           style={{ animation: "maya-drawer-in 0.28s ease-out both" }}
         >
           <div className="border-b border-line px-4 py-4">
@@ -322,8 +322,8 @@ export function Sidebar({
 
   return (
     <>
-      <aside className="hidden min-h-screen w-[17.5rem] shrink-0 flex-col border-r border-line bg-sidebar/95 backdrop-blur-xl md:flex">
-        <div className="border-b border-line px-4 py-4">{brand}</div>
+      <aside className="hidden h-full min-h-0 w-[17.5rem] shrink-0 flex-col overflow-hidden border-r border-line bg-sidebar/95 backdrop-blur-xl md:flex">
+        <div className="shrink-0 border-b border-line px-4 py-4">{brand}</div>
         {nav}
       </aside>
       {mobileDrawer}

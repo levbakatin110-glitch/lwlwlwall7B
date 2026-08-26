@@ -175,7 +175,7 @@ export default function MedCardPage() {
   }
 
   return (
-    <div className="mx-auto max-w-lg space-y-4 px-4 py-5 pb-28">
+    <div className="maya-page mx-auto max-w-lg space-y-4 px-4 py-5 pb-28">
       <div>
         <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-accent">
           Мая

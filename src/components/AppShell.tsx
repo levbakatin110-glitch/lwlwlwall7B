@@ -74,7 +74,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </header>
           )}
           {!isCommunity && <PregnancyStatusBanner />}
-          <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden overscroll-none pb-[env(safe-area-inset-bottom)]">
+          <main className="relative flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-none pb-[env(safe-area-inset-bottom)]">
             {children}
           </main>
         </div>
