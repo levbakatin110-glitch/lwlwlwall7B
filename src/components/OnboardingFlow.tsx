@@ -16,7 +16,6 @@ import type { ChildProfile, Sex } from "@/lib/types";
 import {
   SketchMaya,
 } from "@/components/illustrations/MayaSketch";
-import { EmailGate } from "@/components/EmailGate";
 import { OAuthButtons } from "@/components/OAuthButtons";
 import {
   dueDateFromLmp,
