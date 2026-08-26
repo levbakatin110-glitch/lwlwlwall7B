@@ -13,14 +13,19 @@ import { childDisplayName } from "@/lib/children";
 import { compressImageFile } from "@/lib/image";
 import { useAppStore } from "@/lib/store";
 
+type MediaKind = "image" | "video" | "circle";
+
 type CommunityMessage = {
   id: string;
   createdAt: string;
   authorKey: string;
   displayName: string;
+  avatarUrl?: string;
   avatar?: string;
   babyTag?: string;
   text: string;
+  mediaKind?: MediaKind;
+  mediaUrl?: string;
 };
 
 type CommunityProfile = {
@@ -96,7 +101,6 @@ function loadProfile(): CommunityProfile | null {
         };
       }
     }
-    // старый ключ только с ником
     const legacy = localStorage.getItem("maya-community-nick");
     if (legacy && legacy.trim().length >= 2) {
       return {
@@ -121,25 +125,25 @@ function saveProfile(p: CommunityProfile) {
 
 function Avatar({
   name,
-  avatar,
+  avatarUrl,
   authorKey,
   mine,
   size = 36,
 }: {
   name: string;
-  avatar?: string;
+  avatarUrl?: string;
   authorKey: string;
   mine?: boolean;
   size?: number;
 }) {
   const colors = pastelFromKey(authorKey);
-  if (avatar) {
+  if (avatarUrl) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
-        src={avatar}
+        src={avatarUrl}
         alt=""
-        className="shrink-0 rounded-full object-cover"
+        className="shrink-0 rounded-full object-cover ring-1 ring-line/60"
         style={{ width: size, height: size }}
       />
     );
@@ -157,6 +161,46 @@ function Avatar({
     >
       {(name[0] || "?").toUpperCase()}
     </div>
+  );
+}
+
+function MessageMedia({
+  kind,
+  url,
+}: {
+  kind?: MediaKind;
+  url?: string;
+}) {
+  if (!url || !kind) return null;
+  if (kind === "image") {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={url}
+        alt=""
+        className="mt-1.5 max-h-64 w-full rounded-xl object-cover"
+      />
+    );
+  }
+  if (kind === "circle") {
+    return (
+      <div className="mt-1.5 flex justify-center">
+        <video
+          src={url}
+          controls
+          playsInline
+          className="h-44 w-44 rounded-full border-2 border-accent/30 object-cover bg-black"
+        />
+      </div>
+    );
+  }
+  return (
+    <video
+      src={url}
+      controls
+      playsInline
+      className="mt-1.5 max-h-64 w-full rounded-xl bg-black"
+    />
   );
 }
 
@@ -178,9 +222,22 @@ export function MomsCircleChat() {
   const [myKey, setMyKey] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [pendingKind, setPendingKind] = useState<MediaKind | null>(null);
+  const [pendingPreview, setPendingPreview] = useState<string | null>(null);
+  const [circleOpen, setCircleOpen] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [recordSecs, setRecordSecs] = useState(0);
+
   const listRef = useRef<HTMLDivElement>(null);
   const stickBottom = useRef(true);
-  const fileRef = useRef<HTMLInputElement>(null);
+  const avatarFileRef = useRef<HTMLInputElement>(null);
+  const mediaFileRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const recordTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     const saved = loadProfile();
@@ -234,17 +291,38 @@ export function MomsCircleChat() {
     el.scrollTop = el.scrollHeight;
   }, [messages, commProfile]);
 
+  useEffect(() => {
+    return () => {
+      stopCircleStream();
+      if (pendingPreview) URL.revokeObjectURL(pendingPreview);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function onPickAvatar(file: File | null) {
     if (!file) return;
     try {
-      const data = await compressImageFile(file, 240, 0.7);
+      const data = await compressImageFile(file, 240, 0.72);
       setSetupAvatar(data);
     } catch {
       setError("Не удалось загрузить фото");
     }
   }
 
-  function finishSetup() {
+  async function syncAvatarToServer(avatar: string | undefined) {
+    if (!accountEmail || !avatar?.startsWith("data:image/")) return;
+    try {
+      await fetch("/api/community/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: accountEmail, avatar }),
+      });
+    } catch {
+      /* offline ok — уйдёт с сообщением */
+    }
+  }
+
+  async function finishSetup() {
     const nick = setupNick.trim();
     if (nick.length < 2) {
       setError("Введите имя");
@@ -260,6 +338,8 @@ export function MomsCircleChat() {
     setCommProfile(next);
     setEditingProfile(false);
     setError(null);
+    await syncAvatarToServer(setupAvatar);
+    void load(true);
   }
 
   function openEdit() {
@@ -271,24 +351,146 @@ export function MomsCircleChat() {
     setEditingProfile(true);
   }
 
+  function clearPendingMedia() {
+    if (pendingPreview) URL.revokeObjectURL(pendingPreview);
+    setPendingFile(null);
+    setPendingKind(null);
+    setPendingPreview(null);
+  }
+
+  async function onPickMedia(file: File | null) {
+    if (!file) return;
+    try {
+      if (file.type.startsWith("image/")) {
+        const dataUrl = await compressImageFile(file, 1280, 0.72);
+        const blob = await (await fetch(dataUrl)).blob();
+        const compressed = new File([blob], "photo.jpg", { type: "image/jpeg" });
+        clearPendingMedia();
+        setPendingFile(compressed);
+        setPendingKind("image");
+        setPendingPreview(dataUrl);
+        return;
+      }
+      if (file.type.startsWith("video/")) {
+        if (file.size > 12_000_000) {
+          setError("Видео до 12 МБ");
+          return;
+        }
+        clearPendingMedia();
+        setPendingFile(file);
+        setPendingKind("video");
+        setPendingPreview(URL.createObjectURL(file));
+        return;
+      }
+      setError("Можно фото или видео");
+    } catch {
+      setError("Не удалось прикрепить файл");
+    }
+  }
+
+  function stopCircleStream() {
+    if (recordTimerRef.current) {
+      window.clearInterval(recordTimerRef.current);
+      recordTimerRef.current = null;
+    }
+    recorderRef.current?.stop();
+    recorderRef.current = null;
+    mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
+    mediaStreamRef.current = null;
+    setRecording(false);
+    setRecordSecs(0);
+  }
+
+  async function openCircle() {
+    setError(null);
+    setCircleOpen(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: { facingMode: "user", width: 480, height: 480 },
+      });
+      mediaStreamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+    } catch {
+      setCircleOpen(false);
+      setError("Нет доступа к камере");
+    }
+  }
+
+  function startCircleRecord() {
+    const stream = mediaStreamRef.current;
+    if (!stream) return;
+    chunksRef.current = [];
+    const mime = MediaRecorder.isTypeSupported("video/webm;codecs=vp8,opus")
+      ? "video/webm;codecs=vp8,opus"
+      : MediaRecorder.isTypeSupported("video/webm")
+        ? "video/webm"
+        : "";
+    const rec = mime
+      ? new MediaRecorder(stream, { mimeType: mime })
+      : new MediaRecorder(stream);
+    recorderRef.current = rec;
+    rec.ondataavailable = (ev) => {
+      if (ev.data.size > 0) chunksRef.current.push(ev.data);
+    };
+    rec.onstop = () => {
+      const blob = new Blob(chunksRef.current, {
+        type: rec.mimeType || "video/webm",
+      });
+      const file = new File([blob], "circle.webm", {
+        type: blob.type || "video/webm",
+      });
+      clearPendingMedia();
+      setPendingFile(file);
+      setPendingKind("circle");
+      setPendingPreview(URL.createObjectURL(blob));
+      stopCircleStream();
+      setCircleOpen(false);
+    };
+    rec.start(200);
+    setRecording(true);
+    setRecordSecs(0);
+    recordTimerRef.current = window.setInterval(() => {
+      setRecordSecs((s) => {
+        if (s >= 59) {
+          rec.stop();
+          return 60;
+        }
+        return s + 1;
+      });
+    }, 1000);
+  }
+
+  function stopCircleRecord() {
+    recorderRef.current?.stop();
+  }
+
   async function send(e?: FormEvent) {
     e?.preventDefault();
     if (!emailVerified || !accountEmail || !commProfile) return;
     const body = text.trim();
-    if (!body || busy) return;
+    if ((!body && !pendingFile) || busy) return;
     setBusy(true);
     setError(null);
     try {
+      const form = new FormData();
+      form.set("email", accountEmail);
+      form.set("displayName", commProfile.nick);
+      form.set("text", body);
+      const tag = buildBabyTag(commProfile.babyName, commProfile.babyBirth);
+      if (tag) form.set("babyTag", tag);
+      if (commProfile.avatar) form.set("avatar", commProfile.avatar);
+      if (pendingFile && pendingKind) {
+        form.set("mediaKind", pendingKind);
+        form.set("file", pendingFile);
+      }
+
       const res = await fetch("/api/community/messages", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: accountEmail,
-          displayName: commProfile.nick,
-          text: body,
-          avatar: commProfile.avatar,
-          babyTag: buildBabyTag(commProfile.babyName, commProfile.babyBirth) || undefined,
-        }),
+        body: form,
       });
       const data = (await res.json()) as {
         error?: string;
@@ -296,6 +498,7 @@ export function MomsCircleChat() {
       };
       if (!res.ok) throw new Error(data.error || "Не отправилось");
       setText("");
+      clearPendingMedia();
       if (data.message) {
         setMessages((prev) =>
           prev.some((m) => m.id === data.message!.id)
@@ -315,6 +518,12 @@ export function MomsCircleChat() {
 
   const canPost = Boolean(emailVerified && accountEmail);
   const needSetup = ready && canPost && (!commProfile || editingProfile);
+  const myAvatarUrl =
+    myKey && messages.find((m) => m.authorKey === myKey)?.avatarUrl
+      ? `/api/community/avatar/${myKey}`
+      : myKey
+        ? `/api/community/avatar/${myKey}`
+        : undefined;
 
   if (!ready) {
     return (
@@ -326,7 +535,6 @@ export function MomsCircleChat() {
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col bg-background">
-      {/* шапка как в мессенджере */}
       <header className="flex shrink-0 items-center gap-2 border-b border-line bg-card/95 px-3 py-2.5">
         <Link
           href="/"
@@ -344,8 +552,15 @@ export function MomsCircleChat() {
           <button
             type="button"
             onClick={openEdit}
-            className="rounded-xl px-2.5 py-1.5 text-xs font-medium text-muted hover:bg-accent-soft hover:text-foreground"
+            className="flex items-center gap-2 rounded-xl px-2 py-1.5 text-xs font-medium text-muted hover:bg-accent-soft hover:text-foreground"
           >
+            <Avatar
+              name={commProfile.nick}
+              avatarUrl={commProfile.avatar || myAvatarUrl}
+              authorKey={myKey || "me"}
+              mine
+              size={28}
+            />
             Профиль
           </button>
         )}
@@ -364,7 +579,7 @@ export function MomsCircleChat() {
             <div className="flex items-center gap-3">
               <button
                 type="button"
-                onClick={() => fileRef.current?.click()}
+                onClick={() => avatarFileRef.current?.click()}
                 className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full border border-dashed border-line bg-card text-muted"
               >
                 {setupAvatar ? (
@@ -379,7 +594,7 @@ export function MomsCircleChat() {
                 )}
               </button>
               <input
-                ref={fileRef}
+                ref={avatarFileRef}
                 type="file"
                 accept="image/*"
                 className="hidden"
@@ -423,7 +638,7 @@ export function MomsCircleChat() {
 
             <button
               type="button"
-              onClick={finishSetup}
+              onClick={() => void finishSetup()}
               disabled={setupNick.trim().length < 2}
               className="w-full rounded-2xl bg-accent py-3.5 text-sm font-semibold text-[var(--on-accent,#fff)] disabled:opacity-40"
             >
@@ -458,6 +673,11 @@ export function MomsCircleChat() {
             {messages.map((m) => {
               const mine = Boolean(myKey && m.authorKey === myKey);
               const isMaya = m.authorKey === "maya";
+              const avatarUrl =
+                m.avatarUrl ||
+                (mine && commProfile?.avatar
+                  ? commProfile.avatar
+                  : undefined);
               return (
                 <article
                   key={m.id}
@@ -468,7 +688,7 @@ export function MomsCircleChat() {
                   {!mine && (
                     <Avatar
                       name={m.displayName}
-                      avatar={m.avatar}
+                      avatarUrl={avatarUrl}
                       authorKey={m.authorKey}
                     />
                   )}
@@ -493,9 +713,20 @@ export function MomsCircleChat() {
                         )}
                       </div>
                     )}
-                    <p className="whitespace-pre-wrap text-[15px] leading-snug text-foreground">
-                      {m.text}
-                    </p>
+                    {m.mediaUrl && (
+                      <MessageMedia kind={m.mediaKind} url={m.mediaUrl} />
+                    )}
+                    {m.text &&
+                      !(
+                        m.mediaUrl &&
+                        (m.text === "📷 фото" ||
+                          m.text === "🎬 видео" ||
+                          m.text === "🎥 кружок")
+                      ) && (
+                        <p className="mt-1 whitespace-pre-wrap text-[15px] leading-snug text-foreground">
+                          {m.text}
+                        </p>
+                      )}
                     <p
                       className={`mt-1 text-[10px] text-muted ${
                         mine ? "text-right" : ""
@@ -512,38 +743,109 @@ export function MomsCircleChat() {
           <div className="shrink-0 border-t border-line bg-card/95 px-3 py-2.5 pb-[max(0.65rem,env(safe-area-inset-bottom))]">
             {!canPost ? (
               <div className="rounded-xl bg-accent-soft/50 px-3 py-2.5 text-sm">
-                <Link href="/profile" className="font-semibold text-accent underline">
+                <Link
+                  href="/profile"
+                  className="font-semibold text-accent underline"
+                >
                   Войдите
                 </Link>
                 <span className="text-muted">, чтобы писать</span>
               </div>
             ) : (
-              <form
-                onSubmit={(e) => void send(e)}
-                className="flex items-end gap-2"
-              >
-                <textarea
-                  value={text}
-                  onChange={(e) => setText(e.target.value.slice(0, 500))}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      void send();
-                    }
-                  }}
-                  rows={1}
-                  placeholder="Сообщение"
-                  className="max-h-28 min-h-[2.75rem] flex-1 resize-none rounded-2xl border border-line bg-background px-3.5 py-2.5 text-[15px] text-foreground outline-none focus:border-accent/40"
-                />
-                <button
-                  type="submit"
-                  disabled={busy || !text.trim()}
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-accent text-[var(--on-accent,#fff)] disabled:opacity-40"
-                  aria-label="Отправить"
+              <>
+                {pendingPreview && pendingKind && (
+                  <div className="mb-2 flex items-center gap-2 rounded-xl border border-line bg-background px-2 py-1.5">
+                    {pendingKind === "image" ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={pendingPreview}
+                        alt=""
+                        className="h-12 w-12 rounded-lg object-cover"
+                      />
+                    ) : pendingKind === "circle" ? (
+                      <video
+                        src={pendingPreview}
+                        className="h-12 w-12 rounded-full object-cover"
+                        muted
+                      />
+                    ) : (
+                      <video
+                        src={pendingPreview}
+                        className="h-12 w-16 rounded-lg object-cover"
+                        muted
+                      />
+                    )}
+                    <p className="min-w-0 flex-1 text-xs text-muted">
+                      {pendingKind === "image"
+                        ? "Фото"
+                        : pendingKind === "circle"
+                          ? "Кружок"
+                          : "Видео"}{" "}
+                      готово к отправке
+                    </p>
+                    <button
+                      type="button"
+                      onClick={clearPendingMedia}
+                      className="rounded-lg px-2 py-1 text-xs text-muted hover:bg-accent-soft"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+                <form
+                  onSubmit={(e) => void send(e)}
+                  className="flex items-end gap-1.5"
                 >
-                  <MayaIcon name="chat" size={18} />
-                </button>
-              </form>
+                  <input
+                    ref={mediaFileRef}
+                    type="file"
+                    accept="image/*,video/*"
+                    className="hidden"
+                    onChange={(e) =>
+                      void onPickMedia(e.target.files?.[0] ?? null)
+                    }
+                  />
+                  <button
+                    type="button"
+                    onClick={() => mediaFileRef.current?.click()}
+                    className="flex h-11 w-10 shrink-0 items-center justify-center rounded-xl text-muted hover:bg-accent-soft hover:text-foreground"
+                    aria-label="Фото или видео"
+                    title="Фото / видео"
+                  >
+                    <MayaIcon name="moments" size={18} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void openCircle()}
+                    className="flex h-11 w-10 shrink-0 items-center justify-center rounded-xl text-muted hover:bg-accent-soft hover:text-foreground"
+                    aria-label="Записать кружок"
+                    title="Кружок"
+                  >
+                    <MayaIcon name="circle" size={18} />
+                  </button>
+                  <textarea
+                    value={text}
+                    onChange={(e) => setText(e.target.value.slice(0, 500))}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        void send();
+                      }
+                    }}
+                    rows={1}
+                    placeholder="Сообщение"
+                    className="max-h-28 min-h-[2.75rem] flex-1 resize-none rounded-2xl border border-line bg-background px-3.5 py-2.5 text-[15px] text-foreground outline-none focus:border-accent/40"
+                  />
+                  <button
+                    type="submit"
+                    disabled={busy || (!text.trim() && !pendingFile)}
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-accent text-[var(--on-accent,#fff)] disabled:opacity-40"
+                    aria-label="Отправить"
+                  >
+                    <MayaIcon name="chat" size={18} />
+                  </button>
+                </form>
+              </>
             )}
             {error && (
               <p className="mt-1.5 text-xs text-red-600 dark:text-red-300">
@@ -552,6 +854,54 @@ export function MomsCircleChat() {
             )}
           </div>
         </>
+      )}
+
+      {circleOpen && (
+        <div className="fixed inset-0 z-[220] flex flex-col bg-black/90 px-4 py-6 text-white">
+          <div className="mb-4 flex items-center justify-between">
+            <p className="text-sm font-medium">Кружок</p>
+            <button
+              type="button"
+              onClick={() => {
+                stopCircleStream();
+                setCircleOpen(false);
+              }}
+              className="rounded-xl px-3 py-1.5 text-sm text-white/80"
+            >
+              Закрыть
+            </button>
+          </div>
+          <div className="flex flex-1 flex-col items-center justify-center gap-4">
+            <div className="relative h-64 w-64 overflow-hidden rounded-full border-4 border-accent/50 bg-black">
+              <video
+                ref={videoRef}
+                muted
+                playsInline
+                className="h-full w-full scale-x-[-1] object-cover"
+              />
+            </div>
+            <p className="text-sm text-white/70">
+              {recording ? `${recordSecs} с · до 60` : "Нажмите запись"}
+            </p>
+            {!recording ? (
+              <button
+                type="button"
+                onClick={startCircleRecord}
+                className="h-16 w-16 rounded-full border-4 border-white bg-accent"
+                aria-label="Начать запись"
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={stopCircleRecord}
+                className="flex h-16 w-16 items-center justify-center rounded-full border-4 border-white bg-red-500"
+                aria-label="Стоп"
+              >
+                <span className="h-5 w-5 rounded-sm bg-white" />
+              </button>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
