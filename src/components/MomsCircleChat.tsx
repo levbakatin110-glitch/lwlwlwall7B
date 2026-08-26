@@ -223,7 +223,7 @@ export function MomsCircleChat() {
 
   useEffect(() => {
     void load();
-    const t = window.setInterval(() => void load(true), 3000);
+    const t = window.setInterval(() => void load(true), 5000);
     return () => window.clearInterval(t);
   }, [load]);
 

@@ -19,10 +19,10 @@ type Store = { messages: CommunityMessage[] };
 
 const DATA_DIR = join(process.cwd(), "data");
 const DATA_FILE = join(DATA_DIR, "community-messages.json");
-const MAX_MESSAGES = 400;
+const MAX_MESSAGES = 200;
 const MAX_TEXT = 500;
-/** ~80 KB — иначе файл сообщений раздувается */
-const MAX_AVATAR_CHARS = 80_000;
+/** Аватары в каждом сообщении раздувают JSON и роняют вкладки — почти не храним */
+const MAX_AVATAR_CHARS = 12_000;
 
 const SEED: Omit<CommunityMessage, "id" | "createdAt">[] = [
   {
@@ -51,14 +51,29 @@ function load(): Store {
       save(seeded);
       return seeded;
     }
-    const raw = JSON.parse(readFileSync(DATA_FILE, "utf8")) as Store;
-    if (!Array.isArray(raw.messages)) return seedStore();
-    if (raw.messages.length === 0) {
+    const raw = readFileSync(DATA_FILE, "utf8");
+    // Гигантский файл с base64-аватарами — чистим, иначе API убивает клиентов
+    if (raw.length > 1_500_000) {
+      const parsed = JSON.parse(raw) as Store;
+      const cleaned: Store = {
+        messages: (parsed.messages || [])
+          .slice(-MAX_MESSAGES)
+          .map((m) => {
+            const { avatar: _a, ...rest } = m;
+            return rest;
+          }),
+      };
+      save(cleaned);
+      return cleaned;
+    }
+    const data = JSON.parse(raw) as Store;
+    if (!Array.isArray(data.messages)) return seedStore();
+    if (data.messages.length === 0) {
       const seeded = seedStore();
       save(seeded);
       return seeded;
     }
-    return raw;
+    return data;
   } catch {
     return seedStore();
   }
@@ -93,7 +108,11 @@ export function authorKeyFromEmail(email: string): string {
 
 export function listCommunityMessages(limit = 80): CommunityMessage[] {
   const all = load().messages;
-  return all.slice(-Math.min(120, Math.max(20, limit)));
+  // В ленту аватары не отдаём — клиент и так падал на больших data URL
+  return all.slice(-Math.min(120, Math.max(20, limit))).map((m) => {
+    const { avatar: _a, ...rest } = m;
+    return rest;
+  });
 }
 
 export function addCommunityMessage(input: {

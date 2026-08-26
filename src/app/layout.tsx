@@ -62,7 +62,7 @@ export default function RootLayout({
       <body className="min-h-full bg-background font-sans text-foreground antialiased">
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var k="maya-mom-ai";var r=localStorage.getItem(k);if(r&&r.length>400000){try{localStorage.removeItem(k);}catch(e1){}}var t=localStorage.getItem("maya-theme");if(t!=="dark"&&t!=="blush")t="blush";document.documentElement.setAttribute("data-theme",t);try{indexedDB.deleteDatabase("maya-durable-v1");}catch(e2){}}catch(e){document.documentElement.setAttribute("data-theme","blush");}})();`,
+            __html: `(function(){try{var k="maya-mom-ai";var r=localStorage.getItem(k);if(r&&r.length>400000){try{localStorage.removeItem(k);}catch(e1){}}var t=localStorage.getItem("maya-theme");if(t!=="dark"&&t!=="blush")t="blush";document.documentElement.setAttribute("data-theme",t);}catch(e){document.documentElement.setAttribute("data-theme","blush");}})();`,
           }}
         />
         <AppShell>{children}</AppShell>
