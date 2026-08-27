@@ -1,5 +1,6 @@
 import {
   addCommunityMessage,
+  deleteOwnCommunityMessage,
   listCommunityMessages,
   type CommunityMediaKind,
 } from "@/lib/community-store";
@@ -68,11 +69,14 @@ export async function POST(req: Request) {
         media = { kind, buffer: buf, mime };
       }
 
+      const replyToId = String(form.get("replyToId") || "").trim();
+
       const result = await addCommunityMessage({
         email,
         displayName,
         text,
         babyTag: babyTag || undefined,
+        replyToId: replyToId || undefined,
         avatarDataUrl: avatar.startsWith("data:image/") ? avatar : undefined,
         media,
       });
@@ -88,6 +92,7 @@ export async function POST(req: Request) {
       text?: string;
       avatar?: string;
       babyTag?: string;
+      replyToId?: string;
     };
 
     const result = await addCommunityMessage({
@@ -95,6 +100,7 @@ export async function POST(req: Request) {
       displayName: String(body.displayName || ""),
       text: String(body.text || ""),
       babyTag: body.babyTag ? String(body.babyTag) : undefined,
+      replyToId: body.replyToId ? String(body.replyToId) : undefined,
       avatarDataUrl: body.avatar?.startsWith("data:image/")
         ? String(body.avatar)
         : undefined,
@@ -104,6 +110,31 @@ export async function POST(req: Request) {
       return Response.json({ error: result.error }, { status: 400 });
     }
     return Response.json({ ok: true, message: result.message });
+  } catch {
+    return Response.json({ error: "Некорректный запрос" }, { status: 400 });
+  }
+}
+
+export async function DELETE(req: Request) {
+  const session = readSessionFromRequest(req);
+  if (!session) {
+    return Response.json(
+      { error: "Войдите, чтобы удалять" },
+      { status: 401 },
+    );
+  }
+  try {
+    const url = new URL(req.url);
+    let id = url.searchParams.get("id")?.trim() || "";
+    if (!id) {
+      const body = (await req.json()) as { id?: string };
+      id = String(body.id || "").trim();
+    }
+    const result = deleteOwnCommunityMessage(session.email, id);
+    if (!result.ok) {
+      return Response.json({ error: result.error }, { status: 400 });
+    }
+    return Response.json({ ok: true });
   } catch {
     return Response.json({ error: "Некорректный запрос" }, { status: 400 });
   }

@@ -2,11 +2,14 @@
 
 import {
   FormEvent,
+  MouseEvent,
+  PointerEvent,
   useCallback,
   useEffect,
   useRef,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import {
   CircleNotePlayer,
@@ -14,12 +17,23 @@ import {
 } from "@/components/CircleRecorder";
 import { VoiceNotePlayer, VoiceRecorder } from "@/components/VoiceRecorder";
 import { MayaIcon } from "@/components/icons/MayaIcon";
+import {
+  COMMUNITY_REACTIONS,
+  mediaPreviewText,
+} from "@/lib/community-reactions";
 import { childDisplayName } from "@/lib/children";
 import { compressImageFile } from "@/lib/image";
 import { trackEvent } from "@/lib/analytics-client";
 import { useAppStore } from "@/lib/store";
 
 type MediaKind = "image" | "video" | "circle" | "voice";
+
+type CommunityReply = {
+  id: string;
+  displayName: string;
+  text: string;
+  mediaKind?: MediaKind;
+};
 
 type CommunityMessage = {
   id: string;
@@ -32,6 +46,9 @@ type CommunityMessage = {
   text: string;
   mediaKind?: MediaKind;
   mediaUrl?: string;
+  replyToId?: string;
+  replyTo?: CommunityReply;
+  reactions?: Record<string, string[]>;
 };
 
 type CommunityProfile = {
@@ -204,6 +221,8 @@ function MessageMedia({
   );
 }
 
+type MenuState = { id: string; x: number; y: number };
+
 export function MomsCircleChat() {
   const accountEmail = useAppStore((s) => s.accountEmail);
   const emailVerified = useAppStore((s) => s.emailVerified);
@@ -227,11 +246,21 @@ export function MomsCircleChat() {
   const [pendingPreview, setPendingPreview] = useState<string | null>(null);
   const [circleOpen, setCircleOpen] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
+  const [replyTo, setReplyTo] = useState<CommunityMessage | null>(null);
+  const [menu, setMenu] = useState<MenuState | null>(null);
+  const [flashId, setFlashId] = useState<string | null>(null);
 
   const listRef = useRef<HTMLDivElement>(null);
+  const composerRef = useRef<HTMLTextAreaElement>(null);
   const stickBottom = useRef(true);
   const avatarFileRef = useRef<HTMLInputElement>(null);
   const mediaFileRef = useRef<HTMLInputElement>(null);
+  const longPressTimer = useRef<number | null>(null);
+  const pressStart = useRef({ x: 0, y: 0 });
+  const suppressClick = useRef(false);
+  const menuOpenedAt = useRef(0);
+
+  const canPost = Boolean(emailVerified && accountEmail);
 
   useEffect(() => {
     const saved = loadProfile();
@@ -325,6 +354,134 @@ export function MomsCircleChat() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenu(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  function clearLongPress() {
+    if (longPressTimer.current) {
+      window.clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }
+
+  function openMenu(id: string, x: number, y: number) {
+    try {
+      navigator.vibrate?.(12);
+    } catch {
+      /* ignore */
+    }
+    menuOpenedAt.current = Date.now();
+    const w = 236;
+    const h = 268;
+    const pad = 10;
+    setMenu({
+      id,
+      x: Math.min(Math.max(pad, x - w / 2), window.innerWidth - w - pad),
+      y: Math.min(Math.max(pad, y - 24), window.innerHeight - h - pad),
+    });
+  }
+
+  function onMsgContextMenu(e: MouseEvent, id: string) {
+    e.preventDefault();
+    e.stopPropagation();
+    clearLongPress();
+    openMenu(id, e.clientX, e.clientY);
+  }
+
+  function onMsgPointerDown(e: PointerEvent, id: string) {
+    if (e.pointerType === "mouse") return;
+    pressStart.current = { x: e.clientX, y: e.clientY };
+    clearLongPress();
+    longPressTimer.current = window.setTimeout(() => {
+      longPressTimer.current = null;
+      suppressClick.current = true;
+      openMenu(id, pressStart.current.x, pressStart.current.y);
+    }, 460);
+  }
+
+  function onMsgPointerMove(e: PointerEvent) {
+    if (!longPressTimer.current) return;
+    const dx = e.clientX - pressStart.current.x;
+    const dy = e.clientY - pressStart.current.y;
+    if (dx * dx + dy * dy > 144) clearLongPress();
+  }
+
+  function jumpToMessage(id: string) {
+    const el = listRef.current?.querySelector(`[data-msg-id="${CSS.escape(id)}"]`);
+    if (!(el instanceof HTMLElement)) return;
+    stickBottom.current = false;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    setFlashId(id);
+    window.setTimeout(() => setFlashId((cur) => (cur === id ? null : cur)), 1100);
+  }
+
+  async function toggleReact(id: string, emoji: string) {
+    if (!canPost) {
+      setError("Войдите, чтобы ставить реакции");
+      return;
+    }
+    setError(null);
+    try {
+      const res = await fetch("/api/community/react", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, emoji }),
+      });
+      const data = (await res.json()) as {
+        error?: string;
+        message?: CommunityMessage;
+      };
+      if (!res.ok || !data.message) throw new Error(data.error || "Не вышло");
+      setMessages((prev) =>
+        prev.map((m) => (m.id === data.message!.id ? data.message! : m)),
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Ошибка");
+    }
+  }
+
+  async function deleteMsg(id: string) {
+    if (!confirm("Удалить сообщение?")) return;
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/community/messages?id=${encodeURIComponent(id)}`,
+        { method: "DELETE", credentials: "include" },
+      );
+      const data = (await res.json()) as { error?: string };
+      if (!res.ok) throw new Error(data.error || "Не удалилось");
+      setMessages((prev) => prev.filter((m) => m.id !== id));
+      if (replyTo?.id === id) setReplyTo(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Ошибка");
+    }
+  }
+
+  async function copyMsg(m: CommunityMessage) {
+    const t = mediaPreviewText(m.mediaKind, m.text) || m.text;
+    if (!t) return;
+    try {
+      await navigator.clipboard.writeText(t);
+    } catch {
+      setError("Не скопировалось");
+    }
+  }
+
+  function startReply(m: CommunityMessage) {
+    if (!canPost) {
+      setError("Войдите, чтобы отвечать");
+      return;
+    }
+    setReplyTo(m);
+    window.setTimeout(() => composerRef.current?.focus(), 40);
+  }
 
   async function onPickAvatar(file: File | null) {
     if (!file) return;
@@ -464,6 +621,7 @@ export function MomsCircleChat() {
       const form = new FormData();
       form.set("displayName", commProfile.nick);
       form.set("text", body);
+      if (replyTo) form.set("replyToId", replyTo.id);
       const tag = buildBabyTag(commProfile.babyName, commProfile.babyBirth);
       if (tag) form.set("babyTag", tag);
       if (file && kind) {
@@ -491,6 +649,7 @@ export function MomsCircleChat() {
       if (!res.ok) throw new Error(data.error || "Не отправилось");
       trackEvent("community_post");
       setText("");
+      setReplyTo(null);
       clearPendingMedia();
       if (data.message) {
         setMessages((prev) =>
@@ -516,7 +675,6 @@ export function MomsCircleChat() {
     }
   }
 
-  const canPost = Boolean(emailVerified && accountEmail);
   const needSetup = ready && canPost && (!commProfile || editingProfile);
   const myAvatarUrl =
     myKey && messages.find((m) => m.authorKey === myKey)?.avatarUrl
@@ -678,10 +836,26 @@ export function MomsCircleChat() {
                 (mine && commProfile?.avatar
                   ? commProfile.avatar
                   : undefined);
+              const reactionEntries = Object.entries(m.reactions || {}).filter(
+                ([, keys]) => keys.length > 0,
+              );
+              const open = menu?.id === m.id;
               return (
                 <article
                   key={m.id}
-                  className={`flex max-w-[88%] gap-2 ${
+                  data-msg-id={m.id}
+                  onContextMenu={(e) => onMsgContextMenu(e, m.id)}
+                  onPointerDown={(e) => onMsgPointerDown(e, m.id)}
+                  onPointerMove={onMsgPointerMove}
+                  onPointerUp={clearLongPress}
+                  onPointerCancel={clearLongPress}
+                  onClickCapture={(e) => {
+                    if (!suppressClick.current) return;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    suppressClick.current = false;
+                  }}
+                  className={`flex max-w-[88%] gap-2 select-none [-webkit-touch-callout:none] ${
                     mine ? "ml-auto flex-row-reverse" : "mr-auto"
                   }`}
                 >
@@ -693,12 +867,16 @@ export function MomsCircleChat() {
                     />
                   )}
                   <div
-                    className={`min-w-0 rounded-2xl px-3 py-2 ${
+                    className={`min-w-0 rounded-2xl px-3 py-2 transition-shadow ${
                       isMaya
                         ? "border border-accent/20 bg-accent-soft/60"
                         : mine
                           ? "bg-user-bubble"
                           : "bg-card ring-1 ring-line/80"
+                    } ${
+                      open || flashId === m.id
+                        ? "ring-2 ring-accent/70"
+                        : ""
                     }`}
                   >
                     {!mine && (
@@ -712,6 +890,20 @@ export function MomsCircleChat() {
                           </span>
                         )}
                       </div>
+                    )}
+                    {m.replyTo && (
+                      <button
+                        type="button"
+                        onClick={() => jumpToMessage(m.replyTo!.id)}
+                        className="mt-0.5 mb-1 w-full rounded-lg border-l-[3px] border-accent/70 bg-black/5 px-2 py-1 text-left dark:bg-white/5"
+                      >
+                        <p className="truncate text-[11px] font-semibold text-accent">
+                          {m.replyTo.displayName || "Сообщение"}
+                        </p>
+                        <p className="truncate text-[11px] text-muted">
+                          {m.replyTo.text}
+                        </p>
+                      </button>
                     )}
                     {m.mediaUrl && (
                       <MessageMedia kind={m.mediaKind} url={m.mediaUrl} />
@@ -728,6 +920,29 @@ export function MomsCircleChat() {
                           {m.text}
                         </p>
                       )}
+                    {reactionEntries.length > 0 && (
+                      <div className="mt-1.5 flex flex-wrap gap-1">
+                        {reactionEntries.map(([emoji, keys]) => {
+                          const mineReact = Boolean(
+                            myKey && keys.includes(myKey),
+                          );
+                          return (
+                            <button
+                              key={emoji}
+                              type="button"
+                              onClick={() => void toggleReact(m.id, emoji)}
+                              className={`rounded-full px-1.5 py-0.5 text-[12px] leading-none ${
+                                mineReact
+                                  ? "bg-accent/20 ring-1 ring-accent/40"
+                                  : "bg-black/5 dark:bg-white/10"
+                              }`}
+                            >
+                              {emoji} {keys.length}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                     <p
                       className={`mt-1 text-[10px] text-muted ${
                         mine ? "text-right" : ""
@@ -754,6 +969,27 @@ export function MomsCircleChat() {
               </div>
             ) : (
               <>
+                {replyTo && (
+                  <div className="mb-2 flex items-center gap-2 rounded-xl border border-line bg-background px-2 py-1.5">
+                    <div className="min-w-0 flex-1 border-l-[3px] border-accent pl-2">
+                      <p className="truncate text-[11px] font-semibold text-accent">
+                        {replyTo.displayName}
+                      </p>
+                      <p className="truncate text-xs text-muted">
+                        {mediaPreviewText(replyTo.mediaKind, replyTo.text) ||
+                          replyTo.text}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setReplyTo(null)}
+                      className="rounded-lg px-2 py-1 text-xs text-muted hover:bg-accent-soft"
+                      aria-label="Отменить ответ"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
                 {pendingPreview && pendingKind && (
                   <div className="mb-2 flex items-center gap-2 rounded-xl border border-line bg-background px-2 py-1.5">
                     {pendingKind === "image" ? (
@@ -846,6 +1082,7 @@ export function MomsCircleChat() {
                     <MayaIcon name="mic" size={18} />
                   </button>
                   <textarea
+                    ref={composerRef}
                     value={text}
                     onChange={(e) => setText(e.target.value.slice(0, 500))}
                     onKeyDown={(e) => {
@@ -855,7 +1092,7 @@ export function MomsCircleChat() {
                       }
                     }}
                     rows={1}
-                    placeholder="Сообщение"
+                    placeholder={replyTo ? "Ответ" : "Сообщение"}
                     className="max-h-28 min-h-[2.75rem] flex-1 resize-none rounded-2xl border border-line bg-background px-3.5 py-2.5 text-[15px] text-foreground outline-none focus:border-accent/40"
                   />
                   <button
@@ -876,6 +1113,83 @@ export function MomsCircleChat() {
             )}
           </div>
         </>
+      )}
+
+      {menu &&
+        createPortal(
+        <div
+          className="fixed inset-0 z-[80]"
+          onClick={() => {
+            if (Date.now() - menuOpenedAt.current < 450) return;
+            setMenu(null);
+          }}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            if (Date.now() - menuOpenedAt.current < 450) return;
+            setMenu(null);
+          }}
+        >
+          <div
+            role="menu"
+            className="absolute w-[236px] overflow-hidden rounded-2xl bg-card shadow-[0_12px_40px_rgba(0,0,0,0.22)] ring-1 ring-line"
+            style={{ left: menu.x, top: menu.y }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="grid grid-cols-8 gap-0 px-1.5 py-1.5">
+              {COMMUNITY_REACTIONS.map((emoji) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  className="flex h-8 items-center justify-center rounded-lg text-[17px] hover:bg-accent-soft"
+                  onClick={() => {
+                    void toggleReact(menu.id, emoji);
+                    setMenu(null);
+                  }}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+            <div className="border-t border-line py-1">
+              <button
+                type="button"
+                className="flex w-full px-3.5 py-2 text-left text-[15px] text-foreground hover:bg-accent-soft"
+                onClick={() => {
+                  const m = messages.find((x) => x.id === menu.id);
+                  if (m) startReply(m);
+                  setMenu(null);
+                }}
+              >
+                Ответить
+              </button>
+              <button
+                type="button"
+                className="flex w-full px-3.5 py-2 text-left text-[15px] text-foreground hover:bg-accent-soft"
+                onClick={() => {
+                  const m = messages.find((x) => x.id === menu.id);
+                  if (m) void copyMsg(m);
+                  setMenu(null);
+                }}
+              >
+                Копировать
+              </button>
+              {Boolean(myKey && messages.find((x) => x.id === menu.id)?.authorKey === myKey) && (
+                <button
+                  type="button"
+                  className="flex w-full px-3.5 py-2 text-left text-[15px] text-red-600 hover:bg-accent-soft dark:text-red-300"
+                  onClick={() => {
+                    const id = menu.id;
+                    setMenu(null);
+                    void deleteMsg(id);
+                  }}
+                >
+                  Удалить
+                </button>
+              )}
+            </div>
+          </div>
+        </div>,
+        document.body,
       )}
 
       {circleOpen && (

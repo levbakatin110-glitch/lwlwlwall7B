@@ -8,6 +8,10 @@ import {
 } from "fs";
 import { join } from "path";
 import { moderateCommunityPost } from "@/lib/community-moderation";
+import {
+  isCommunityReaction,
+  mediaPreviewText,
+} from "@/lib/community-reactions";
 
 export type CommunityMediaKind = "image" | "video" | "circle" | "voice";
 
@@ -23,12 +27,24 @@ export type CommunityMessage = {
   /** имя файла в data/community-media */
   mediaFile?: string;
   mediaKind?: CommunityMediaKind;
+  /** id сообщения, на которое отвечают */
+  replyToId?: string;
+  /** emoji → authorKeys */
+  reactions?: Record<string, string[]>;
+};
+
+export type CommunityReplyDto = {
+  id: string;
+  displayName: string;
+  text: string;
+  mediaKind?: CommunityMediaKind;
 };
 
 /** Ответ клиенту — без base64, только URL */
 export type CommunityMessageDto = Omit<CommunityMessage, "mediaFile"> & {
   avatarUrl?: string;
   mediaUrl?: string;
+  replyTo?: CommunityReplyDto;
 };
 
 type Store = { messages: CommunityMessage[] };
@@ -278,10 +294,38 @@ export function resolveMediaPath(messageId: string): {
   return { path, mime: mimeFromExt(ext, msg.mediaKind) };
 }
 
-function toDto(m: CommunityMessage, profiles: Profiles): CommunityMessageDto {
+function resolveReply(
+  replyToId: string | undefined,
+  all: CommunityMessage[],
+): CommunityReplyDto | undefined {
+  if (!replyToId) return undefined;
+  const orig = all.find((x) => x.id === replyToId);
+  if (!orig) {
+    return { id: replyToId, displayName: "", text: "Сообщение удалено" };
+  }
+  const text =
+    mediaPreviewText(orig.mediaKind, orig.text).slice(0, 120) || orig.text;
+  return {
+    id: orig.id,
+    displayName: orig.displayName,
+    text,
+    mediaKind: orig.mediaKind,
+  };
+}
+
+function toDto(
+  m: CommunityMessage,
+  profiles: Profiles,
+  all: CommunityMessage[],
+): CommunityMessageDto {
   const hasAvatar =
     Boolean(profiles[m.authorKey]?.avatarFile) ||
     Boolean(resolveAvatarPath(m.authorKey));
+  const reactions = m.reactions
+    ? Object.fromEntries(
+        Object.entries(m.reactions).filter(([, keys]) => keys.length > 0),
+      )
+    : undefined;
   return {
     id: m.id,
     createdAt: m.createdAt,
@@ -290,6 +334,10 @@ function toDto(m: CommunityMessage, profiles: Profiles): CommunityMessageDto {
     babyTag: m.babyTag,
     text: m.text,
     mediaKind: m.mediaKind,
+    replyToId: m.replyToId,
+    replyTo: resolveReply(m.replyToId, all),
+    reactions:
+      reactions && Object.keys(reactions).length > 0 ? reactions : undefined,
     avatarUrl: hasAvatar ? `/api/community/avatar/${m.authorKey}` : undefined,
     mediaUrl: m.mediaFile ? `/api/community/media/${m.id}` : undefined,
   };
@@ -300,7 +348,7 @@ export function listCommunityMessages(limit = 80): CommunityMessageDto[] {
   const profiles = loadProfiles();
   return all
     .slice(-Math.min(120, Math.max(20, limit)))
-    .map((m) => toDto(m, profiles));
+    .map((m) => toDto(m, profiles, all));
 }
 
 export async function addCommunityMessage(input: {
@@ -308,6 +356,7 @@ export async function addCommunityMessage(input: {
   displayName: string;
   text?: string;
   babyTag?: string;
+  replyToId?: string;
   /** data URL — сохраняем файлом профиля */
   avatarDataUrl?: string;
   media?: {
@@ -388,6 +437,10 @@ export async function addCommunityMessage(input: {
   const babyTag = input.babyTag?.trim().slice(0, 48) || undefined;
 
   const store = load();
+  const replyToId = input.replyToId?.trim() || undefined;
+  if (replyToId && !store.messages.some((m) => m.id === replyToId)) {
+    return { ok: false, error: "Сообщение для ответа не найдено" };
+  }
   const last = [...store.messages]
     .reverse()
     .find((m) => m.authorKey === authorKey);
@@ -430,6 +483,7 @@ export async function addCommunityMessage(input: {
     text: text || (mediaKind === "circle" ? "🎥 кружок" : mediaKind === "video" ? "🎬 видео" : mediaKind === "image" ? "📷 фото" : mediaKind === "voice" ? "🎤 голосовое" : ""),
     mediaFile,
     mediaKind,
+    replyToId,
   };
 
   store.messages.push(message);
@@ -446,7 +500,91 @@ export async function addCommunityMessage(input: {
     }
   }
   save(store);
-  return { ok: true, message: toDto(message, loadProfiles()) };
+  return { ok: true, message: toDto(message, loadProfiles(), store.messages) };
+}
+
+function unlinkMedia(mediaFile?: string) {
+  if (!mediaFile) return;
+  try {
+    unlinkSync(join(MEDIA_DIR, mediaFile));
+  } catch {
+    /* ignore */
+  }
+}
+
+export function deleteCommunityMessage(id: string): boolean {
+  const key = id.trim();
+  if (!key) return false;
+  const store = load();
+  const idx = store.messages.findIndex((m) => m.id === key);
+  if (idx < 0) return false;
+  unlinkMedia(store.messages[idx]?.mediaFile);
+  store.messages.splice(idx, 1);
+  save(store);
+  return true;
+}
+
+export function deleteOwnCommunityMessage(
+  email: string,
+  id: string,
+): { ok: true } | { ok: false; error: string } {
+  const authorKey = authorKeyFromEmail(email);
+  const key = id.trim();
+  if (!key) return { ok: false, error: "Нет сообщения" };
+  const store = load();
+  const idx = store.messages.findIndex((m) => m.id === key);
+  if (idx < 0) return { ok: false, error: "Сообщение не найдено" };
+  const msg = store.messages[idx];
+  if (msg.authorKey !== authorKey) {
+    return { ok: false, error: "Можно удалить только своё" };
+  }
+  unlinkMedia(msg.mediaFile);
+  store.messages.splice(idx, 1);
+  save(store);
+  return { ok: true };
+}
+
+export function reactToCommunityMessage(
+  email: string,
+  id: string,
+  emoji: string,
+):
+  | { ok: true; message: CommunityMessageDto }
+  | { ok: false; error: string } {
+  if (!isCommunityReaction(emoji)) {
+    return { ok: false, error: "Такой реакции нет" };
+  }
+  const authorKey = authorKeyFromEmail(email);
+  const key = id.trim();
+  const store = load();
+  const msg = store.messages.find((m) => m.id === key);
+  if (!msg) return { ok: false, error: "Сообщение не найдено" };
+
+  const reactions: Record<string, string[]> = { ...(msg.reactions || {}) };
+  const already = (reactions[emoji] || []).includes(authorKey);
+  for (const [face, keys] of Object.entries(reactions)) {
+    reactions[face] = keys.filter((k) => k !== authorKey);
+    if (reactions[face].length === 0) delete reactions[face];
+  }
+  if (!already) {
+    reactions[emoji] = [...(reactions[emoji] || []), authorKey];
+  }
+  msg.reactions = Object.keys(reactions).length ? reactions : undefined;
+  save(store);
+  return { ok: true, message: toDto(msg, loadProfiles(), store.messages) };
+}
+
+export function deleteCommunityByKind(kind: CommunityMediaKind): number {
+  const store = load();
+  let n = 0;
+  store.messages = store.messages.filter((m) => {
+    if (m.mediaKind !== kind) return true;
+    unlinkMedia(m.mediaFile);
+    n += 1;
+    return false;
+  });
+  if (n) save(store);
+  return n;
 }
 
 export function upsertCommunityAvatar(

@@ -192,6 +192,29 @@ export default function AdminPage() {
     await refreshServer(pass);
   }
 
+  async function deleteVoiceNotes() {
+    const pass = sessionStorage.getItem(PASS_KEY) || password;
+    if (!pass) return;
+    if (!confirm("Удалить все голосовые из круга мам? Кружки и фото останутся.")) {
+      return;
+    }
+    setBusyId("voice");
+    setNote(null);
+    try {
+      const res = await fetch("/api/admin/community?kind=voice", {
+        method: "DELETE",
+        headers: adminHeaders(pass),
+      });
+      const data = (await res.json()) as { error?: string; deleted?: number };
+      if (!res.ok) throw new Error(data.error || "Не удалилось");
+      setNote(`Голосовых удалено: ${data.deleted ?? 0}`);
+    } catch (e) {
+      setNote(e instanceof Error ? e.message : "Ошибка");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   async function clearStrike(authorKey: string) {
     const pass = sessionStorage.getItem(PASS_KEY) || password;
     if (!pass) return;
@@ -393,10 +416,19 @@ export default function AdminPage() {
       </section>
 
       <section className="mt-10">
-        <div className="flex items-end justify-between gap-3">
+        <div className="flex flex-wrap items-end justify-between gap-3">
           <h2 className="font-display text-xl font-semibold text-foreground">
             Круг мам — муты и кики
           </h2>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={busyId === "voice"}
+              onClick={() => void deleteVoiceNotes()}
+              className="rounded-xl border border-rose-200 px-3 py-1.5 text-xs text-rose-700"
+            >
+              {busyId === "voice" ? "…" : "Удалить голосовые"}
+            </button>
           <button
             type="button"
             onClick={() => {
@@ -407,6 +439,7 @@ export default function AdminPage() {
           >
             Обновить
           </button>
+          </div>
         </div>
         {strikes.length === 0 ? (
           <p className="mt-4 text-sm text-muted">
