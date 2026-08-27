@@ -1,0 +1,14 @@
+---
+description: Always commit and push to GitHub yourself — the owner does not push.
+alwaysApply: true
+---
+
+# Always push to GitHub
+
+The owner never pushes. After finishing work that should go live:
+
+1. Commit the relevant files (not secrets, not `public/banners/`, not banner scripts unless asked).
+2. **Immediately `git push -u origin HEAD`** to `main`. Do not ask first. Do not wait for the owner.
+3. Give the VPS `git pull` + build command after a successful push.
+
+Remote: `https://github.com/levbakatin110-glitch/lwlwlwall7B.git`, branch `main`.
