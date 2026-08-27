@@ -21,10 +21,49 @@ const nunito = Nunito({
 });
 
 export const metadata: Metadata = {
-  title: "Мая — ИИ-помощница для мам",
+  metadataBase: new URL("https://hey-maya.ru"),
+  title: {
+    default: "Мая — ИИ-помощница для мам",
+    template: "%s · Мая",
+  },
   description:
-    "Помнит сон, кормление, рост и гардероб малыша. Подсказывает что надеть и становится умнее о вашей семье каждый день.",
+    "ИИ для мам: сон, кормление, рост, гардероб и напоминания. Помнит вашего малыша и отвечает по делу.",
   applicationName: "Мая",
+  keywords: [
+    "ИИ для мам",
+    "дневник ребёнка",
+    "трекер сна",
+    "кормление",
+    "беременность",
+    "Мая",
+    "hey-maya",
+  ],
+  authors: [{ name: "Мая", url: "https://hey-maya.ru" }],
+  alternates: { canonical: "https://hey-maya.ru" },
+  openGraph: {
+    type: "website",
+    locale: "ru_RU",
+    url: "https://hey-maya.ru",
+    siteName: "Мая",
+    title: "Мая — ИИ-помощница для мам",
+    description:
+      "Помнит сон, кормление и гардероб малыша. Напоминания на телефоне. Круг мам.",
+    images: [
+      {
+        url: "/icons/icon-512.png",
+        width: 512,
+        height: 512,
+        alt: "Мая",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary",
+    title: "Мая — ИИ-помощница для мам",
+    description:
+      "Помнит сон, кормление и гардероб малыша. Напоминания на телефоне.",
+    images: ["/icons/icon-512.png"],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -41,6 +80,10 @@ export const metadata: Metadata = {
     apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
   },
   manifest: "/manifest.webmanifest",
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export const viewport: Viewport = {

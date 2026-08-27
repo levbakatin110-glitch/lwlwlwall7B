@@ -16,6 +16,21 @@ export default function LegalIndexPage() {
         Пакет документов {LEGAL_OPERATOR.shortName} для сервиса «Мая»
         (hey-maya.ru). Редакция от {LEGAL_EDITION} г.
       </p>
+      <div className="rounded-xl border border-line bg-card/60 px-3 py-3 text-xs leading-relaxed text-muted">
+        <p className="font-medium text-foreground">{LEGAL_OPERATOR.fullName}</p>
+        <p>
+          ИНН {LEGAL_OPERATOR.inn} · ОГРНИП {LEGAL_OPERATOR.ogrnip}
+        </p>
+        <p>{LEGAL_OPERATOR.address}</p>
+        <p>
+          <a
+            className="text-accent underline"
+            href={`mailto:${LEGAL_OPERATOR.email}`}
+          >
+            {LEGAL_OPERATOR.email}
+          </a>
+        </p>
+      </div>
       <p className="rounded-xl border border-line bg-card/60 px-3 py-2 text-xs text-muted">
         Услуги носят информационный характер и не являются медицинской помощью.
         При любых вопросах о здоровье ребёнка обращайтесь к врачу.

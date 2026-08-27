@@ -174,7 +174,8 @@ export function OnboardingFlow({
   const [emailBusy, setEmailBusy] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [emailOk, setEmailOk] = useState(false);
-  /** register | login | recover — у Маи нет пароля, вход по коду на почту */
+  const [password, setPassword] = useState("");
+  /** register | login | recover */
   const [authMode, setAuthMode] = useState<"register" | "login" | "recover">(
     "register",
   );
@@ -422,7 +423,10 @@ export function OnboardingFlow({
     if (flowStep === "who" && !validateWho()) return;
     if (flowStep === "preg" && !validatePreg()) return;
     if (flowStep === "baby1" && !validateStep2()) return;
-    // Почта необязательна — можно пропустить
+    if (flowStep === "email" && !(emailOk || emailVerified)) {
+      setEmailError("Подтвердите почту — без неё не сохранить данные и круг мам");
+      return;
+    }
     setStepIdx((s) => Math.min(flow.length - 1, s + 1));
   }
 
@@ -476,6 +480,14 @@ export function OnboardingFlow({
       setAccountEmail(data.email || trimmed);
       setEmailOk(true);
       trackEvent(authMode === "register" ? "register" : "login");
+      if (password.length >= 6) {
+        await fetch("/api/auth/password", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "set", password }),
+        });
+      }
       setStepIdx((i) => Math.min(flow.length - 1, i + 1));
     } catch (e) {
       setEmailError(e instanceof Error ? e.message : "Ошибка проверки");
@@ -488,10 +500,48 @@ export function OnboardingFlow({
     setAuthMode(next);
     setCodeSent(false);
     setCode("");
+    setPassword("");
     setEmailError(null);
   }
 
+  async function loginPassword() {
+    setEmailError(null);
+    const trimmed = email.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      setEmailError("Укажите почту");
+      return;
+    }
+    setEmailBusy(true);
+    try {
+      const res = await fetch("/api/auth/password", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "login",
+          email: trimmed,
+          password,
+        }),
+      });
+      const data = (await res.json()) as { error?: string; email?: string };
+      if (!res.ok) throw new Error(data.error || "Неверный пароль");
+      setAccountEmail(data.email || trimmed);
+      setEmailOk(true);
+      trackEvent("login");
+      setStepIdx((i) => Math.min(flow.length - 1, i + 1));
+    } catch (e) {
+      setEmailError(e instanceof Error ? e.message : "Ошибка");
+    } finally {
+      setEmailBusy(false);
+    }
+  }
+
   async function finish(andAddAnother: boolean) {
+    if (mode === "first" && !(emailOk || emailVerified)) {
+      setEmailError("Сначала подтвердите почту");
+      setSaving(false);
+      return;
+    }
     setSaving(true);
     try {
       persistPregnancy();
@@ -890,8 +940,8 @@ export function OnboardingFlow({
                 {authMode === "register"
                   ? "Только российская почта (Mail.ru, Яндекс, .ru). Или быстрый вход через Mail.ru."
                   : authMode === "login"
-                    ? "Вход по коду (РФ-почта) или через Mail.ru — пароль не нужен."
-                    : "Введите российскую почту аккаунта — пришлём новый код."}
+                    ? "Пароль, если задавали. Или код на почту. Или Mail.ru — без кода."
+                    : "Код на почту, затем новый пароль."}
               </p>
 
               {(emailOk || emailVerified) && (
@@ -913,6 +963,26 @@ export function OnboardingFlow({
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="you@mail.ru"
+                      className="mt-1 w-full rounded-xl border border-line bg-card/70 px-3 py-3 text-sm outline-none focus:border-accent/50"
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+                      Пароль
+                    </span>
+                    <input
+                      type="password"
+                      autoComplete={
+                        authMode === "login" ? "current-password" : "new-password"
+                      }
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder={
+                        authMode === "login"
+                          ? "Если задавали — войти без кода"
+                          : "От 6 символов (можно задать после кода)"
+                      }
                       className="mt-1 w-full rounded-xl border border-line bg-card/70 px-3 py-3 text-sm outline-none focus:border-accent/50"
                     />
                   </label>
@@ -942,18 +1012,30 @@ export function OnboardingFlow({
                   )}
 
                   {!codeSent ? (
-                    <button
-                      type="button"
-                      disabled={emailBusy}
-                      onClick={() => void sendCode()}
-                      className="w-full rounded-2xl bg-accent py-3.5 text-sm font-semibold text-[#ffffff] disabled:opacity-50"
-                    >
-                      {emailBusy
-                        ? "Отправляю…"
-                        : authMode === "register"
-                          ? "Получить код"
-                          : "Получить код для входа"}
-                    </button>
+                    <div className="space-y-2">
+                      {authMode === "login" && password.length >= 6 && (
+                        <button
+                          type="button"
+                          disabled={emailBusy}
+                          onClick={() => void loginPassword()}
+                          className="w-full rounded-2xl bg-accent py-3.5 text-sm font-semibold text-[#ffffff] disabled:opacity-50"
+                        >
+                          {emailBusy ? "Вхожу…" : "Войти по паролю"}
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        disabled={emailBusy}
+                        onClick={() => void sendCode()}
+                        className="w-full rounded-2xl bg-accent py-3.5 text-sm font-semibold text-[#ffffff] disabled:opacity-50"
+                      >
+                        {emailBusy
+                          ? "Отправляю…"
+                          : authMode === "register"
+                            ? "Получить код"
+                            : "Получить код для входа"}
+                      </button>
+                    </div>
                   ) : (
                     <div className="space-y-2">
                       <button
@@ -1109,15 +1191,6 @@ export function OnboardingFlow({
                   className="w-full rounded-2xl bg-accent py-3.5 text-sm font-semibold text-[#ffffff] hover:bg-accent-hot"
                 >
                   Далее
-                </button>
-              )}
-              {!(emailOk || emailVerified) && (
-                <button
-                  type="button"
-                  onClick={goNext}
-                  className="w-full rounded-2xl border border-line bg-card/70 py-3.5 text-sm font-semibold text-foreground"
-                >
-                  Пропустить — сразу к Мае
                 </button>
               )}
             </>

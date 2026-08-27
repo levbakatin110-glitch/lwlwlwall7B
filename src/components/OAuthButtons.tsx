@@ -67,7 +67,9 @@ export function OAuthButtons({
   return (
     <div className="space-y-2">
       <div className="relative py-2 text-center text-[11px] uppercase tracking-[0.16em] text-muted">
-        <span className="relative z-[1] bg-background px-3">или быстро</span>
+        <span className="relative z-[1] bg-background px-3">
+          или Mail.ru без кода
+        </span>
         <span className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-line" />
       </div>
 
@@ -81,7 +83,7 @@ export function OAuthButtons({
         {busy
           ? "Перенаправляю…"
           : mailruOk
-            ? "Войти с Mail.ru"
+            ? "Войти с Mail.ru — без кода"
             : "Mail.ru (нужна настройка)"}
       </button>
     </div>

@@ -12,6 +12,17 @@ import type { CustomModule, ModuleBlueprint } from "@/lib/types";
 
 const PASS_KEY = "maya-admin-pass";
 
+type ModerationStrike = {
+  authorKey: string;
+  nick: string | null;
+  count: number;
+  mutedUntil: number;
+  kicked: boolean;
+  lastReason?: string;
+  updatedAt: string;
+  muted: boolean;
+};
+
 function fmtWhen(iso: string) {
   try {
     return new Date(iso).toLocaleString("ru-RU", {
@@ -22,6 +33,20 @@ function fmtWhen(iso: string) {
     });
   } catch {
     return iso;
+  }
+}
+
+function fmtUntil(ms: number) {
+  if (ms <= Date.now()) return "истекла";
+  try {
+    return new Date(ms).toLocaleString("ru-RU", {
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return String(ms);
   }
 }
 
@@ -39,6 +64,7 @@ export default function AdminPage() {
   const [authed, setAuthed] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [serverErrors, setServerErrors] = useState<OpsErrorLog[]>([]);
+  const [strikes, setStrikes] = useState<ModerationStrike[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
 
@@ -74,16 +100,21 @@ export default function AdminPage() {
   const refreshServer = useCallback(
     async (pass: string) => {
       try {
-        const res = await fetch("/api/ops-log", {
-          headers: adminHeaders(pass),
-        });
-        if (res.status === 401) {
+        const [opsRes, modRes] = await Promise.all([
+          fetch("/api/ops-log", { headers: adminHeaders(pass) }),
+          fetch("/api/admin/moderation", { headers: adminHeaders(pass) }),
+        ]);
+        if (opsRes.status === 401 || modRes.status === 401) {
           setAuthed(false);
           sessionStorage.removeItem(PASS_KEY);
           return;
         }
-        const data = (await res.json()) as { errors?: OpsErrorLog[] };
+        const data = (await opsRes.json()) as { errors?: OpsErrorLog[] };
         setServerErrors(data.errors ?? []);
+        if (modRes.ok) {
+          const mod = (await modRes.json()) as { strikes?: ModerationStrike[] };
+          setStrikes(mod.strikes ?? []);
+        }
       } catch {
         setServerErrors([]);
       }
@@ -159,6 +190,29 @@ export default function AdminPage() {
     });
     clearOpsErrors();
     await refreshServer(pass);
+  }
+
+  async function clearStrike(authorKey: string) {
+    const pass = sessionStorage.getItem(PASS_KEY) || password;
+    if (!pass) return;
+    setBusyId(authorKey);
+    setNote(null);
+    try {
+      const res = await fetch(
+        `/api/admin/moderation?authorKey=${encodeURIComponent(authorKey)}`,
+        { method: "DELETE", headers: adminHeaders(pass) },
+      );
+      if (!res.ok) {
+        const data = (await res.json()) as { error?: string };
+        throw new Error(data.error || "Не снялось");
+      }
+      setNote("Мут/кик снят");
+      await refreshServer(pass);
+    } catch (e) {
+      setNote(e instanceof Error ? e.message : "Ошибка");
+    } finally {
+      setBusyId(null);
+    }
   }
 
   const mergedErrors = useMemo(() => {
@@ -332,6 +386,67 @@ export default function AdminPage() {
                     Чинили: {fmtWhen(mod.lastRepairedAt)}
                   </p>
                 )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="mt-10">
+        <div className="flex items-end justify-between gap-3">
+          <h2 className="font-display text-xl font-semibold text-foreground">
+            Круг мам — муты и кики
+          </h2>
+          <button
+            type="button"
+            onClick={() => {
+              const pass = sessionStorage.getItem(PASS_KEY) || password;
+              if (pass) void refreshServer(pass);
+            }}
+            className="rounded-xl border border-line px-3 py-1.5 text-xs text-muted"
+          >
+            Обновить
+          </button>
+        </div>
+        {strikes.length === 0 ? (
+          <p className="mt-4 text-sm text-muted">
+            Никого не глушили и не кикали.
+          </p>
+        ) : (
+          <ul className="mt-4 space-y-2">
+            {strikes.map((s) => (
+              <li
+                key={s.authorKey}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-card/80 px-3 py-2"
+              >
+                <div>
+                  <p className="text-sm font-medium text-foreground">
+                    {s.nick || "без ника"}{" "}
+                    <span className="font-normal text-muted">
+                      · {s.authorKey.slice(0, 8)}
+                    </span>
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-muted">
+                    {s.kicked
+                      ? "кик"
+                      : s.muted
+                        ? `мут до ${fmtUntil(s.mutedUntil)}`
+                        : "страйки без активного мута"}
+                    {" · "}
+                    страйков: {s.count}
+                    {s.lastReason ? ` · ${s.lastReason}` : ""}
+                    {" · "}
+                    {fmtWhen(s.updatedAt)}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={busyId === s.authorKey}
+                  onClick={() => void clearStrike(s.authorKey)}
+                  className="rounded-xl border border-line px-3 py-1.5 text-xs text-accent disabled:opacity-50"
+                >
+                  {busyId === s.authorKey ? "…" : "Снять"}
+                </button>
               </li>
             ))}
           </ul>

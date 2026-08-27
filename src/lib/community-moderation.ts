@@ -292,3 +292,46 @@ export function moderateCommunityPost(input: {
 export function moderationFingerprint(email: string): string {
   return createHash("sha256").update(email).digest("hex").slice(0, 12);
 }
+
+export type ModerationStrikeRow = {
+  authorKey: string;
+  count: number;
+  mutedUntil: number;
+  kicked: boolean;
+  lastReason?: string;
+  updatedAt: string;
+  muted: boolean;
+};
+
+export function listModerationStrikes(): ModerationStrikeRow[] {
+  const store = load();
+  const now = Date.now();
+  return Object.entries(store.strikes)
+    .map(([authorKey, s]) => ({
+      authorKey,
+      count: s.count,
+      mutedUntil: s.mutedUntil,
+      kicked: s.kicked,
+      lastReason: s.lastReason,
+      updatedAt: s.updatedAt,
+      muted: s.mutedUntil > now,
+    }))
+    .filter((r) => r.kicked || r.muted || r.count > 0)
+    .sort((a, b) => {
+      if (a.kicked !== b.kicked) return a.kicked ? -1 : 1;
+      if (a.muted !== b.muted) return a.muted ? -1 : 1;
+      return b.updatedAt.localeCompare(a.updatedAt);
+    });
+}
+
+/** Снимает мут и кик — можно снова писать. */
+export function clearModerationStrike(authorKey: string): boolean {
+  const key = authorKey.trim().slice(0, 32);
+  if (!key) return false;
+  const store = load();
+  if (!store.strikes[key] && !store.recent[key]) return false;
+  delete store.strikes[key];
+  delete store.recent[key];
+  save(store);
+  return true;
+}

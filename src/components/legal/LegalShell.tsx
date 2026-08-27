@@ -43,8 +43,7 @@ export function LegalShell({
         {incomplete && (
           <p className="mt-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-950 dark:text-amber-100">
             Черновик: в реквизитах Исполнителя ещё стоят заглушки. Укажите ФИО
-            ИП, ИНН, ОГРНИП и адрес — документы должны совпадать с получателем
-            оплаты в Prodamus.
+            ИП, ИНН, ОГРНИП и адрес.
           </p>
         )}
 
@@ -53,7 +52,10 @@ export function LegalShell({
         </div>
 
         <section className="mt-12 border-t border-line pt-6 text-xs leading-relaxed text-muted">
-          <p className="font-medium text-foreground">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em]">
+            Реквизиты Исполнителя
+          </p>
+          <p className="mt-2 font-medium text-foreground">
             {LEGAL_OPERATOR.fullName}
           </p>
           <p>
@@ -66,6 +68,15 @@ export function LegalShell({
               href={`mailto:${LEGAL_OPERATOR.email}`}
             >
               {LEGAL_OPERATOR.email}
+            </a>
+          </p>
+          <p className="mt-1">
+            Поддержка:{" "}
+            <a
+              className="text-accent underline"
+              href={`mailto:${LEGAL_OPERATOR.supportEmail}`}
+            >
+              {LEGAL_OPERATOR.supportEmail}
             </a>
           </p>
         </section>

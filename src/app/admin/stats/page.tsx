@@ -15,6 +15,8 @@ const LABELS: Record<string, string> = {
   pricing_view: "Смотрели цены",
   subscribe_click: "Клик «оплатить»",
   subscribe_activate: "Активации подписки",
+  community_post: "Круг мам",
+  push_enable: "Push включили",
 };
 
 export default function AnalyticsPage() {
@@ -28,7 +30,7 @@ export default function AnalyticsPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/analytics/summary?days=14", {
+      const res = await fetch("/api/analytics/summary?days=30", {
         headers: { "x-analytics-password": pass },
       });
       if (res.status === 401) {
@@ -118,7 +120,12 @@ export default function AnalyticsPage() {
             Только владелец
           </p>
           <h1 className="font-display mt-1 text-3xl font-semibold">Аналитика</h1>
-          <p className="mt-1 text-sm text-muted">Последние 14 дней · /admin/stats</p>
+          <p className="mt-1 text-sm text-muted">
+            Последние 30 дней ·{" "}
+            <a href="https://hey-maya.ru/admin/stats" className="underline">
+              hey-maya.ru/admin/stats
+            </a>
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button
@@ -157,6 +164,8 @@ export default function AnalyticsPage() {
               "pricing_view",
               "subscribe_click",
               "subscribe_activate",
+              "community_post",
+              "push_enable",
             ] as const
           ).map((key) => (
             <div
@@ -176,6 +185,26 @@ export default function AnalyticsPage() {
             </div>
           ))}
         </div>
+      )}
+
+      {data?.funnel && (
+        <section className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {(
+            [
+              ["Визит → рег.", data.funnel.visitToRegisterPct],
+              ["Рег. → анкета", data.funnel.registerToOnboardPct],
+              ["Визит → чат", data.funnel.visitToChatPct],
+              ["Клик → оплата", data.funnel.clickToPayPct],
+            ] as const
+          ).map(([label, n]) => (
+            <div key={label} className="rounded-2xl border border-line bg-card/80 p-3">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted">
+                {label}
+              </p>
+              <p className="font-display mt-1 text-2xl font-semibold">{n}%</p>
+            </div>
+          ))}
+        </section>
       )}
 
       <section className="mt-8">

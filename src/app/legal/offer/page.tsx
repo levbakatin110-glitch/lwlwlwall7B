@@ -24,10 +24,10 @@ export default function OfferPage() {
       <p className="text-muted">в редакции от {LEGAL_EDITION} г.</p>
 
       <p>
-        {o.fullName}, ИНН: {o.inn}; ОГРНИП: {o.ogrnip}, именуемый(ая) в
-        дальнейшем «Исполнитель», предлагает заключить настоящую Оферту на
-        получение платных информационных услуг сервиса «{LEGAL_BRAND}» (
-        {LEGAL_PRODUCT}) с любым юридическим лицом, индивидуальным
+        {o.fullName}, ИНН: {o.inn}; ОГРНИП: {o.ogrnip}, адрес: {o.address},
+        именуемая в дальнейшем «Исполнитель», предлагает заключить настоящую
+        Оферту на получение платных информационных услуг сервиса «{LEGAL_BRAND}»{" "}
+        ({LEGAL_PRODUCT}) с любым юридическим лицом, индивидуальным
         предпринимателем или физическим лицом посредством совершения акцепта
         настоящей Оферты на сайте {site} и его поддоменах.
       </p>
@@ -362,6 +362,16 @@ export default function OfferPage() {
         </Link>
         .
       </p>
+
+      <h2 className="font-display pt-4 text-xl font-semibold">
+        Реквизиты Исполнителя
+      </h2>
+      <p>{o.fullName}</p>
+      <p>ИНН: {o.inn}</p>
+      <p>ОГРНИП: {o.ogrnip}</p>
+      <p>Адрес: {o.address}</p>
+      <p>Электронная почта: {o.email}</p>
+      <p>Поддержка: {o.supportEmail}</p>
     </LegalShell>
   );
 }

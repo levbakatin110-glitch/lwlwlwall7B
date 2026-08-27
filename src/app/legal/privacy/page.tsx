@@ -35,8 +35,8 @@ export default function PrivacyPage() {
       </p>
       <p>
         <strong>Оператор</strong> — {o.fullName}, ИНН: {o.inn}; ОГРНИП:{" "}
-        {o.ogrnip}, лицо, определяющее цели и состав обработки персональных
-        данных.
+        {o.ogrnip}; адрес: {o.address}; эл. почта {o.email}, лицо, определяющее
+        цели и состав обработки персональных данных.
       </p>
       <p>
         <strong>Обработка персональных данных</strong> — любое действие
@@ -271,6 +271,16 @@ export default function PrivacyPage() {
         Отзыв согласия: письмо на {o.email} с пометкой «Отзыв согласия на
         обработку персональных данных».
       </p>
+
+      <h2 className="font-display pt-4 text-xl font-semibold">
+        Реквизиты Оператора
+      </h2>
+      <p>{o.fullName}</p>
+      <p>ИНН: {o.inn}</p>
+      <p>ОГРНИП: {o.ogrnip}</p>
+      <p>Адрес: {o.address}</p>
+      <p>Электронная почта: {o.email}</p>
+      <p>Поддержка: {o.supportEmail}</p>
     </LegalShell>
   );
 }

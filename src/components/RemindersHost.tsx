@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useAppStore } from "@/lib/store";
 import { MayaIcon } from "@/components/icons/MayaIcon";
+import { notifyViaSw } from "@/components/PushReminders";
 
 const FIRED_KEY = "maya-reminders-fired-v1";
 
@@ -91,19 +92,12 @@ export function RemindersHost() {
         if (fresh.length >= 5) break;
         fired.add(c.id);
         fresh.push({ id: c.id, text: c.text, at: c.at, href: c.href });
-        if (
-          typeof Notification !== "undefined" &&
-          Notification.permission === "granted"
-        ) {
-          try {
-            new Notification("Мая · напоминание", {
-              body: c.text,
-              tag: c.id,
-            });
-          } catch {
-            /* ignore */
-          }
-        }
+        notifyViaSw({
+          title: "Мая · напоминание",
+          body: c.text,
+          tag: c.id,
+          url: c.href,
+        });
       }
       if (fresh.length) {
         saveFired(fired);

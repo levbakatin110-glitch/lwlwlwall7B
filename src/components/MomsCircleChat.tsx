@@ -15,6 +15,7 @@ import {
 import { MayaIcon } from "@/components/icons/MayaIcon";
 import { childDisplayName } from "@/lib/children";
 import { compressImageFile } from "@/lib/image";
+import { trackEvent } from "@/lib/analytics-client";
 import { useAppStore } from "@/lib/store";
 
 type MediaKind = "image" | "video" | "circle";
@@ -241,6 +242,40 @@ export function MomsCircleChat() {
   }, [profile]);
 
   useEffect(() => {
+    if (!emailVerified) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/community/profile", {
+          credentials: "include",
+        });
+        if (!res.ok || cancelled) return;
+        const data = (await res.json()) as {
+          profile?: {
+            nick?: string;
+            babyName?: string;
+            babyBirth?: string;
+          } | null;
+        };
+        if (!data.profile?.nick) return;
+        const next: CommunityProfile = {
+          nick: data.profile.nick,
+          babyName: data.profile.babyName || "",
+          babyBirth: data.profile.babyBirth || "",
+          avatar: loadProfile()?.avatar,
+        };
+        saveProfile(next);
+        if (!cancelled) setCommProfile(next);
+      } catch {
+        /* offline — localStorage */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [emailVerified]);
+
+  useEffect(() => {
     if (!accountEmail || !emailVerified) {
       setMyKey(null);
       return;
@@ -326,7 +361,21 @@ export function MomsCircleChat() {
     setCommProfile(next);
     setEditingProfile(false);
     setError(null);
-    await syncAvatarToServer(setupAvatar);
+    try {
+      await fetch("/api/community/profile", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nick: next.nick,
+          babyName: next.babyName,
+          babyBirth: next.babyBirth,
+          avatar: setupAvatar,
+        }),
+      });
+    } catch {
+      await syncAvatarToServer(setupAvatar);
+    }
     void load(true);
   }
 
@@ -424,6 +473,7 @@ export function MomsCircleChat() {
         message?: CommunityMessage;
       };
       if (!res.ok) throw new Error(data.error || "Не отправилось");
+      trackEvent("community_post");
       setText("");
       clearPendingMedia();
       if (data.message) {

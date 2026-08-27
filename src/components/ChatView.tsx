@@ -29,6 +29,7 @@ import {
   isSubscriptionActive,
 } from "@/lib/subscription";
 import { useAppStore } from "@/lib/store";
+import { trackEvent } from "@/lib/analytics-client";
 import type { ModuleBlueprint, ModuleId, WeatherSnapshot } from "@/lib/types";
 import { decodeWeatherHeader } from "@/lib/weather";
 import Link from "next/link";
@@ -372,6 +373,7 @@ export function ChatView() {
     setError(null);
 
     addMessage({ role: "user", content: text });
+    trackEvent("chat_send");
     const assistantId = addMessage({ role: "assistant", content: "" });
 
     startTransition(async () => {

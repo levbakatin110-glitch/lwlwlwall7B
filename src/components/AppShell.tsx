@@ -8,6 +8,7 @@ import { AuthSessionSync } from "./AuthSessionSync";
 import { CloudBackupSync } from "./CloudBackupSync";
 import { OnboardingGate } from "./OnboardingFlow";
 import { QuickNavCarousel } from "./QuickNavCarousel";
+import { PushReminders } from "./PushReminders";
 import { RemindersHost } from "./RemindersHost";
 import { SubscriptionSync } from "./SubscriptionSync";
 import { Sidebar } from "./Sidebar";
@@ -62,6 +63,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {globalSync}
       <SubscriptionSync />
       <CookieBanner />
+      <PushReminders />
       <div className="flex h-dvh max-h-dvh overflow-hidden overscroll-none bg-background pt-[env(safe-area-inset-top)] text-foreground">
         {!isCommunity && (
           <Sidebar

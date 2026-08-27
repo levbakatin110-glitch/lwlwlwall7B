@@ -30,6 +30,7 @@ export default function ProfilePage() {
   const [emailBusy, setEmailBusy] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [emailMsg, setEmailMsg] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState("");
 
   useEffect(() => {
     setPortalReady(true);
@@ -179,9 +180,66 @@ export default function ProfilePage() {
           </button>
         </div>
         {emailVerified && accountEmail ? (
-          <p className="mt-2 text-sm text-foreground">
-            Привязана: <span className="font-medium">{accountEmail}</span>
-          </p>
+          <div className="mt-2 space-y-3">
+            <p className="text-sm text-foreground">
+              Привязана: <span className="font-medium">{accountEmail}</span>
+            </p>
+            <p className="text-xs text-muted">
+              Пароль — чтобы входить без кода. Mail.ru — без кода, если это
+              почта @mail.ru / @bk.ru / @inbox.ru.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Новый пароль (от 6)"
+                className="min-w-[10rem] flex-1 rounded-xl border border-line bg-background px-3 py-2 text-sm"
+              />
+              <button
+                type="button"
+                disabled={emailBusy || newPassword.length < 6}
+                onClick={() => {
+                  void (async () => {
+                    setEmailError(null);
+                    setEmailBusy(true);
+                    try {
+                      const res = await fetch("/api/auth/password", {
+                        method: "POST",
+                        credentials: "include",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          action: "set",
+                          password: newPassword,
+                        }),
+                      });
+                      const data = (await res.json()) as { error?: string };
+                      if (!res.ok) throw new Error(data.error || "Не удалось");
+                      setNewPassword("");
+                      setEmailMsg("Пароль сохранён — можно входить без кода");
+                    } catch (e) {
+                      setEmailError(
+                        e instanceof Error ? e.message : "Ошибка",
+                      );
+                    } finally {
+                      setEmailBusy(false);
+                    }
+                  })();
+                }}
+                className="rounded-xl bg-accent px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
+              >
+                Сохранить пароль
+              </button>
+            </div>
+            {emailError && (
+              <p className="text-sm text-red-600 dark:text-red-300">{emailError}</p>
+            )}
+            {emailMsg && (
+              <p className="text-sm text-emerald-700 dark:text-emerald-300">
+                {emailMsg}
+              </p>
+            )}
+          </div>
         ) : (
           <div className="mt-3 space-y-3">
             <p className="text-sm text-muted">

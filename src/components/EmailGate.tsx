@@ -22,6 +22,8 @@ export function EmailGate({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [consentOffer, setConsentOffer] = useState(false);
   const [consentPrivacy, setConsentPrivacy] = useState(false);
+  const [password, setPassword] = useState("");
+  const [knownPassword, setKnownPassword] = useState(false);
 
   if (emailVerified && accountEmail) {
     return <>{children}</>;
@@ -34,7 +36,20 @@ export function EmailGate({ children }: { children: React.ReactNode }) {
     setAuthMode(next);
     setCodeSent(false);
     setCode("");
+    setPassword("");
     setError(null);
+  }
+
+  async function checkHasPassword(trimmed: string) {
+    try {
+      const res = await fetch(
+        `/api/auth/password?email=${encodeURIComponent(trimmed)}`,
+      );
+      const data = (await res.json()) as { hasPassword?: boolean };
+      setKnownPassword(Boolean(data.hasPassword));
+    } catch {
+      setKnownPassword(false);
+    }
   }
 
   async function sendCode() {
@@ -65,6 +80,36 @@ export function EmailGate({ children }: { children: React.ReactNode }) {
     }
   }
 
+  async function loginPassword() {
+    setError(null);
+    const trimmed = email.trim().toLowerCase();
+    if (!consentsOk) {
+      setError("Отметьте обязательные согласия под формой");
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await fetch("/api/auth/password", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "login",
+          email: trimmed,
+          password,
+        }),
+      });
+      const data = (await res.json()) as { error?: string; email?: string };
+      if (!res.ok) throw new Error(data.error || "Неверный пароль");
+      setAccountEmail(data.email || trimmed);
+      trackEvent("login");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Ошибка");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function verify() {
     setError(null);
     setBusy(true);
@@ -82,6 +127,17 @@ export function EmailGate({ children }: { children: React.ReactNode }) {
       if (!res.ok) throw new Error(data.error || "Неверный код");
       setAccountEmail(data.email || email.trim().toLowerCase());
       trackEvent(authMode === "register" ? "register" : "login");
+      if (password.length >= 6 && (authMode === "register" || authMode === "recover")) {
+        await fetch("/api/auth/password", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "set",
+            password,
+          }),
+        });
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Ошибка");
     } finally {
@@ -107,11 +163,11 @@ export function EmailGate({ children }: { children: React.ReactNode }) {
               : "Доступ к аккаунту"}
         </h1>
         <p className="mt-3 text-sm leading-relaxed text-muted">
-          {authMode === "register"
-            ? "Только российская почта (Mail.ru, Яндекс, .ru). Пришлём код. Или войдите через Mail.ru."
-            : authMode === "login"
-              ? "Вход по коду на почту (РФ) или через Mail.ru — пароль не нужен."
-              : "Введите российскую почту аккаунта — пришлём новый код."}
+              {authMode === "register"
+                ? "Только российская почта (Mail.ru, Яндекс, .ru). Код в письме или вход через Mail.ru без кода."
+                : authMode === "login"
+                  ? "Пароль, если задали. Или код на почту. Или кнопка Mail.ru — без кода."
+                  : "Пришлём код на почту и зададите новый пароль."}
         </p>
 
         <div className="mt-6 space-y-3">
@@ -119,10 +175,34 @@ export function EmailGate({ children }: { children: React.ReactNode }) {
             type="email"
             autoComplete="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              const v = e.target.value.trim().toLowerCase();
+              if (v.includes("@")) void checkHasPassword(v);
+            }}
             placeholder="you@mail.ru"
             className="w-full rounded-xl border border-line bg-card px-3 py-3.5 text-sm outline-none focus:border-accent/50"
           />
+          {authMode === "login" && (
+            <input
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Пароль (если задавали)"
+              className="w-full rounded-xl border border-line bg-card px-3 py-3.5 text-sm outline-none focus:border-accent/50"
+            />
+          )}
+          {(authMode === "register" || authMode === "recover") && (
+            <input
+              type="password"
+              autoComplete="new-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Новый пароль (от 6 символов, необязательно при регистрации)"
+              className="w-full rounded-xl border border-line bg-card px-3 py-3.5 text-sm outline-none focus:border-accent/50"
+            />
+          )}
           {codeSent && (
             <input
               inputMode="numeric"
@@ -180,18 +260,34 @@ export function EmailGate({ children }: { children: React.ReactNode }) {
           )}
 
           {!codeSent ? (
-            <button
-              type="button"
-              disabled={busy || !consentsOk}
-              onClick={() => void sendCode()}
-              className="w-full rounded-2xl bg-accent py-3.5 text-sm font-semibold text-white disabled:opacity-50"
-            >
-              {busy
-                ? "Отправляю…"
-                : authMode === "register"
-                  ? "Получить код"
-                  : "Получить код для входа"}
-            </button>
+            <div className="space-y-2">
+              {authMode === "login" && password.length >= 6 && (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void loginPassword()}
+                  className="w-full rounded-2xl bg-accent py-3.5 text-sm font-semibold text-white disabled:opacity-50"
+                >
+                  {busy ? "Вхожу…" : "Войти по паролю"}
+                </button>
+              )}
+              <button
+                type="button"
+                disabled={busy || !consentsOk}
+                onClick={() => void sendCode()}
+                className="w-full rounded-2xl bg-accent py-3.5 text-sm font-semibold text-white disabled:opacity-50"
+              >
+                {busy
+                  ? "Отправляю…"
+                  : authMode === "register"
+                    ? "Получить код"
+                    : authMode === "recover"
+                      ? "Код для нового пароля"
+                      : knownPassword
+                        ? "Или войти по коду из письма"
+                        : "Получить код для входа"}
+              </button>
+            </div>
           ) : (
             <div className="space-y-2">
               <button

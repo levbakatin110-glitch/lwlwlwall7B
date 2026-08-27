@@ -32,10 +32,14 @@ export type CommunityMessageDto = Omit<CommunityMessage, "mediaFile"> & {
 };
 
 type Store = { messages: CommunityMessage[] };
-type Profiles = Record<
-  string,
-  { avatarFile?: string; updatedAt: string }
->;
+export type CommunityProfileRecord = {
+  avatarFile?: string;
+  nick?: string;
+  babyName?: string;
+  babyBirth?: string;
+  updatedAt: string;
+};
+type Profiles = Record<string, CommunityProfileRecord>;
 
 const DATA_DIR = join(process.cwd(), "data");
 const MEDIA_DIR = join(DATA_DIR, "community-media");
@@ -223,7 +227,11 @@ function saveAuthorAvatar(
   }
   writeFileSync(path, parsed.buf);
   const profiles = loadProfiles();
-  profiles[authorKey] = { avatarFile: file, updatedAt: new Date().toISOString() };
+  profiles[authorKey] = {
+    ...profiles[authorKey],
+    avatarFile: file,
+    updatedAt: new Date().toISOString(),
+  };
   saveProfiles(profiles);
   return file;
 }
@@ -423,6 +431,64 @@ export function upsertCommunityAvatar(
   const saved = saveAuthorAvatar(key, avatarDataUrl);
   if (!saved) return { ok: false, error: "Фото слишком большое" };
   return { ok: true };
+}
+
+export function getCommunityProfile(email: string): {
+  nick: string;
+  babyName: string;
+  babyBirth: string;
+  avatarUrl?: string;
+} | null {
+  const key = authorKeyFromEmail(email);
+  const profiles = loadProfiles();
+  const row = profiles[key];
+  if (!row?.nick || row.nick.trim().length < 2) return null;
+  const hasAvatar = Boolean(row.avatarFile) || Boolean(resolveAvatarPath(key));
+  return {
+    nick: row.nick.trim().slice(0, 32),
+    babyName: (row.babyName || "").trim().slice(0, 24),
+    babyBirth: (row.babyBirth || "").trim(),
+    avatarUrl: hasAvatar ? `/api/community/avatar/${key}` : undefined,
+  };
+}
+
+export function upsertCommunityProfile(input: {
+  email: string;
+  nick: string;
+  babyName?: string;
+  babyBirth?: string;
+  avatarDataUrl?: string;
+}): { ok: true } | { ok: false; error: string } {
+  const email = input.email.trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { ok: false, error: "Нужна почта" };
+  }
+  const nick = input.nick.trim().slice(0, 32);
+  if (nick.length < 2) {
+    return { ok: false, error: "Имя — минимум 2 буквы" };
+  }
+  const key = authorKeyFromEmail(email);
+  if (input.avatarDataUrl?.startsWith("data:image/")) {
+    const saved = saveAuthorAvatar(key, input.avatarDataUrl);
+    if (!saved) return { ok: false, error: "Фото слишком большое" };
+  }
+  const profiles = loadProfiles();
+  profiles[key] = {
+    ...profiles[key],
+    nick,
+    babyName: (input.babyName || "").trim().slice(0, 24),
+    babyBirth: (input.babyBirth || "").trim().slice(0, 16),
+    updatedAt: new Date().toISOString(),
+  };
+  saveProfiles(profiles);
+  return { ok: true };
+}
+
+export function getCommunityNickByAuthorKey(
+  authorKey: string,
+): string | undefined {
+  const nick = loadProfiles()[authorKey]?.nick?.trim();
+  return nick && nick.length >= 2 ? nick.slice(0, 32) : undefined;
 }
 
 export function avatarContentType(path: string): string {

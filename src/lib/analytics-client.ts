@@ -27,7 +27,9 @@ export function trackEvent(
     | "chat_send"
     | "pricing_view"
     | "subscribe_click"
-    | "subscribe_activate",
+    | "subscribe_activate"
+    | "community_post"
+    | "push_enable",
   meta?: string,
 ) {
   if (typeof window === "undefined") return;

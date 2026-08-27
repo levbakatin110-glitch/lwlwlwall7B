@@ -1,5 +1,5 @@
-/* PWA shell — без кэша JS/CSS Next (иначе на телефоне старая Мая) */
-const CACHE = "maya-shell-v8";
+/* PWA: сеть всегда свежая + push / локальные напоминания */
+const CACHE = "maya-shell-v9";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
@@ -21,4 +21,60 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
   event.respondWith(fetch(req));
+});
+
+self.addEventListener("push", (event) => {
+  let title = "Мая";
+  let body = "Напоминание";
+  let url = "/";
+  try {
+    const data = event.data ? event.data.json() : {};
+    title = data.title || title;
+    body = data.body || body;
+    url = data.url || url;
+  } catch {
+    try {
+      body = event.data ? event.data.text() : body;
+    } catch {
+      /* ignore */
+    }
+  }
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      data: { url },
+    }),
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || "/";
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+      for (const client of list) {
+        if (client.url.includes(self.location.origin) && "focus" in client) {
+          return client.focus();
+        }
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(url);
+    }),
+  );
+});
+
+self.addEventListener("message", (event) => {
+  const data = event.data || {};
+  if (data.type === "SHOW_NOTIFICATION" && data.title) {
+    event.waitUntil(
+      self.registration.showNotification(data.title, {
+        body: data.body || "",
+        icon: "/icons/icon-192.png",
+        badge: "/icons/icon-192.png",
+        tag: data.tag || "maya",
+        data: { url: data.url || "/" },
+      }),
+    );
+  }
 });

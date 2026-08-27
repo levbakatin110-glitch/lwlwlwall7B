@@ -2,25 +2,11 @@
 
 import { useEffect } from "react";
 
-/** Сбрасывает старый SW-кэш, чтобы подтянуть новую Маю */
+/** Регистрирует SW для установки PWA и push. Не сносит подписку при каждом заходе. */
 export function PwaRegister() {
   useEffect(() => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
-
-    void (async () => {
-      try {
-        const regs = await navigator.serviceWorker.getRegistrations();
-        for (const reg of regs) {
-          await reg.unregister();
-        }
-        const keys = await caches.keys();
-        await Promise.all(keys.map((k) => caches.delete(k)));
-      } catch {
-        /* ignore */
-      }
-      // лёгкий SW только для «Установить», без кэша JS
-      void navigator.serviceWorker.register("/sw.js?v=8").catch(() => {});
-    })();
+    void navigator.serviceWorker.register("/sw.js?v=9").catch(() => {});
   }, []);
 
   return null;

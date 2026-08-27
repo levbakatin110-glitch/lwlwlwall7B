@@ -9,7 +9,9 @@ export type AnalyticsEventName =
   | "chat_send"
   | "pricing_view"
   | "subscribe_click"
-  | "subscribe_activate";
+  | "subscribe_activate"
+  | "community_post"
+  | "push_enable";
 
 export type AnalyticsEvent = {
   id: string;
@@ -66,6 +68,8 @@ const ALLOWED = new Set<AnalyticsEventName>([
   "pricing_view",
   "subscribe_click",
   "subscribe_activate",
+  "community_post",
+  "push_enable",
 ]);
 
 export function trackAnalyticsEvent(input: {
@@ -102,6 +106,8 @@ export type DayStats = {
   pricing_view: number;
   subscribe_click: number;
   subscribe_activate: number;
+  community_post: number;
+  push_enable: number;
   uniqueVisitors: number;
 };
 
@@ -111,6 +117,12 @@ export type AnalyticsSummary = {
   };
   byDay: DayStats[];
   recent: AnalyticsEvent[];
+  funnel: {
+    visitToRegisterPct: number;
+    registerToOnboardPct: number;
+    visitToChatPct: number;
+    clickToPayPct: number;
+  };
 };
 
 export function getAnalyticsSummary(days = 14): AnalyticsSummary {
@@ -130,6 +142,8 @@ export function getAnalyticsSummary(days = 14): AnalyticsSummary {
     pricing_view: 0,
     subscribe_click: 0,
     subscribe_activate: 0,
+    community_post: 0,
+    push_enable: 0,
     uniqueVisitors: 0,
   };
   const uniqAll = new Set<string>();
@@ -148,6 +162,8 @@ export function getAnalyticsSummary(days = 14): AnalyticsSummary {
         pricing_view: 0,
         subscribe_click: 0,
         subscribe_activate: 0,
+        community_post: 0,
+        push_enable: 0,
         uniqueVisitors: 0,
       };
       byDayMap.set(day, row);
@@ -179,11 +195,19 @@ export function getAnalyticsSummary(days = 14): AnalyticsSummary {
   }
 
   const byDay = [...byDayMap.values()].sort((a, b) => b.day.localeCompare(a.day));
+  const pct = (a: number, b: number) =>
+    b > 0 ? Math.round((a / b) * 1000) / 10 : 0;
 
   return {
     totals,
     byDay,
     recent: filtered.slice(0, 80),
+    funnel: {
+      visitToRegisterPct: pct(totals.register, totals.visit || totals.uniqueVisitors),
+      registerToOnboardPct: pct(totals.onboarding_done, totals.register),
+      visitToChatPct: pct(totals.chat_send, totals.visit || totals.uniqueVisitors),
+      clickToPayPct: pct(totals.subscribe_activate, totals.subscribe_click),
+    },
   };
 }
 
@@ -192,6 +216,9 @@ export function clearAnalytics() {
 }
 
 export function analyticsPasswordOk(password: string | null | undefined): boolean {
-  const expected = process.env.ANALYTICS_PASSWORD || "maya-stats";
+  const expected =
+    process.env.ANALYTICS_PASSWORD?.trim() ||
+    process.env.ADMIN_PASSWORD?.trim() ||
+    "maya-stats";
   return Boolean(password && password === expected);
 }
