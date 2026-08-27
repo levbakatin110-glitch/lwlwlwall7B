@@ -174,6 +174,7 @@ export function CircleRecorder({ onCancel, onReady }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [camReady, setCamReady] = useState(false);
   const ownedPreviewRef = useRef<string | null>(null);
+  const didAutoStart = useRef(false);
 
   const clearTick = useCallback(() => {
     if (tickRef.current) {
@@ -346,6 +347,13 @@ export function CircleRecorder({ onCancel, onReady }: Props) {
     }, 80);
   }
 
+  useEffect(() => {
+    if (phase !== "live" || !camReady || error || didAutoStart.current) return;
+    didAutoStart.current = true;
+    startRecord();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, camReady, error]);
+
   function stopRecord() {
     const rec = recorderRef.current;
     if (!rec || rec.state !== "recording") return;
@@ -373,6 +381,7 @@ export function CircleRecorder({ onCancel, onReady }: Props) {
     setReviewFile(null);
     setElapsedMs(0);
     setError(null);
+    didAutoStart.current = false;
     void attachStream(facingRef.current)
       .then(() => setPhase("live"))
       .catch(() => {
@@ -513,7 +522,7 @@ export function CircleRecorder({ onCancel, onReady }: Props) {
               ? "Нажмите ещё раз, чтобы закончить"
               : phase === "review"
                 ? "Посмотрите и отправьте — или переснимите"
-                : "Нажмите кнопку, чтобы начать запись"}
+                : "Запись уже идёт"}
         </p>
       </div>
 

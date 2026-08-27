@@ -24,6 +24,8 @@ export const ICON_NAMES = [
   "pulse",
   "list",
   "circle",
+  "videonote",
+  "mic",
   "close",
   "edit",
   "plus",

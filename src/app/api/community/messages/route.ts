@@ -45,19 +45,26 @@ export async function POST(req: Request) {
         const f = file as File;
         const buf = Buffer.from(await f.arrayBuffer());
         const kind: CommunityMediaKind =
-          mediaKind === "circle" || mediaKind === "video" || mediaKind === "image"
+          mediaKind === "circle" ||
+          mediaKind === "video" ||
+          mediaKind === "image" ||
+          mediaKind === "voice"
             ? mediaKind
             : f.type.startsWith("video/")
               ? "video"
-              : "image";
+              : f.type.startsWith("audio/")
+                ? "voice"
+                : "image";
         const mime =
           f.type && f.type !== "application/octet-stream"
             ? f.type
             : kind === "image"
               ? "image/jpeg"
-              : kind === "circle" || kind === "video"
-                ? "video/webm"
-                : "application/octet-stream";
+              : kind === "voice"
+                ? "audio/webm"
+                : kind === "circle" || kind === "video"
+                  ? "video/webm"
+                  : "application/octet-stream";
         media = { kind, buffer: buf, mime };
       }
 

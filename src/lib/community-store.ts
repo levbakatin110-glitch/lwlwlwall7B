@@ -9,7 +9,7 @@ import {
 import { join } from "path";
 import { moderateCommunityPost } from "@/lib/community-moderation";
 
-export type CommunityMediaKind = "image" | "video" | "circle";
+export type CommunityMediaKind = "image" | "video" | "circle" | "voice";
 
 export type CommunityMessage = {
   id: string;
@@ -53,12 +53,13 @@ const MAX_AVATAR_BYTES = 180_000;
 const MAX_IMAGE_BYTES = 900_000;
 const MAX_VIDEO_BYTES = 12_000_000;
 const MAX_CIRCLE_BYTES = 3_000_000;
+const MAX_VOICE_BYTES = 2_000_000;
 
 const SEED: Omit<CommunityMessage, "id" | "createdAt">[] = [
   {
     authorKey: "maya",
     displayName: "Мая",
-    text: "Добро пожаловать. Пишите спокойно — беременность, малыш, быт. Без оценок. Можно фото, видео и кружки.",
+    text: "Добро пожаловать. Пишите спокойно — беременность, малыш, быт. Без оценок. Можно фото, видео, кружки и голосовые.",
   },
   {
     authorKey: "seed-lena",
@@ -170,6 +171,13 @@ export function authorKeyFromEmail(email: string): string {
 }
 
 function extFromMime(mime: string, kind: CommunityMediaKind): string {
+  if (kind === "voice") {
+    if (mime.includes("ogg")) return "ogg";
+    if (mime.includes("mp4") || mime.includes("aac") || mime.includes("m4a")) {
+      return "m4a";
+    }
+    return "webm";
+  }
   if (mime.includes("png")) return "png";
   if (mime.includes("webp")) return "webp";
   if (mime.includes("gif")) return "gif";
@@ -180,14 +188,21 @@ function extFromMime(mime: string, kind: CommunityMediaKind): string {
   return "webm";
 }
 
-function mimeFromExt(ext: string): string {
+function mimeFromExt(ext: string, kind?: CommunityMediaKind): string {
   const e = ext.toLowerCase();
+  if (kind === "voice") {
+    if (e === "ogg") return "audio/ogg";
+    if (e === "m4a" || e === "mp4") return "audio/mp4";
+    return "audio/webm";
+  }
   if (e === "png") return "image/png";
   if (e === "webp") return "image/webp";
   if (e === "gif") return "image/gif";
   if (e === "jpg" || e === "jpeg") return "image/jpeg";
   if (e === "mp4") return "video/mp4";
   if (e === "mov") return "video/quicktime";
+  if (e === "ogg") return "audio/ogg";
+  if (e === "m4a") return "audio/mp4";
   if (e === "webm") return "video/webm";
   return "application/octet-stream";
 }
@@ -260,7 +275,7 @@ export function resolveMediaPath(messageId: string): {
   const path = join(MEDIA_DIR, msg.mediaFile);
   if (!existsSync(path)) return null;
   const ext = msg.mediaFile.split(".").pop() || "";
-  return { path, mime: mimeFromExt(ext) };
+  return { path, mime: mimeFromExt(ext, msg.mediaKind) };
 }
 
 function toDto(m: CommunityMessage, profiles: Profiles): CommunityMessageDto {
@@ -336,12 +351,24 @@ export async function addCommunityMessage(input: {
         ? MAX_IMAGE_BYTES
         : kind === "circle"
           ? MAX_CIRCLE_BYTES
-          : MAX_VIDEO_BYTES;
+          : kind === "voice"
+            ? MAX_VOICE_BYTES
+            : MAX_VIDEO_BYTES;
     if (buffer.length > max) {
       return { ok: false, error: "Файл слишком большой" };
     }
     if (kind === "image" && !mime.startsWith("image/")) {
       return { ok: false, error: "Нужно изображение" };
+    }
+    if (kind === "voice") {
+      const okVoice =
+        !mime ||
+        mime.startsWith("audio/") ||
+        mime === "video/webm" ||
+        mime === "application/octet-stream";
+      if (!okVoice) {
+        return { ok: false, error: "Нужно голосовое" };
+      }
     }
     if (
       (kind === "video" || kind === "circle") &&
@@ -375,13 +402,19 @@ export async function addCommunityMessage(input: {
   if (input.media) {
     ensureDirs();
     const mime =
-      input.media.mime && input.media.mime.startsWith("video/")
-        ? input.media.mime
-        : input.media.kind === "image"
-          ? input.media.mime || "image/jpeg"
-          : input.media.mime?.includes("mp4")
-            ? "video/mp4"
-            : "video/webm";
+      input.media.kind === "image"
+        ? input.media.mime || "image/jpeg"
+        : input.media.kind === "voice"
+          ? input.media.mime?.startsWith("audio/")
+            ? input.media.mime
+            : input.media.mime?.includes("mp4")
+              ? "audio/mp4"
+              : "audio/webm"
+          : input.media.mime && input.media.mime.startsWith("video/")
+            ? input.media.mime
+            : input.media.mime?.includes("mp4")
+              ? "video/mp4"
+              : "video/webm";
     const ext = extFromMime(mime, input.media.kind);
     mediaFile = `${id}.${ext}`;
     mediaKind = input.media.kind;
@@ -394,7 +427,7 @@ export async function addCommunityMessage(input: {
     authorKey,
     displayName,
     babyTag,
-    text: text || (mediaKind === "circle" ? "🎥 кружок" : mediaKind === "video" ? "🎬 видео" : mediaKind === "image" ? "📷 фото" : ""),
+    text: text || (mediaKind === "circle" ? "🎥 кружок" : mediaKind === "video" ? "🎬 видео" : mediaKind === "image" ? "📷 фото" : mediaKind === "voice" ? "🎤 голосовое" : ""),
     mediaFile,
     mediaKind,
   };

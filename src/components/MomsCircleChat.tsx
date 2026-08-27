@@ -12,13 +12,14 @@ import {
   CircleNotePlayer,
   CircleRecorder,
 } from "@/components/CircleRecorder";
+import { VoiceNotePlayer, VoiceRecorder } from "@/components/VoiceRecorder";
 import { MayaIcon } from "@/components/icons/MayaIcon";
 import { childDisplayName } from "@/lib/children";
 import { compressImageFile } from "@/lib/image";
 import { trackEvent } from "@/lib/analytics-client";
 import { useAppStore } from "@/lib/store";
 
-type MediaKind = "image" | "video" | "circle";
+type MediaKind = "image" | "video" | "circle" | "voice";
 
 type CommunityMessage = {
   id: string;
@@ -190,6 +191,9 @@ function MessageMedia({
   if (kind === "circle") {
     return <CircleNotePlayer url={url} />;
   }
+  if (kind === "voice") {
+    return <VoiceNotePlayer url={url} />;
+  }
   return (
     <video
       src={url}
@@ -222,6 +226,7 @@ export function MomsCircleChat() {
   const [pendingKind, setPendingKind] = useState<MediaKind | null>(null);
   const [pendingPreview, setPendingPreview] = useState<string | null>(null);
   const [circleOpen, setCircleOpen] = useState(false);
+  const [voiceOpen, setVoiceOpen] = useState(false);
 
   const listRef = useRef<HTMLDivElement>(null);
   const stickBottom = useRef(true);
@@ -438,11 +443,21 @@ export function MomsCircleChat() {
     setCircleOpen(false);
   }
 
-  async function send(e?: FormEvent) {
+  function onVoiceReady(file: File) {
+    setVoiceOpen(false);
+    void send(undefined, { file, kind: "voice" });
+  }
+
+  async function send(
+    e?: FormEvent,
+    override?: { file: File; kind: MediaKind },
+  ) {
     e?.preventDefault();
     if (!emailVerified || !accountEmail || !commProfile) return;
+    const file = override?.file ?? pendingFile;
+    const kind = override?.kind ?? pendingKind;
     const body = text.trim();
-    if ((!body && !pendingFile) || busy) return;
+    if ((!body && !file) || busy) return;
     setBusy(true);
     setError(null);
     try {
@@ -451,14 +466,15 @@ export function MomsCircleChat() {
       form.set("text", body);
       const tag = buildBabyTag(commProfile.babyName, commProfile.babyBirth);
       if (tag) form.set("babyTag", tag);
-      // аватар уже на сервере через /api/community/profile —
-      // не тащим data-URL вместе с кружком (из‑за этого был Load failed)
-      if (pendingFile && pendingKind) {
-        if (pendingKind === "circle" && pendingFile.size > 2_800_000) {
+      if (file && kind) {
+        if (kind === "circle" && file.size > 2_800_000) {
           throw new Error("Кружок слишком большой — запишите короче");
         }
-        form.set("mediaKind", pendingKind);
-        form.set("file", pendingFile);
+        if (kind === "voice" && file.size > 2_000_000) {
+          throw new Error("Голосовое слишком большое — короче");
+        }
+        form.set("mediaKind", kind);
+        form.set("file", file);
       } else if (commProfile.avatar?.startsWith("data:image/")) {
         form.set("avatar", commProfile.avatar);
       }
@@ -705,7 +721,8 @@ export function MomsCircleChat() {
                         m.mediaUrl &&
                         (m.text === "📷 фото" ||
                           m.text === "🎬 видео" ||
-                          m.text === "🎥 кружок")
+                          m.text === "🎥 кружок" ||
+                          m.text === "🎤 голосовое")
                       ) && (
                         <p className="mt-1 whitespace-pre-wrap text-[15px] leading-snug text-foreground">
                           {m.text}
@@ -755,6 +772,10 @@ export function MomsCircleChat() {
                         autoPlay
                         loop
                       />
+                    ) : pendingKind === "voice" ? (
+                      <div className="flex h-12 min-w-[4.5rem] items-center px-2 text-xs text-muted">
+                        Голосовое
+                      </div>
                     ) : (
                       <video
                         src={pendingPreview}
@@ -767,7 +788,9 @@ export function MomsCircleChat() {
                         ? "Фото"
                         : pendingKind === "circle"
                           ? "Кружок"
-                          : "Видео"}{" "}
+                          : pendingKind === "voice"
+                            ? "Голосовое"
+                            : "Видео"}{" "}
                       готово к отправке
                     </p>
                     <button
@@ -808,7 +831,19 @@ export function MomsCircleChat() {
                     aria-label="Записать кружок"
                     title="Кружок"
                   >
-                    <MayaIcon name="circle" size={18} />
+                    <MayaIcon name="videonote" size={18} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setError(null);
+                      setVoiceOpen(true);
+                    }}
+                    className="flex h-11 w-10 shrink-0 items-center justify-center rounded-xl text-muted hover:bg-accent-soft hover:text-foreground"
+                    aria-label="Записать голосовое"
+                    title="Голосовое"
+                  >
+                    <MayaIcon name="mic" size={18} />
                   </button>
                   <textarea
                     value={text}
@@ -847,6 +882,12 @@ export function MomsCircleChat() {
         <CircleRecorder
           onCancel={() => setCircleOpen(false)}
           onReady={onCircleReady}
+        />
+      )}
+      {voiceOpen && (
+        <VoiceRecorder
+          onCancel={() => setVoiceOpen(false)}
+          onReady={onVoiceReady}
         />
       )}
     </div>
