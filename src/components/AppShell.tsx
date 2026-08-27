@@ -4,6 +4,8 @@ import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { InstallHint } from "./InstallHint";
 import { AnalyticsVisitBeacon } from "./AnalyticsVisitBeacon";
+import { AuthSessionSync } from "./AuthSessionSync";
+import { CloudBackupSync } from "./CloudBackupSync";
 import { OnboardingGate } from "./OnboardingFlow";
 import { QuickNavCarousel } from "./QuickNavCarousel";
 import { RemindersHost } from "./RemindersHost";
@@ -23,11 +25,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isCommunity = pathname === "/community";
   const [menuOpen, setMenuOpen] = useState(false);
 
+  const globalSync = (
+    <>
+      <AuthSessionSync />
+      <CloudBackupSync />
+    </>
+  );
+
   // Служебная страница — без меню мамского приложения
   if (isOpsPage) {
     return (
       <>
         <ThemeSync />
+        {globalSync}
         <div className="min-h-dvh bg-background text-foreground">{children}</div>
       </>
     );
@@ -38,6 +48,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return (
       <>
         <ThemeSync />
+        {globalSync}
         <div className="min-h-dvh bg-background text-foreground">{children}</div>
         {isLegalPage ? <CookieBanner /> : null}
       </>
@@ -48,6 +59,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <OnboardingGate>
       <ThemeSync />
       <AnalyticsVisitBeacon />
+      {globalSync}
       <SubscriptionSync />
       <CookieBanner />
       <div className="flex h-dvh max-h-dvh overflow-hidden overscroll-none bg-background pt-[env(safe-area-inset-top)] text-foreground">

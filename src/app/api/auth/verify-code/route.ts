@@ -5,6 +5,7 @@ import {
   RUSSIAN_EMAIL_HINT,
   verifyEmailCode,
 } from "@/lib/email-codes";
+import { sessionSetCookie } from "@/lib/session";
 
 export const runtime = "nodejs";
 
@@ -33,5 +34,8 @@ export async function POST(req: Request) {
     return Response.json({ error: result.error }, { status: 400 });
   }
 
-  return Response.json({ ok: true, email });
+  return Response.json(
+    { ok: true, email },
+    { headers: { "Set-Cookie": sessionSetCookie(email) } },
+  );
 }

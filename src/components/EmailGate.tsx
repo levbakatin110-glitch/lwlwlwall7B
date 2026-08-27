@@ -71,6 +71,7 @@ export function EmailGate({ children }: { children: React.ReactNode }) {
     try {
       const res = await fetch("/api/auth/verify-code", {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: email.trim().toLowerCase(),

@@ -120,7 +120,28 @@ export function clearIdentityBackup(): void {
     /* ignore */
   }
   try {
-    document.cookie = `${COOKIE}=; path=/; max-age=0; SameSite=Lax`;
+    const secure =
+      window.location.protocol === "https:" ? "; Secure" : "";
+    document.cookie = `${COOKIE}=; path=/; max-age=0; SameSite=Lax${secure}`;
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Сбросить только почту/вход, дневники на устройстве оставить */
+export function clearIdentityEmail(): void {
+  if (!canUseDom()) return;
+  try {
+    localStorage.removeItem(LS_KEY);
+  } catch {
+    /* ignore */
+  }
+  try {
+    const onboarded = readOnboardingDoneSticky();
+    const secure =
+      window.location.protocol === "https:" ? "; Secure" : "";
+    const value = encodeURIComponent(`${onboarded ? "1" : "0"}|-|0`);
+    document.cookie = `${COOKIE}=${value}; path=/; max-age=34560000; SameSite=Lax${secure}`;
   } catch {
     /* ignore */
   }

@@ -3,6 +3,7 @@ import {
   listCommunityMessages,
   type CommunityMediaKind,
 } from "@/lib/community-store";
+import { readSessionFromRequest } from "@/lib/session";
 
 export const runtime = "nodejs";
 
@@ -16,12 +17,19 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const session = readSessionFromRequest(req);
+  if (!session) {
+    return Response.json(
+      { error: "Войдите по почте, чтобы писать" },
+      { status: 401 },
+    );
+  }
+  const email = session.email;
   const contentType = req.headers.get("content-type") || "";
 
   try {
     if (contentType.includes("multipart/form-data")) {
       const form = await req.formData();
-      const email = String(form.get("email") || "");
       const displayName = String(form.get("displayName") || "");
       const text = String(form.get("text") || "");
       const babyTag = String(form.get("babyTag") || "");
@@ -69,7 +77,6 @@ export async function POST(req: Request) {
     }
 
     const body = (await req.json()) as {
-      email?: string;
       displayName?: string;
       text?: string;
       avatar?: string;
@@ -77,7 +84,7 @@ export async function POST(req: Request) {
     };
 
     const result = await addCommunityMessage({
-      email: String(body.email || ""),
+      email,
       displayName: String(body.displayName || ""),
       text: String(body.text || ""),
       babyTag: body.babyTag ? String(body.babyTag) : undefined,

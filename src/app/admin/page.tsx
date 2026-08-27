@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   validateCustomModule,
@@ -9,6 +9,8 @@ import {
 import type { OpsErrorLog } from "@/lib/ops-log";
 import { useAppStore } from "@/lib/store";
 import type { CustomModule, ModuleBlueprint } from "@/lib/types";
+
+const PASS_KEY = "maya-admin-pass";
 
 function fmtWhen(iso: string) {
   try {
@@ -33,9 +35,71 @@ export default function AdminPage() {
   );
   const pushOpsError = useAppStore((s) => s.pushOpsError);
 
+  const [password, setPassword] = useState("");
+  const [authed, setAuthed] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const [serverErrors, setServerErrors] = useState<OpsErrorLog[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
+
+  const adminHeaders = useCallback(
+    (pass: string) => ({ "x-admin-password": pass }),
+    [],
+  );
+
+  const tryLogin = useCallback(async (pass: string) => {
+    setAuthError(null);
+    try {
+      const res = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ password: pass }),
+      });
+      if (!res.ok) {
+        setAuthed(false);
+        setAuthError("Неверный пароль");
+        sessionStorage.removeItem(PASS_KEY);
+        return false;
+      }
+      setAuthed(true);
+      sessionStorage.setItem(PASS_KEY, pass);
+      return true;
+    } catch {
+      setAuthError("Не удалось войти");
+      return false;
+    }
+  }, []);
+
+  const refreshServer = useCallback(
+    async (pass: string) => {
+      try {
+        const res = await fetch("/api/ops-log", {
+          headers: adminHeaders(pass),
+        });
+        if (res.status === 401) {
+          setAuthed(false);
+          sessionStorage.removeItem(PASS_KEY);
+          return;
+        }
+        const data = (await res.json()) as { errors?: OpsErrorLog[] };
+        setServerErrors(data.errors ?? []);
+      } catch {
+        setServerErrors([]);
+      }
+    },
+    [adminHeaders],
+  );
+
+  useEffect(() => {
+    const saved = sessionStorage.getItem(PASS_KEY);
+    if (saved) {
+      setPassword(saved);
+      void tryLogin(saved).then((ok) => {
+        if (ok) void refreshServer(saved);
+      });
+    }
+  }, [refreshServer, tryLogin]);
 
   const healthRows = useMemo(
     () =>
@@ -50,27 +114,17 @@ export default function AdminPage() {
     (r) => !r.health.ok || r.health.issues.length > 0,
   );
 
-  async function refreshServer() {
-    try {
-      const res = await fetch("/api/ops-log");
-      const data = (await res.json()) as { errors?: OpsErrorLog[] };
-      setServerErrors(data.errors ?? []);
-    } catch {
-      setServerErrors([]);
-    }
-  }
-
-  useEffect(() => {
-    void refreshServer();
-  }, []);
-
   async function repairOne(mod: CustomModule, forceAi = false) {
+    const pass = sessionStorage.getItem(PASS_KEY) || password;
     setBusyId(mod.id);
     setNote(null);
     try {
       const res = await fetch("/api/repair-module", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(pass ? { "x-admin-password": pass } : {}),
+        },
         body: JSON.stringify({ module: mod, forceAi }),
       });
       const data = (await res.json()) as {
@@ -91,14 +145,20 @@ export default function AdminPage() {
       setNote(msg);
     } finally {
       setBusyId(null);
-      void refreshServer();
+      const pass = sessionStorage.getItem(PASS_KEY) || password;
+      if (pass) void refreshServer(pass);
     }
   }
 
   async function clearServer() {
-    await fetch("/api/ops-log", { method: "DELETE" });
+    const pass = sessionStorage.getItem(PASS_KEY) || password;
+    if (!pass) return;
+    await fetch("/api/ops-log", {
+      method: "DELETE",
+      headers: adminHeaders(pass),
+    });
     clearOpsErrors();
-    await refreshServer();
+    await refreshServer(pass);
   }
 
   const mergedErrors = useMemo(() => {
@@ -108,6 +168,49 @@ export default function AdminPage() {
     }
     return [...map.values()].sort((a, b) => b.at.localeCompare(a.at));
   }, [opsErrors, serverErrors]);
+
+  if (!authed) {
+    return (
+      <div className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center px-4 py-10">
+        <h1 className="font-display text-2xl font-semibold">Админка</h1>
+        <p className="mt-2 text-sm text-muted">
+          Пароль из{" "}
+          <code className="text-foreground">ADMIN_PASSWORD</code> на сервере
+          (или <code className="text-foreground">ANALYTICS_PASSWORD</code>).
+        </p>
+        <form
+          className="mt-6 space-y-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void tryLogin(password).then((ok) => {
+              if (ok) void refreshServer(password);
+            });
+          }}
+        >
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Пароль"
+            className="w-full rounded-xl border border-line bg-card px-3 py-2 text-sm"
+            autoComplete="current-password"
+          />
+          {authError && (
+            <p className="text-sm text-rose-700">{authError}</p>
+          )}
+          <button
+            type="submit"
+            className="w-full rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-[var(--on-accent)]"
+          >
+            Войти
+          </button>
+        </form>
+        <Link href="/" className="mt-6 text-center text-sm text-muted underline">
+          ← К приложению
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
@@ -243,7 +346,10 @@ export default function AdminPage() {
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => void refreshServer()}
+              onClick={() => {
+                const pass = sessionStorage.getItem(PASS_KEY) || password;
+                if (pass) void refreshServer(pass);
+              }}
               className="rounded-xl border border-line px-3 py-1.5 text-xs text-muted"
             >
               Обновить

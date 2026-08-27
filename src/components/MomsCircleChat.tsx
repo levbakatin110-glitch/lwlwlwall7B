@@ -297,12 +297,13 @@ export function MomsCircleChat() {
   }
 
   async function syncAvatarToServer(avatar: string | undefined) {
-    if (!accountEmail || !avatar?.startsWith("data:image/")) return;
+    if (!avatar?.startsWith("data:image/")) return;
     try {
       await fetch("/api/community/profile", {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: accountEmail, avatar }),
+        body: JSON.stringify({ avatar }),
       });
     } catch {
       /* offline ok — уйдёт с сообщением */
@@ -397,7 +398,6 @@ export function MomsCircleChat() {
     setError(null);
     try {
       const form = new FormData();
-      form.set("email", accountEmail);
       form.set("displayName", commProfile.nick);
       form.set("text", body);
       const tag = buildBabyTag(commProfile.babyName, commProfile.babyBirth);
@@ -416,6 +416,7 @@ export function MomsCircleChat() {
 
       const res = await fetch("/api/community/messages", {
         method: "POST",
+        credentials: "include",
         body: form,
       });
       const data = (await res.json()) as {

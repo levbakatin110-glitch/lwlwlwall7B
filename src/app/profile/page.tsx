@@ -19,7 +19,7 @@ export default function ProfilePage() {
   const accountEmail = useAppStore((s) => s.accountEmail);
   const emailVerified = useAppStore((s) => s.emailVerified);
   const setAccountEmail = useAppStore((s) => s.setAccountEmail);
-  const logoutAccount = useAppStore((s) => s.logoutAccount);
+  const signOutAccount = useAppStore((s) => s.signOutAccount);
   const [form, setForm] = useState<ChildProfile>(profile);
   const [saved, setSaved] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -43,16 +43,29 @@ export default function ProfilePage() {
     );
   }, [profile]);
 
-  function doLogout() {
+  async function doLogout() {
     if (
       !window.confirm(
-        "Выйти и сбросить данные на этом устройстве? Анкета откроется заново.",
+        "Выйти из аккаунта? Почта отвяжется на этом устройстве. Данные малыша останутся.",
       )
     ) {
       return;
     }
-    logoutAccount();
-    window.location.href = "/";
+    sessionStorage.setItem("maya-signing-out", "1");
+    try {
+      await fetch("/api/auth/session", {
+        method: "DELETE",
+        credentials: "include",
+      });
+    } catch {
+      /* offline */
+    }
+    signOutAccount();
+    setEmail("");
+    setCode("");
+    setCodeSent(false);
+    setEmailMsg("Вы вышли из аккаунта");
+    setEmailError(null);
   }
 
   async function sendCode() {
@@ -88,6 +101,7 @@ export default function ProfilePage() {
     try {
       const res = await fetch("/api/auth/verify-code", {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: email.trim().toLowerCase(),

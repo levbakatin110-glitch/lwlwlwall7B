@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { trackEvent } from "@/lib/analytics-client";
-import { useAppStore } from "@/lib/store";
 
 type Props = {
   mode: "login" | "register";
@@ -19,10 +17,8 @@ export function OAuthButtons({
   onError,
   onBeforeRedirect,
 }: Props) {
-  const setAccountEmail = useAppStore((s) => s.setAccountEmail);
   const onErrorRef = useRef(onError);
   onErrorRef.current = onError;
-  const handledTicket = useRef(false);
   const [mailruOk, setMailruOk] = useState(true);
   const [busy, setBusy] = useState(false);
 
@@ -42,60 +38,6 @@ export function OAuthButtons({
       cancelled = true;
     };
   }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined" || handledTicket.current) return;
-    const params = new URLSearchParams(window.location.search);
-    const ticket = params.get("oauth");
-    const oauthError = params.get("oauth_error");
-    const provider = params.get("oauth_provider");
-
-    if (oauthError) {
-      handledTicket.current = true;
-      onErrorRef.current?.(oauthError);
-      params.delete("oauth_error");
-      const next = `${window.location.pathname}${params.toString() ? `?${params}` : ""}`;
-      window.history.replaceState({}, "", next);
-      return;
-    }
-
-    if (!ticket) return;
-    handledTicket.current = true;
-
-    let cancelled = false;
-    void (async () => {
-      try {
-        const res = await fetch("/api/auth/oauth/complete", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ticket }),
-        });
-        const data = (await res.json()) as { error?: string; email?: string };
-        if (!res.ok) throw new Error(data.error || "Не удалось войти");
-        if (cancelled) return;
-        setAccountEmail(data.email!);
-        trackEvent(
-          mode === "register" ? "register" : "login",
-          provider || undefined,
-        );
-      } catch (e) {
-        if (!cancelled) {
-          onErrorRef.current?.(
-            e instanceof Error ? e.message : "Ошибка входа",
-          );
-        }
-      } finally {
-        params.delete("oauth");
-        params.delete("oauth_provider");
-        const next = `${window.location.pathname}${params.toString() ? `?${params}` : ""}`;
-        window.history.replaceState({}, "", next);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [mode, setAccountEmail]);
 
   async function startMailru() {
     if (mode === "register" && !consentsOk) {

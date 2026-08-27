@@ -17,6 +17,12 @@ import {
 } from "./children";
 import { migrateJournalFields } from "./module-schema";
 import {
+  clearAllChatPersist,
+  loadChatMessages,
+  pickBestChatMessages,
+  saveChatMessages,
+} from "./chat-persist";
+import {
   repairBlueprintLocally,
   validateCustomModule,
 } from "./blueprint-health";
@@ -30,6 +36,7 @@ import { OPTIONAL_MODULES } from "./modules";
 import type { DietPlan } from "./diet-types";
 import {
   clearIdentityBackup,
+  clearIdentityEmail,
   markOnboardingDoneSticky,
   readIdentityBackup,
   readOnboardingDoneSticky,
@@ -119,6 +126,8 @@ type AppState = {
   setDietPlan: (plan: DietPlan | null) => void;
   setAccountEmail: (email: string) => void;
   clearAccountEmail: () => void;
+  /** Выйти из почты — дневники на устройстве остаются */
+  signOutAccount: () => void;
   /** Выход: сброс профиля и данных → снова анкета */
   logoutAccount: () => void;
   setPregnancy: (pregnancy: Partial<PregnancyProfile> | PregnancyProfile) => void;
@@ -314,14 +323,26 @@ export const useAppStore = create<AppState>()(
           childName: get().profile?.name,
         });
       },
-      clearAccountEmail: () =>
-        set({ accountEmail: null, emailVerified: false }),
+      clearAccountEmail: () => {
+        set({ accountEmail: null, emailVerified: false });
+        writeIdentityBackup({
+          onboardingDone: get().onboardingDone,
+          email: null,
+          emailVerified: false,
+          childName: get().profile?.name,
+        });
+      },
+      signOutAccount: () => {
+        clearIdentityEmail();
+        set({ accountEmail: null, emailVerified: false });
+      },
       logoutAccount: () => {
         const id = uid();
         const profile = emptyChildProfile({ id });
         const space = emptyChildSpace();
         clearIdentityBackup();
         clearOnboardingProgress();
+        clearAllChatPersist();
         set({
           children: [profile],
           activeChildId: id,
@@ -712,24 +733,30 @@ export const useAppStore = create<AppState>()(
         withActiveSpace(get, set, {
           messages: [...get().messages, { ...message, id }],
         });
+        saveChatMessages(get().activeChildId, get().messages);
         return id;
       },
 
-      updateMessage: (id, patch) =>
+      updateMessage: (id, patch) => {
         withActiveSpace(get, set, {
           messages: get().messages.map((m) =>
             m.id === id ? { ...m, ...patch } : m,
           ),
-        }),
+        });
+        saveChatMessages(get().activeChildId, get().messages);
+      },
 
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
 
       switchChild: (id) => {
         const child = get().children.find((c) => c.id === id);
-        const space = get().childSpaces[id];
-        if (!child || !space) return;
+        let space = ensureChildSpace(get().childSpaces[id]);
+        if (!child) return;
+        space.messages = pickBestChatMessages(id, space.messages);
+        saveChatMessages(id, space.messages);
         // сохранить текущее зеркало в spaces (на всякий)
         const curId = get().activeChildId;
+        saveChatMessages(curId, get().messages);
         const curSpace: ChildSpace = {
           enabledModules: get().enabledModules,
           customModules: get().customModules,
@@ -742,7 +769,7 @@ export const useAppStore = create<AppState>()(
         };
         const nextSlice = spaceSlice(space);
         set({
-          childSpaces: { ...get().childSpaces, [curId]: curSpace },
+          childSpaces: { ...get().childSpaces, [curId]: curSpace, [id]: space },
           activeChildId: id,
           profile: child,
           ...nextSlice,
@@ -798,7 +825,9 @@ export const useAppStore = create<AppState>()(
         const nextId =
           get().activeChildId === id ? children[0].id : get().activeChildId;
         const nextChild = children.find((c) => c.id === nextId)!;
-        const nextSpace = spaces[nextId] ?? emptyChildSpace();
+        const nextSpace = ensureChildSpace(spaces[nextId] ?? emptyChildSpace());
+        nextSpace.messages = pickBestChatMessages(nextId, nextSpace.messages);
+        saveChatMessages(nextId, nextSpace.messages);
         set({
           children,
           childSpaces: spaces,
@@ -834,7 +863,7 @@ export const useAppStore = create<AppState>()(
             {
               ...sp,
               // чат не бесконечный в LS — иначе запись прививки роняет вкладку
-              messages: (sp.messages ?? []).slice(-100),
+              messages: (sp.messages ?? []).slice(-150),
             },
           ]),
         ),
@@ -1054,6 +1083,26 @@ export const useAppStore = create<AppState>()(
           const activeSpace =
             spaces[state.activeChildId] ?? emptyChildSpace();
           state.journals = overlayMomJournals(activeSpace.journals, mom);
+        }
+
+        // Чат: отдельный ключ localStorage — не теряется при slim/сбросе основного стора
+        {
+          const cid =
+            state.activeChildId || state.children?.[0]?.id || "";
+          if (cid) {
+            const sp = ensureChildSpace(state.childSpaces?.[cid]);
+            const best = pickBestChatMessages(cid, sp.messages ?? []);
+            if (best.length > 0) {
+              sp.messages = best;
+              state.childSpaces = {
+                ...(state.childSpaces || {}),
+                [cid]: sp,
+              };
+              if (state.activeChildId === cid) {
+                state.messages = best;
+              }
+            }
+          }
         }
 
         // если имя уже есть — убрать «ещё не выбрали»

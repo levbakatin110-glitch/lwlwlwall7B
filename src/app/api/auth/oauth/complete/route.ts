@@ -1,4 +1,5 @@
 import { consumeOAuthTicket } from "@/lib/oauth";
+import { sessionSetCookie } from "@/lib/session";
 
 export const runtime = "nodejs";
 
@@ -21,5 +22,8 @@ export async function POST(req: Request) {
     return Response.json({ error: result.error }, { status: 400 });
   }
 
-  return Response.json({ ok: true, email: result.email });
+  return Response.json(
+    { ok: true, email: result.email },
+    { headers: { "Set-Cookie": sessionSetCookie(result.email) } },
+  );
 }

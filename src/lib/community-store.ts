@@ -7,6 +7,7 @@ import {
   unlinkSync,
 } from "fs";
 import { join } from "path";
+import { moderateCommunityPost } from "@/lib/community-moderation";
 
 export type CommunityMediaKind = "image" | "video" | "circle";
 
@@ -309,8 +310,15 @@ export async function addCommunityMessage(input: {
   if (!hasMedia && text.length < 1) {
     return { ok: false, error: "Пустое сообщение" };
   }
-  if (text && /https?:\/\/|www\./i.test(text)) {
-    return { ok: false, error: "Ссылки пока нельзя" };
+
+  const mod = moderateCommunityPost({
+    email,
+    text,
+    babyTag: input.babyTag,
+    hasMedia,
+  });
+  if (!mod.ok) {
+    return { ok: false, error: mod.error };
   }
 
   if (input.media) {

@@ -6,6 +6,7 @@ import {
   validateCustomModule,
 } from "@/lib/blueprint-health";
 import { pushServerOpsError } from "@/lib/ops-log";
+import { requireAdmin } from "@/lib/admin-auth";
 import { normalizeBlueprint } from "@/lib/module-schema";
 import type { CustomModule, ModuleBlueprint } from "@/lib/types";
 
@@ -13,6 +14,10 @@ export const runtime = "nodejs";
 
 /** Чинит битый свой дневник: сначала локально, при необходимости — ИИ */
 export async function POST(req: Request) {
+  if (!requireAdmin(req)) {
+    return Response.json({ error: "Нет доступа" }, { status: 401 });
+  }
+
   let module: CustomModule | null = null;
   let forceAi = false;
   try {

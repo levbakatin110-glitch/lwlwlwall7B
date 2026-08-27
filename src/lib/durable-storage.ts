@@ -16,7 +16,7 @@ const WRITE_DEBOUNCE_MS = 400;
 /** Выше — режем base64 и дубли агрессивнее */
 const HEAVY_CHARS = 500_000;
 const MAX_DATA_URL = 12_000;
-const MAX_MESSAGES = 40;
+const MAX_MESSAGES = 100;
 const MAX_MEMORIES = 20;
 const MAX_WARDROBE = 25;
 
@@ -173,7 +173,7 @@ function slimChild(c: Record<string, unknown>) {
 
 function slimSpace(sp: Record<string, unknown>, aggressive: boolean) {
   const next = { ...sp };
-  const msgCap = aggressive ? 30 : MAX_MESSAGES;
+  const msgCap = aggressive ? 80 : MAX_MESSAGES;
   const memCap = aggressive ? 15 : MAX_MEMORIES;
   const wardCap = aggressive ? 20 : MAX_WARDROBE;
 
