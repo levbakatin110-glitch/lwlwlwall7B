@@ -25,11 +25,8 @@ export type AiChatUsage = {
 /** Бесплатно: столько запросов к ИИ-чату в сутки (жёстко — защита от «потыкать») */
 export const FREE_CHAT_LIMIT = 3;
 
-/**
- * Премиум-цена за 1 месяц.
- * Ориентир рынка: Huckleberry Premium ~1,3–1,8k ₽/мес; AI-трекеры часто $10–15.
- */
-export const BASE_MONTH_RUB = 1990;
+/** Премиум-цена за 1 месяц */
+export const BASE_MONTH_RUB = 349;
 
 /** На бесплатном: базовые дневники малыша + беременность + цикл */
 export const FREE_MODULE_IDS = [
