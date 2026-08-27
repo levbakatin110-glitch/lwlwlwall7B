@@ -17,7 +17,7 @@ const SUPPORT_MAIL = `mailto:${LEGAL_OPERATOR.supportEmail}`;
 
 const CORE: { href: string; label: string; icon: IconName }[] = [
   { href: "/", label: "Чат с Маей", icon: "chat" },
-  { href: "/community", label: "Общение", icon: "chat" },
+  { href: "/community", label: "Общение", icon: "circle" },
   { href: "/summary", label: "Итоги дня", icon: "list" },
   { href: "/med", label: "Мед. карта", icon: "health" },
   { href: "/pricing", label: "Подписка", icon: "spark" },

@@ -156,8 +156,9 @@ const paths: Record<IconName, ReactNode> = {
   ),
   circle: (
     <>
-      <circle cx="12" cy="12" r="8.2" />
-      <path d="M10.2 8.6v6.8L16.6 12 10.2 8.6z" fill="currentColor" stroke="none" />
+      <circle cx="9" cy="10" r="3" />
+      <circle cx="15.5" cy="10" r="3" />
+      <path d="M4.5 18c1.2-2.4 3.2-3.6 4.5-3.6 1.1 0 2.3.6 3.3 1.6 1-1 2.2-1.6 3.3-1.6 1.3 0 3.3 1.2 4.5 3.6" />
     </>
   ),
   videonote: (
