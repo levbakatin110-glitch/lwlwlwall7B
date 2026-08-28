@@ -6,7 +6,7 @@ import { useEffect } from "react";
 export function PwaRegister() {
   useEffect(() => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
-    void navigator.serviceWorker.register("/sw.js?v=9").catch(() => {});
+    void navigator.serviceWorker.register("/sw.js?v=10").catch(() => {});
   }, []);
 
   return null;

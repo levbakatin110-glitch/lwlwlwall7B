@@ -2,6 +2,11 @@
 
 import { useEffect } from "react";
 
+function isChunkLoadError(error: Error) {
+  const msg = `${error.name} ${error.message}`;
+  return /ChunkLoadError|Loading chunk \d+ failed/i.test(msg);
+}
+
 /** Ловит падения React на маршруте — вместо «This page couldn't load» */
 export default function Error({
   error,
@@ -12,6 +17,14 @@ export default function Error({
 }) {
   useEffect(() => {
     console.error("[maya] route error", error);
+    if (!isChunkLoadError(error)) return;
+    const key = "maya-chunk-reload";
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, "1");
+    void navigator.serviceWorker?.getRegistrations?.().then((regs) => {
+      for (const r of regs) void r.unregister();
+      window.location.reload();
+    });
   }, [error]);
 
   return (
@@ -20,7 +33,7 @@ export default function Error({
         Страница споткнулась
       </p>
       <p className="mt-2 text-sm text-muted">
-        Запись обычно уже сохранена. Можно обновить экран.
+        Запись обычно уже сохранена. Можно обновить экран (Ctrl+F5).
       </p>
       <div className="mt-6 flex flex-wrap justify-center gap-2">
         <button

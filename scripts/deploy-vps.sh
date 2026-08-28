@@ -19,8 +19,19 @@ fi
 git checkout -- package-lock.json 2>/dev/null || true
 git pull
 npm install
+
+# Не отдаём полусобранный .next — иначе 500 на /_next/static/chunks/*
+pm2 stop maya 2>/dev/null || true
+
 rm -rf .next
 npm run build
-pm2 restart maya
-pm2 flush maya || true
-echo "OK: $(git log -1 --oneline)"
+
+if [ ! -f .next/BUILD_ID ]; then
+  echo "ERROR: build failed — нет .next/BUILD_ID"
+  exit 1
+fi
+
+pm2 restart maya 2>/dev/null || pm2 start npm --name maya -- start
+pm2 save 2>/dev/null || true
+pm2 flush maya 2>/dev/null || true
+echo "OK: $(git log -1 --oneline) · BUILD_ID=$(cat .next/BUILD_ID)"
