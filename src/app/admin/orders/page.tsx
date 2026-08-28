@@ -347,7 +347,7 @@ export default function AdminOrdersPage() {
                 >
                   {m.role === "specialist" ? (
                     <p className="mb-1 text-[10px] opacity-70">
-                      {SPECIALIST_DISPLAY_NAME}
+                      {PLAN_TEAM_DISPLAY_NAME}
                     </p>
                   ) : null}
                   {m.text ? <p className="whitespace-pre-wrap">{m.text}</p> : null}
@@ -368,7 +368,7 @@ export default function AdminOrdersPage() {
                   value={reply}
                   onChange={(e) => setReply(e.target.value)}
                   rows={3}
-                  placeholder={`Сообщение от ${SPECIALIST_DISPLAY_NAME}…`}
+                  placeholder={`Сообщение от ${PLAN_TEAM_DISPLAY_NAME}…`}
                   className="w-full rounded-xl border border-line px-3 py-2 text-sm"
                 />
                 <input
