@@ -17,6 +17,7 @@ import {
   SketchMaya,
 } from "@/components/illustrations/MayaSketch";
 import { MayaIcon } from "@/components/icons/MayaIcon";
+import { PlanTeamChatBanner } from "@/components/plan/PlanTeamEntry";
 import { stripSuggestMarker, wardrobeForChat, resolveDiaryId, wardrobeFitsWeather } from "@/lib/ai-context";
 import { inferDiaryOffer } from "@/lib/diary-offer";
 import { inferLogDraftsFromUserText, looksLikeDiaryFact, mergeDiaryDrafts } from "@/lib/log-fallback";
@@ -842,13 +843,16 @@ export function ChatView() {
                       </button>
                     ))}
                   </div>
-                  <Link
-                    href="/community"
-                    className="mt-5 inline-flex items-center gap-2 rounded-2xl border border-accent/25 bg-accent-soft/70 px-4 py-2.5 text-sm font-semibold text-foreground transition hover:border-accent/40"
-                  >
-                    <MayaIcon name="circle" size={18} className="text-accent" />
-                    Общение — чат с другими в Мае
-                  </Link>
+                  <div className="mx-auto mt-5 flex w-full max-w-sm flex-col items-stretch">
+                    <PlanTeamChatBanner />
+                    <Link
+                      href="/community"
+                      className="mt-3 inline-flex items-center gap-2 rounded-2xl border border-accent/25 bg-accent-soft/70 px-4 py-2.5 text-sm font-semibold text-foreground transition hover:border-accent/40"
+                    >
+                      <MayaIcon name="circle" size={18} className="text-accent" />
+                      Общение — чат с другими в Мае
+                    </Link>
+                  </div>
                 </div>
               </div>
             )}
