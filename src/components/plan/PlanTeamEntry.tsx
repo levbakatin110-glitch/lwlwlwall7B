@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { MayaIcon } from "@/components/icons/MayaIcon";
-import { PlanMariaAvatar } from "@/components/plan/PlanMariaAvatar";
 import {
   PLAN_TEAM_DISPLAY_NAME,
   PLAN_TEAM_ENTRY_HINT,
