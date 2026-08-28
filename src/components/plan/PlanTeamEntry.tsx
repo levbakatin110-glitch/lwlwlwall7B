@@ -6,8 +6,11 @@ import { MayaIcon } from "@/components/icons/MayaIcon";
 import { PlanMariaAvatar } from "@/components/plan/PlanMariaAvatar";
 import {
   PLAN_TEAM_DISPLAY_NAME,
+  PLAN_TEAM_ENTRY_HINT,
   PLAN_TEAM_ENTRY_LABEL,
-  PLAN_TEAM_FAB_LABEL,
+  PLAN_TEAM_FAB_HINT,
+  PLAN_TEAM_FAB_LINE1,
+  PLAN_TEAM_FAB_LINE2,
 } from "@/lib/plan-products";
 
 type PlanOrderBrief = {
@@ -40,21 +43,26 @@ export function usePlanTeamHref(): string {
 }
 
 const graphiteFab =
-  "pointer-events-auto flex h-14 w-14 flex-col items-center justify-center rounded-full border border-zinc-600/80 bg-gradient-to-b from-zinc-700 to-zinc-900 text-white shadow-[0_8px_28px_rgba(0,0,0,0.35)] ring-2 ring-zinc-500/35 transition hover:from-zinc-600 hover:to-zinc-800";
+  "pointer-events-auto flex h-[3.85rem] w-[3.85rem] flex-col items-center justify-center rounded-full border border-zinc-600/80 bg-gradient-to-b from-zinc-700 to-zinc-900 text-white shadow-[0_8px_28px_rgba(0,0,0,0.35)] ring-2 ring-zinc-500/35 transition hover:from-zinc-600 hover:to-zinc-800";
 
-/** Плавающая кнопка — разбор дневника; внутри чата отвечает Мария */
+/** Плавающая кнопка: план по дневнику + чат; внутри отвечает Мария */
 export function PlanTeamFloatingButton() {
   const href = usePlanTeamHref();
   return (
     <Link
       href={href}
-      aria-label={`${PLAN_TEAM_FAB_LABEL} дневника — персональный план`}
-      title={`${PLAN_TEAM_FAB_LABEL} дневника`}
+      aria-label={PLAN_TEAM_FAB_HINT}
+      title={PLAN_TEAM_FAB_HINT}
       className={graphiteFab}
     >
-      <MayaIcon name="study" size={24} className="text-zinc-100" />
-      <span className="mt-0.5 max-w-[3.25rem] truncate text-center text-[8px] font-bold uppercase leading-none tracking-wide text-zinc-300">
-        {PLAN_TEAM_FAB_LABEL}
+      <MayaIcon name="study" size={20} className="text-zinc-100" />
+      <span className="mt-0.5 flex flex-col items-center leading-none">
+        <span className="text-[7px] font-bold uppercase tracking-wide text-zinc-200">
+          {PLAN_TEAM_FAB_LINE1}
+        </span>
+        <span className="mt-0.5 text-[7px] font-bold uppercase tracking-wide text-zinc-400">
+          {PLAN_TEAM_FAB_LINE2}
+        </span>
       </span>
     </Link>
   );
@@ -73,7 +81,7 @@ export function PlanTeamCarouselLink({
   return (
     <Link
       href={href}
-      title={PLAN_TEAM_ENTRY_LABEL}
+      title={PLAN_TEAM_ENTRY_HINT}
       aria-label={PLAN_TEAM_ENTRY_LABEL}
       aria-current={active ? "page" : undefined}
       className={`flex w-[3.65rem] shrink-0 snap-start flex-col items-center gap-0.5 rounded-xl px-0.5 py-0.5 transition ${
@@ -81,14 +89,14 @@ export function PlanTeamCarouselLink({
       }`}
     >
       <span className={graphiteCarouselIcon}>
-        <PlanMariaAvatar size={28} className="ring-zinc-500/30" />
+        <MayaIcon name="study" size={16} className="text-zinc-100" />
       </span>
       <span
-        className={`w-full truncate text-center text-[9px] font-bold leading-tight tracking-tight ${
+        className={`w-full truncate text-center text-[8px] font-bold leading-tight tracking-tight ${
           active ? "text-zinc-800 dark:text-zinc-100" : "text-zinc-600"
         }`}
       >
-        Команда
+        План
       </span>
     </Link>
   );
@@ -102,13 +110,13 @@ export function PlanTeamChatBanner() {
       href={href}
       className="mt-3 inline-flex w-full max-w-sm items-center gap-3 rounded-2xl border border-zinc-600/50 bg-gradient-to-br from-zinc-800 to-zinc-950 px-4 py-3.5 text-left text-white shadow-lg ring-1 ring-zinc-500/25 transition hover:from-zinc-700 hover:to-zinc-900"
     >
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl ring-1 ring-white/15">
-        <PlanMariaAvatar size={44} className="ring-0" />
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/15">
+        <MayaIcon name="study" size={22} className="text-zinc-100" />
       </span>
       <span>
         <span className="block text-sm font-semibold">{PLAN_TEAM_ENTRY_LABEL}</span>
         <span className="mt-0.5 block text-xs leading-snug text-zinc-300">
-          Разбор дневника · в чате отвечает {PLAN_TEAM_DISPLAY_NAME} (не врач)
+          Сон или кормление · в чате {PLAN_TEAM_DISPLAY_NAME} · не врач
         </span>
       </span>
     </Link>
