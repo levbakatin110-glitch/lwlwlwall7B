@@ -218,7 +218,7 @@ function upsertOrder(order: PlanOrder): PlanOrder {
       messages_json = excluded.messages_json,
       diary_snapshot_json = excluded.diary_snapshot_json,
       ai_draft_json = excluded.ai_draft_json`,
-  ).run(params);
+  ).run(params as Record<string, string | number | null>);
   return order;
 }
 

@@ -1,4 +1,4 @@
-import Database from "better-sqlite3";
+import { DatabaseSync } from "node:sqlite";
 import { existsSync, mkdirSync, readFileSync, renameSync } from "fs";
 import { join } from "path";
 
@@ -6,13 +6,13 @@ const DATA_DIR = join(process.cwd(), "data");
 const DEFAULT_DB = join(DATA_DIR, "maya.db");
 const LEGACY_JSON = join(DATA_DIR, "plan-orders.json");
 
-type GlobalDb = typeof globalThis & { __mayaSqlite?: Database.Database };
+type GlobalDb = typeof globalThis & { __mayaSqlite?: DatabaseSync };
 
 function dbPath(): string {
   return process.env.DATABASE_PATH?.trim() || DEFAULT_DB;
 }
 
-function migrateSchema(db: Database.Database) {
+function migrateSchema(db: DatabaseSync) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS plan_orders (
       id TEXT PRIMARY KEY,
@@ -44,7 +44,7 @@ function migrateSchema(db: Database.Database) {
   `);
 }
 
-function migrateLegacyJson(db: Database.Database) {
+function migrateLegacyJson(db: DatabaseSync) {
   const count = (
     db.prepare("SELECT COUNT(*) AS c FROM plan_orders").get() as { c: number }
   ).c;
@@ -72,8 +72,9 @@ function migrateLegacyJson(db: Database.Database) {
       )
     `);
 
-    const tx = db.transaction((rows: Array<Record<string, unknown>>) => {
-      for (const o of rows) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      for (const o of orders) {
         insert.run({
           id: o.id,
           created_at: o.createdAt,
@@ -99,10 +100,14 @@ function migrateLegacyJson(db: Database.Database) {
             ? JSON.stringify(o.diarySnapshot)
             : null,
           ai_draft_json: o.aiDraft ? JSON.stringify(o.aiDraft) : null,
-        });
+        } as Record<string, string | number | null>);
       }
-    });
-    tx(orders);
+      db.exec("COMMIT");
+    } catch (e) {
+      db.exec("ROLLBACK");
+      throw e;
+    }
+
     renameSync(LEGACY_JSON, `${LEGACY_JSON}.migrated`);
     console.info(`[db] migrated ${orders.length} plan orders from JSON`);
   } catch (e) {
@@ -110,14 +115,14 @@ function migrateLegacyJson(db: Database.Database) {
   }
 }
 
-export function getDb(): Database.Database {
+export function getDb(): DatabaseSync {
   const g = globalThis as GlobalDb;
   if (g.__mayaSqlite) return g.__mayaSqlite;
 
   if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
-  const db = new Database(dbPath());
-  db.pragma("journal_mode = WAL");
-  db.pragma("busy_timeout = 5000");
+  const db = new DatabaseSync(dbPath());
+  db.exec("PRAGMA journal_mode = WAL");
+  db.exec("PRAGMA busy_timeout = 5000");
   migrateSchema(db);
   migrateLegacyJson(db);
   g.__mayaSqlite = db;
