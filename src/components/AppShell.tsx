@@ -36,13 +36,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     </>
   );
 
+  const isAdminOrders = pathname.startsWith("/admin/orders");
+
   // Служебная страница — без меню мамского приложения
   if (isOpsPage) {
     return (
       <>
         <ThemeSync />
         {globalSync}
-        <div className="h-dvh overflow-y-auto overscroll-y-auto bg-background text-foreground">
+        <div
+          className={
+            isAdminOrders
+              ? "flex h-dvh flex-col overflow-hidden bg-background text-foreground"
+              : "h-dvh overflow-y-auto overscroll-y-auto bg-background text-foreground"
+          }
+        >
           {children}
         </div>
       </>

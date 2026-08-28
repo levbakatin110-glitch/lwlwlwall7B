@@ -284,15 +284,15 @@ export default function AdminOrdersPage() {
   }
 
   return (
-    <div className="flex min-h-dvh flex-col md:flex-row">
-      <aside className="w-full shrink-0 border-b border-line md:w-72 md:border-b-0 md:border-r">
-        <div className="flex items-center justify-between border-b border-line p-3">
+    <div className="flex min-h-0 flex-1 flex-col md:flex-row">
+      <aside className="flex max-h-[42vh] min-h-0 w-full shrink-0 flex-col border-b border-line md:h-full md:max-h-none md:w-72 md:border-b-0 md:border-r">
+        <div className="flex shrink-0 items-center justify-between border-b border-line p-3">
           <h1 className="font-display text-lg font-semibold">Заказы</h1>
           <Link href="/admin" className="text-xs text-accent">
             Админка
           </Link>
         </div>
-        <div className="max-h-48 overflow-y-auto md:max-h-none md:flex-1">
+        <div className="min-h-0 flex-1 overflow-y-auto">
           {orders.map((o) => (
             <button
               key={o.id}
@@ -317,11 +317,11 @@ export default function AdminOrdersPage() {
       </aside>
 
       {!activeId || !active ? (
-        <div className="flex flex-1 items-center justify-center p-8 text-muted">
+        <div className="flex min-h-0 flex-1 items-center justify-center p-8 text-muted">
           Выберите заказ
         </div>
       ) : (
-        <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col lg:flex-row">
           <div className="flex min-h-0 flex-1 flex-col border-b border-line lg:border-b-0 lg:border-r">
             <div className="shrink-0 border-b border-line p-3">
               <p className="text-xs text-muted">
