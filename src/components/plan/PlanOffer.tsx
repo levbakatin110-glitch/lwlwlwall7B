@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { clientEntriesForTopic } from "@/lib/backup-read-client";
+import { evaluatePlanOfferEligibility } from "@/lib/plan-offer-eligibility";
 import { useAppStore } from "@/lib/store";
 import {
   ACCOMPANIMENT_INCLUDES,
@@ -342,6 +343,7 @@ export function PlanOfferBanner({ moduleId }: { moduleId: string }) {
         : null;
 
   const journals = useAppStore((s) => s.journals);
+  const birthDate = useAppStore((s) => s.profile.birthDate);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [closedId, setClosedId] = useState<string | null>(null);
 
@@ -374,7 +376,12 @@ export function PlanOfferBanner({ moduleId }: { moduleId: string }) {
   if (!topic) return null;
 
   const entries = clientEntriesForTopic(journals, topic);
-  const entryCount = entries.length;
+  const eligibility = evaluatePlanOfferEligibility({
+    topic,
+    entries,
+    journals,
+    birthDate,
+  });
   const label = PLAN_TOPIC_LABEL[topic];
 
   if (activeId) {
@@ -411,15 +418,21 @@ export function PlanOfferBanner({ moduleId }: { moduleId: string }) {
     );
   }
 
-  if (entryCount < 2) {
+  if (eligibility.showTeaser) {
+    const left = 3 - eligibility.diaryDay;
     return (
       <div className="mb-4 rounded-2xl border border-line bg-card/60 p-4">
         <p className="text-sm text-muted">
-          Ведите дневник {label} ещё день-два — и можно заказать персональный
-          план + разбор за {PLAN_BREAKDOWN_RUB} ₽.
+          Ведите дневник {label} ещё{" "}
+          {left === 1 ? "день" : "1–2 дня"} — с 3-го дня, если появятся
+          отклонения, предложим персональный план + разбор.
         </p>
       </div>
     );
+  }
+
+  if (!eligibility.showOffer) {
+    return null;
   }
 
   return (
@@ -428,8 +441,9 @@ export function PlanOfferBanner({ moduleId }: { moduleId: string }) {
         Персональный план + разбор
       </p>
       <p className="mt-1 text-xs leading-relaxed text-muted">
-        Специалист разберёт дневник ({label}) и составит план в PDF. До 24 часов
-        на подготовку. · {PLAN_BREAKDOWN_RUB} ₽
+        По дневнику ({label}) видны моменты, где стоит разобраться — специалист
+        составит план в PDF. До 24 часов на подготовку. · {PLAN_BREAKDOWN_RUB}{" "}
+        ₽
       </p>
       <Link
         href={`/plan/order?topic=${topic}`}
