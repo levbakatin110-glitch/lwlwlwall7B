@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { clientEntriesForTopic } from "@/lib/backup-read-client";
 import { evaluatePlanOfferEligibility } from "@/lib/plan-offer-eligibility";
+import {
+  enablePlanOfferInstantFromUrl,
+  readPlanOfferInstant,
+} from "@/lib/plan-offer-instant";
 import { useAppStore } from "@/lib/store";
 import {
   ACCOMPANIMENT_INCLUDES,
@@ -344,8 +348,13 @@ export function PlanOfferBanner({ moduleId }: { moduleId: string }) {
 
   const journals = useAppStore((s) => s.journals);
   const birthDate = useAppStore((s) => s.profile?.birthDate);
+  const [instant, setInstant] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [closedId, setClosedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setInstant(enablePlanOfferInstantFromUrl() || readPlanOfferInstant());
+  }, []);
 
   useEffect(() => {
     if (!topic) return;
@@ -381,6 +390,7 @@ export function PlanOfferBanner({ moduleId }: { moduleId: string }) {
     entries,
     journals,
     birthDate,
+    instant,
   });
   const label = PLAN_TOPIC_LABEL[topic];
 

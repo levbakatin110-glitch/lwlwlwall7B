@@ -127,10 +127,22 @@ export function evaluatePlanOfferEligibility(input: {
   entries: JournalEntry[];
   journals: Record<string, JournalEntry[]>;
   birthDate?: string | null;
+  /** Тест: без тизера 2 дней, оффер при любой записи в дневнике */
+  instant?: boolean;
 }): PlanOfferEligibility {
   const dates = uniqueDates(input.entries);
   const uniqueDays = dates.length;
   const diaryDay = diaryDayFromFirstEntry(dates);
+
+  if (input.instant) {
+    return {
+      uniqueDays,
+      diaryDay,
+      hasConcerns: uniqueDays > 0,
+      showOffer: uniqueDays > 0,
+      showTeaser: false,
+    };
+  }
 
   if (diaryDay < PLAN_OFFER_DAY_MIN) {
     return {
