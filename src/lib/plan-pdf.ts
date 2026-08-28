@@ -42,7 +42,6 @@ export async function writePlanPdf(opts: {
   topic: PlanTopic;
   childName?: string;
   planText: string;
-  subtitle?: string;
 }): Promise<void> {
   ensureFonts();
   await new Promise<void>((resolve, reject) => {
@@ -61,7 +60,6 @@ export async function writePlanPdf(opts: {
     if (opts.childName?.trim()) {
       doc.text(`Малыш: ${opts.childName.trim()}`);
     }
-    doc.text(`Мая · проверено человеком`);
     doc.text(
       new Date().toLocaleDateString("ru-RU", {
         day: "numeric",
@@ -69,10 +67,6 @@ export async function writePlanPdf(opts: {
         year: "numeric",
       }),
     );
-    if (opts.subtitle?.trim()) {
-      doc.moveDown(0.3);
-      doc.text(opts.subtitle.trim());
-    }
     doc.moveDown(1);
     doc.fillColor("#111111");
 

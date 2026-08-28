@@ -126,7 +126,6 @@ export async function generatePlanAiDraft(orderId: string): Promise<PlanOrder | 
       topic: order.topic,
       childName: order.childName,
       planText: result.planText,
-      subtitle: "Черновик · проверьте перед отправкой маме",
     });
 
     const analysisBlock = result.questionsForMom
