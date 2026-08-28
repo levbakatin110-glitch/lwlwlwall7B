@@ -42,7 +42,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <>
         <ThemeSync />
         {globalSync}
-        <div className="min-h-dvh bg-background text-foreground">{children}</div>
+        <div className="h-dvh overflow-y-auto overscroll-y-auto bg-background text-foreground">
+          {children}
+        </div>
       </>
     );
   }
@@ -53,7 +55,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <>
         <ThemeSync />
         {globalSync}
-        <div className="min-h-dvh bg-background text-foreground">{children}</div>
+        <div className="h-dvh overflow-y-auto overscroll-y-auto bg-background text-foreground">{children}</div>
         {isLegalPage ? <CookieBanner /> : null}
       </>
     );
