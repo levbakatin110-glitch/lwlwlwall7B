@@ -21,11 +21,10 @@ export async function GET(req: Request, ctx: Ctx) {
     return Response.json({ error: "Не найдено" }, { status: 404 });
   }
 
-  const allowed =
-    order.messages.some((m) => m.pdfFile === safe) ||
-    order.aiDraft?.pdfFile === safe;
+  const isDraftPdf = order.aiDraft?.pdfFile === safe;
+  const isMessagePdf = order.messages.some((m) => m.pdfFile === safe);
 
-  if (!allowed) {
+  if (!isDraftPdf && !isMessagePdf) {
     return Response.json({ error: "Файл не найден" }, { status: 404 });
   }
 
@@ -33,6 +32,10 @@ export async function GET(req: Request, ctx: Ctx) {
   const session = readSessionFromRequest(req);
   const isOwner =
     session && normalizeEmail(session.email) === normalizeEmail(order.email);
+
+  if (isDraftPdf && !isAdmin) {
+    return Response.json({ error: "Нет доступа" }, { status: 403 });
+  }
 
   if (!isAdmin && !isOwner) {
     return Response.json({ error: "Нет доступа" }, { status: 403 });

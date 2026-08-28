@@ -12,6 +12,7 @@ import {
   orderForClient,
 } from "@/lib/orders-store";
 import { notifyNewPlanOrder } from "@/lib/admin-notify";
+import { schedulePlanAiDraft } from "@/lib/plan-ai";
 import type { JournalEntry } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -71,6 +72,8 @@ export async function POST(req: Request) {
   void notifyNewPlanOrder(order).catch((e) =>
     console.error("[plan-orders] notify", e),
   );
+
+  schedulePlanAiDraft(order.id);
 
   return Response.json({ ok: true, order: orderForClient(order) });
 }

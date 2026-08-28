@@ -281,11 +281,20 @@ export function refreshDiarySnapshot(orderId: string): PlanOrder | null {
 
 /** Для API — без лишних полей */
 export function orderForClient(order: PlanOrder) {
+  const pdfUrl = (file?: string) =>
+    file ? `/api/plan-orders/${order.id}/pdf/${file}` : undefined;
+
   return {
     ...order,
     messages: order.messages.map((m) => ({
       ...m,
-      pdfUrl: m.pdfFile ? `/api/plan-orders/${order.id}/pdf/${m.pdfFile}` : undefined,
+      pdfUrl: pdfUrl(m.pdfFile),
     })),
+    aiDraft: order.aiDraft
+      ? {
+          ...order.aiDraft,
+          pdfUrl: pdfUrl(order.aiDraft.pdfFile),
+        }
+      : order.aiDraft,
   };
 }

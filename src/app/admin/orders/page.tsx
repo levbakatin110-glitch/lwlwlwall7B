@@ -32,6 +32,8 @@ type PlanOrder = {
     analysis?: string;
     planText?: string;
     status?: string;
+    error?: string;
+    generatedAt?: string;
     pdfUrl?: string;
   };
 };
@@ -133,9 +135,10 @@ export default function AdminOrdersPage() {
   useEffect(() => {
     if (!activeId || !authed) return;
     void loadOne(activeId);
-    const t = window.setInterval(() => void loadOne(activeId), 5000);
+    const ms = active?.aiDraft?.status === "pending" ? 2500 : 5000;
+    const t = window.setInterval(() => void loadOne(activeId), ms);
     return () => window.clearInterval(t);
-  }, [activeId, authed, loadOne]);
+  }, [activeId, authed, loadOne, active?.aiDraft?.status]);
 
   useEffect(() => {
     chatEnd.current?.scrollIntoView({ behavior: "smooth" });
@@ -174,6 +177,52 @@ export default function AdminOrdersPage() {
     } finally {
       setBusy(false);
     }
+  };
+
+  const runGenerateAi = async () => {
+    if (!activeId) return;
+    setBusy(true);
+    setNote("ИИ генерирует разбор…");
+    try {
+      const res = await fetch(
+        `/api/admin/plan-orders/${activeId}/generate-ai`,
+        { method: "POST", headers: { "x-admin-password": password } },
+      );
+      if (!res.ok) {
+        setNote("Ошибка генерации");
+        return;
+      }
+      const data = (await res.json()) as { order: PlanOrder };
+      setActive(data.order);
+      setNote("ИИ-черновик готов");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const openDraftPdf = async () => {
+    if (!activeId || !active?.aiDraft?.pdfUrl) return;
+    try {
+      const res = await fetch(active.aiDraft.pdfUrl, {
+        headers: { "x-admin-password": password },
+      });
+      if (!res.ok) {
+        setNote("Не удалось открыть PDF");
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank", "noopener");
+    } catch {
+      setNote("Не удалось открыть PDF");
+    }
+  };
+
+  const copyQuestions = () => {
+    const text = active?.aiDraft?.analysis ?? "";
+    const match = text.split("---").pop()?.trim();
+    if (match) void navigator.clipboard.writeText(match);
+    setNote("Вопросы скопированы");
   };
 
   const closeChat = async () => {
@@ -383,30 +432,75 @@ export default function AdminOrdersPage() {
                 </div>
               ) : (
                 <div className="space-y-3 text-xs leading-relaxed">
-                  <p className="text-muted">
-                    ИИ-разбор и черновик PDF — на следующем этапе. Пока
-                    составляйте план сами по вкладке «Дневник».
-                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      disabled={busy || active.aiDraft?.status === "pending"}
+                      onClick={() => void runGenerateAi()}
+                      className="rounded-lg bg-accent px-3 py-1.5 text-[11px] font-semibold text-[var(--on-accent,#fff)] disabled:opacity-50"
+                    >
+                      {active.aiDraft?.status === "pending"
+                        ? "Генерация…"
+                        : active.aiDraft?.status === "ready"
+                          ? "Перегенерировать"
+                          : "Сгенерировать ИИ"}
+                    </button>
+                    {active.aiDraft?.analysis ? (
+                      <button
+                        type="button"
+                        onClick={copyQuestions}
+                        className="rounded-lg border border-line px-3 py-1.5 text-[11px]"
+                      >
+                        Копировать вопросы
+                      </button>
+                    ) : null}
+                  </div>
+
+                  {active.aiDraft?.status === "pending" ? (
+                    <p className="text-muted">ИИ готовит разбор и черновик PDF…</p>
+                  ) : null}
+                  {active.aiDraft?.status === "error" ? (
+                    <p className="text-red-600">
+                      {active.aiDraft.error ?? "Ошибка ИИ"}
+                    </p>
+                  ) : null}
+                  {active.aiDraft?.generatedAt ? (
+                    <p className="text-[10px] text-muted">
+                      Обновлено: {fmtWhen(active.aiDraft.generatedAt)}
+                    </p>
+                  ) : null}
+
                   {active.aiDraft?.analysis ? (
                     <div>
-                      <p className="font-semibold">Разбор ИИ</p>
-                      <p className="mt-1 whitespace-pre-wrap">
+                      <p className="font-semibold">Разбор для вас</p>
+                      <p className="mt-1 whitespace-pre-wrap text-foreground/90">
                         {active.aiDraft.analysis}
                       </p>
                     </div>
                   ) : null}
                   {active.aiDraft?.planText ? (
                     <div>
-                      <p className="font-semibold">Черновик плана</p>
-                      <p className="mt-1 whitespace-pre-wrap">
+                      <p className="font-semibold">Текст плана (черновик)</p>
+                      <p className="mt-1 max-h-48 overflow-y-auto whitespace-pre-wrap rounded-lg border border-line bg-card/50 p-2">
                         {active.aiDraft.planText}
                       </p>
                     </div>
                   ) : null}
                   {active.aiDraft?.pdfUrl ? (
-                    <a href={active.aiDraft.pdfUrl} className="text-accent underline">
-                      Черновик PDF
-                    </a>
+                    <button
+                      type="button"
+                      onClick={() => void openDraftPdf()}
+                      className="inline-flex rounded-lg border border-accent/40 bg-accent-soft px-3 py-2 font-semibold text-accent"
+                    >
+                      📄 Черновик PDF
+                    </button>
+                  ) : null}
+                  {!active.aiDraft?.analysis &&
+                  active.aiDraft?.status !== "pending" ? (
+                    <p className="text-muted">
+                      Нажмите «Сгенерировать ИИ» или дождитесь автогенерации
+                      после нового заказа.
+                    </p>
                   ) : null}
                 </div>
               )}
