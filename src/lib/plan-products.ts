@@ -22,7 +22,7 @@ export const PLAN_TEAM_DISPLAY_NAME = "Мария";
 /** Подпись на кнопках и в навигации */
 export const PLAN_TEAM_ENTRY_LABEL = "Команда Маи";
 export const PLAN_TEAM_ROLE = "помогу с режимом по дневнику · не врач";
-export const PLAN_MARIA_AVATAR = "/avatars/maria.jpg";
+export const PLAN_MARIA_AVATAR = "/avatars/maria-v2.jpg";
 /** @deprecated используйте PLAN_TEAM_DISPLAY_NAME */
 export const SPECIALIST_DISPLAY_NAME = PLAN_TEAM_DISPLAY_NAME;
 
