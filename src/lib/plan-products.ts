@@ -17,8 +17,10 @@ export const ACCOMPANIMENT_RUB = 1990;
 /** Сколько дней после плана можно писать в чат с вопросами */
 export const PLAN_CHAT_DAYS = 3;
 
-/** Имя консультанта в чате разбора (живой человек, не врач и не ИИ-бот Мая) */
+/** Имя в переписке (от лица консультанта) */
 export const PLAN_TEAM_DISPLAY_NAME = "Мария";
+/** Подпись на кнопках и в навигации */
+export const PLAN_TEAM_ENTRY_LABEL = "Команда Маи";
 export const PLAN_TEAM_ROLE = "помогу с режимом по дневнику · не врач";
 export const PLAN_MARIA_AVATAR = "/avatars/maria.jpg";
 /** @deprecated используйте PLAN_TEAM_DISPLAY_NAME */

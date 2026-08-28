@@ -21,7 +21,7 @@ export default function PlanOrderPage({
           ← К Мае
         </Link>
         <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-zinc-500">
-          Мария
+          Команда
         </span>
         <Link
           href="/modules"

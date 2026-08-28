@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { PlanMariaAvatar } from "@/components/plan/PlanMariaAvatar";
-import { PLAN_TEAM_DISPLAY_NAME } from "@/lib/plan-products";
+import {
+  PLAN_TEAM_DISPLAY_NAME,
+  PLAN_TEAM_ENTRY_LABEL,
+} from "@/lib/plan-products";
 
 type PlanOrderBrief = {
   id: string;
@@ -37,19 +40,19 @@ export function usePlanTeamHref(): string {
 const graphiteFab =
   "pointer-events-auto flex h-14 w-14 flex-col items-center justify-center rounded-full border border-zinc-600/80 bg-gradient-to-b from-zinc-700 to-zinc-900 text-white shadow-[0_8px_28px_rgba(0,0,0,0.35)] ring-2 ring-zinc-500/35 transition hover:from-zinc-600 hover:to-zinc-800";
 
-/** Плавающая кнопка «Мария» — графит, над чатом мам */
+/** Плавающая кнопка — снаружи «Команда Маи», в чате Мария */
 export function PlanTeamFloatingButton() {
   const href = usePlanTeamHref();
   return (
     <Link
       href={href}
-      aria-label={`${PLAN_TEAM_DISPLAY_NAME} — разбор дневника`}
-      title={PLAN_TEAM_DISPLAY_NAME}
+      aria-label={`${PLAN_TEAM_ENTRY_LABEL} — разбор дневника`}
+      title={PLAN_TEAM_ENTRY_LABEL}
       className={graphiteFab}
     >
       <PlanMariaAvatar size={36} className="ring-zinc-500/40" />
-      <span className="mt-0.5 text-[8px] font-bold uppercase leading-none tracking-wide text-zinc-300">
-        мария
+      <span className="mt-0.5 max-w-[3.25rem] truncate text-center text-[7px] font-bold uppercase leading-none tracking-wide text-zinc-300">
+        команда
       </span>
     </Link>
   );
@@ -68,8 +71,8 @@ export function PlanTeamCarouselLink({
   return (
     <Link
       href={href}
-      title={PLAN_TEAM_DISPLAY_NAME}
-      aria-label={PLAN_TEAM_DISPLAY_NAME}
+      title={PLAN_TEAM_ENTRY_LABEL}
+      aria-label={PLAN_TEAM_ENTRY_LABEL}
       aria-current={active ? "page" : undefined}
       className={`flex w-[3.65rem] shrink-0 snap-start flex-col items-center gap-0.5 rounded-xl px-0.5 py-0.5 transition ${
         active ? "bg-zinc-200/80 dark:bg-zinc-800/50" : "hover:bg-zinc-100/80"
@@ -83,7 +86,7 @@ export function PlanTeamCarouselLink({
           active ? "text-zinc-800 dark:text-zinc-100" : "text-zinc-600"
         }`}
       >
-        Мария
+        Команда
       </span>
     </Link>
   );
@@ -101,9 +104,9 @@ export function PlanTeamChatBanner() {
         <PlanMariaAvatar size={44} className="ring-0" />
       </span>
       <span>
-        <span className="block text-sm font-semibold">{PLAN_TEAM_DISPLAY_NAME}</span>
+        <span className="block text-sm font-semibold">{PLAN_TEAM_ENTRY_LABEL}</span>
         <span className="mt-0.5 block text-xs leading-snug text-zinc-300">
-          Разбор дневника · чат с Марией (не врач)
+          Разбор дневника · в чате отвечает {PLAN_TEAM_DISPLAY_NAME} (не врач)
         </span>
       </span>
     </Link>
