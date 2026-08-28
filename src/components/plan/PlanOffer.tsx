@@ -424,8 +424,8 @@ export function PlanOfferBanner({ moduleId }: { moduleId: string }) {
       <div className="mb-4 rounded-2xl border border-line bg-card/60 p-4">
         <p className="text-sm text-muted">
           Ведите дневник {label} ещё{" "}
-          {left === 1 ? "день" : "1–2 дня"} — первые два дня мы смотрим на
-          отклонения; если они были, с 3-го предложим план + разбор.
+          {left === 1 ? "день" : "1–2 дня"} — смотрим первые дни; если были
+          отклонения, с 3-го предложим план, иначе — только в дни с отклонениями.
         </p>
       </div>
     );

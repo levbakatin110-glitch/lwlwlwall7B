@@ -105,6 +105,23 @@ function anyConcernInDiaryDayRange(input: {
   return false;
 }
 
+/** Отклонение именно сегодня (нужна запись за сегодня) */
+function todayHasTopicConcern(input: {
+  entries: JournalEntry[];
+  topic: PlanTopic;
+  journals: Record<string, JournalEntry[]>;
+  birthDate?: string | null;
+}): boolean {
+  const today = todayYmd();
+  if (!input.entries.some((e) => e.date === today)) return false;
+  return dateHasTopicConcern({
+    date: today,
+    topic: input.topic,
+    journals: input.journals,
+    birthDate: input.birthDate,
+  });
+}
+
 export function evaluatePlanOfferEligibility(input: {
   topic: PlanTopic;
   entries: JournalEntry[];
@@ -126,31 +143,28 @@ export function evaluatePlanOfferEligibility(input: {
   }
 
   const firstDate = dates[0]!;
+  const triggeredByDays12 = anyConcernInDiaryDayRange({
+    firstDate,
+    fromDay: PLAN_OFFER_TRIGGER_FROM,
+    toDay: PLAN_OFFER_TRIGGER_TO,
+    topic: input.topic,
+    journals: input.journals,
+    birthDate: input.birthDate,
+  });
+
   let hasConcerns: boolean;
 
-  if (diaryDay <= PLAN_OFFER_DAY_MAX) {
-    // Дни 3–7: оффер, если на 1-м или 2-м дне было хоть одно отклонение
-    // (даже если с 3-го по 7-й уже всё в норме)
-    hasConcerns = anyConcernInDiaryDayRange({
-      firstDate,
-      fromDay: PLAN_OFFER_TRIGGER_FROM,
-      toDay: PLAN_OFFER_TRIGGER_TO,
+  if (diaryDay <= PLAN_OFFER_DAY_MAX && triggeredByDays12) {
+    // Дни 3–7 после отклонения на 1–2: оффер держим, даже если сейчас норма
+    hasConcerns = true;
+  } else {
+    // Дни 1–2 без отклонений → с 3-го дня и дальше: только при отклонении сегодня
+    hasConcerns = todayHasTopicConcern({
+      entries: input.entries,
       topic: input.topic,
       journals: input.journals,
       birthDate: input.birthDate,
     });
-  } else {
-    // День 8+: только если сегодня (с записью) есть отклонение
-    const today = todayYmd();
-    const todayHasData = input.entries.some((e) => e.date === today);
-    hasConcerns = todayHasData
-      ? dateHasTopicConcern({
-          date: today,
-          topic: input.topic,
-          journals: input.journals,
-          birthDate: input.birthDate,
-        })
-      : false;
   }
 
   return {
