@@ -315,6 +315,10 @@ export default function AdminPage() {
         <Link href="/admin/stats" className="text-accent underline">
           аналитика
         </Link>
+        {" · "}
+        <Link href="/admin/orders" className="text-accent underline">
+          заказы планов
+        </Link>
       </p>
 
       {note && (

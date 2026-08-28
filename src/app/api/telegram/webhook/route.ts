@@ -5,6 +5,10 @@ import {
   webhookSecret,
   type TelegramUpdate,
 } from "@/lib/telegram";
+import {
+  isAdminTelegramUser,
+  saveAdminTelegramChat,
+} from "@/lib/admin-notify";
 
 export const runtime = "nodejs";
 
@@ -50,6 +54,15 @@ export async function POST(req: Request) {
         reply = welcomeText();
       } else if (cmd === "/site" || cmd === "/maya") {
         reply = "Мая на сайте ↓";
+      } else if (cmd === "/notify") {
+        const username = update.message.from?.username;
+        if (isAdminTelegramUser(username)) {
+          saveAdminTelegramChat(chatId, username);
+          reply =
+            "Готово — уведомления о заказах планов будут приходить сюда.";
+        } else {
+          reply = "Эта команда только для администратора.";
+        }
       }
 
       return tgMethodResponse("sendMessage", {
