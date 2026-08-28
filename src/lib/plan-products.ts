@@ -21,6 +21,8 @@ export const PLAN_CHAT_DAYS = 3;
 export const PLAN_TEAM_DISPLAY_NAME = "Мария";
 /** Подпись на кнопках и в навигации */
 export const PLAN_TEAM_ENTRY_LABEL = "Команда Маи";
+/** Короткая подпись на плавающей кнопке */
+export const PLAN_TEAM_FAB_LABEL = "разбор";
 export const PLAN_TEAM_ROLE = "помогу с режимом по дневнику · не врач";
 export const PLAN_MARIA_AVATAR = "/avatars/maria-v2.jpg";
 /** @deprecated используйте PLAN_TEAM_DISPLAY_NAME */

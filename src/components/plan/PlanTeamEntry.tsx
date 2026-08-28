@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { MayaIcon } from "@/components/icons/MayaIcon";
 import { PlanMariaAvatar } from "@/components/plan/PlanMariaAvatar";
 import {
   PLAN_TEAM_DISPLAY_NAME,
   PLAN_TEAM_ENTRY_LABEL,
+  PLAN_TEAM_FAB_LABEL,
 } from "@/lib/plan-products";
 
 type PlanOrderBrief = {
@@ -40,19 +42,19 @@ export function usePlanTeamHref(): string {
 const graphiteFab =
   "pointer-events-auto flex h-14 w-14 flex-col items-center justify-center rounded-full border border-zinc-600/80 bg-gradient-to-b from-zinc-700 to-zinc-900 text-white shadow-[0_8px_28px_rgba(0,0,0,0.35)] ring-2 ring-zinc-500/35 transition hover:from-zinc-600 hover:to-zinc-800";
 
-/** Плавающая кнопка — снаружи «Команда Маи», в чате Мария */
+/** Плавающая кнопка — разбор дневника; внутри чата отвечает Мария */
 export function PlanTeamFloatingButton() {
   const href = usePlanTeamHref();
   return (
     <Link
       href={href}
-      aria-label={`${PLAN_TEAM_ENTRY_LABEL} — разбор дневника`}
-      title={PLAN_TEAM_ENTRY_LABEL}
+      aria-label={`${PLAN_TEAM_FAB_LABEL} дневника — персональный план`}
+      title={`${PLAN_TEAM_FAB_LABEL} дневника`}
       className={graphiteFab}
     >
-      <PlanMariaAvatar size={36} className="ring-zinc-500/40" />
-      <span className="mt-0.5 max-w-[3.25rem] truncate text-center text-[7px] font-bold uppercase leading-none tracking-wide text-zinc-300">
-        команда
+      <MayaIcon name="study" size={24} className="text-zinc-100" />
+      <span className="mt-0.5 max-w-[3.25rem] truncate text-center text-[8px] font-bold uppercase leading-none tracking-wide text-zinc-300">
+        {PLAN_TEAM_FAB_LABEL}
       </span>
     </Link>
   );
