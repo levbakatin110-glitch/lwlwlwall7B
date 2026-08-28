@@ -309,16 +309,33 @@ export default function AdminPage() {
       </div>
       <p className="mt-2 text-sm text-muted">
         Валидатор дневников, авто-починка и лог ошибок чата. Отдельная страница —
-        в меню мам её нет. Открывать:{" "}
-        <code className="text-foreground">/admin</code>
-        {" · "}
+        в меню мам её нет.{" "}
         <Link href="/admin/stats" className="text-accent underline">
-          аналитика
+          Аналитика
         </Link>
-        {" · "}
-        <Link href="/admin/orders" className="text-accent underline">
-          заказы планов
-        </Link>
+      </p>
+
+      <Link
+        href="/admin/orders"
+        className="mt-6 block rounded-2xl border border-zinc-600/50 bg-gradient-to-br from-zinc-800 to-zinc-950 p-5 text-white shadow-lg ring-1 ring-zinc-500/25 transition hover:from-zinc-700 hover:to-zinc-900"
+      >
+        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400">
+          Команда Маи
+        </p>
+        <h2 className="font-display mt-1 text-xl font-semibold">
+          Чаты с мамами · разборы
+        </h2>
+        <p className="mt-2 text-sm leading-relaxed text-zinc-300">
+          Переписка, снимок дневника, ИИ-черновик разбора и отправка PDF. Сюда
+          же приходят уведомления в Telegram и на почту.
+        </p>
+        <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-zinc-100">
+          Открыть чаты →
+        </span>
+      </Link>
+
+      <p className="mt-3 text-xs text-muted">
+        Прямая ссылка: <code className="text-foreground">/admin/orders</code>
       </p>
 
       {note && (
