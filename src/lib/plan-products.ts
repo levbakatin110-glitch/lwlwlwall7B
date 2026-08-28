@@ -17,8 +17,10 @@ export const ACCOMPANIMENT_RUB = 1990;
 /** Сколько дней после плана можно писать в чат с вопросами */
 export const PLAN_CHAT_DAYS = 3;
 
-/** Имя в чате (человек из команды, не врач и не ИИ-бот Мая) */
-export const PLAN_TEAM_DISPLAY_NAME = "Команда Маи";
+/** Имя консультанта в чате разбора (живой человек, не врач и не ИИ-бот Мая) */
+export const PLAN_TEAM_DISPLAY_NAME = "Мария";
+export const PLAN_TEAM_ROLE = "помогу с режимом по дневнику · не врач";
+export const PLAN_MARIA_AVATAR = "/avatars/maria.jpg";
 /** @deprecated используйте PLAN_TEAM_DISPLAY_NAME */
 export const SPECIALIST_DISPLAY_NAME = PLAN_TEAM_DISPLAY_NAME;
 
@@ -91,20 +93,20 @@ export function planPaymentsBypass(): boolean {
 }
 
 export const ORDER_STATUS_MOM: Record<string, string> = {
-  paid: "Команда Маи готовит разбор — до 24 часов",
-  contacted: "Команда Маи на связи",
-  plan_sent: "План отправлен — можно уточнить в чате",
+  paid: "Мария готовит разбор — до 24 часов",
+  contacted: "Мария на связи",
+  plan_sent: "План отправлен — можно уточнить у Марии",
   clarifying: "Уточняем детали по плану",
   closed: "Разбор завершён",
-  accompaniment_active: "Сопровождение · неделя",
+  accompaniment_active: "Сопровождение с Марией · неделя",
   completed: "Завершено",
 };
 
 export const PLAN_INCLUDES = [
   "Разбор дневника по вашей теме (сон или кормление)",
   "Персональный план на 7–14 дней в PDF",
-  `${PLAN_CHAT_DAYS} дня в чате — задавайте вопросы и уточняйте, как при сопровождении`,
-  "Ответ команды Маи в течение суток после готовности плана",
+  `${PLAN_CHAT_DAYS} дня в чате — задавайте вопросы Марии, как при сопровождении`,
+  "Ответ Марии в течение суток после готовности плана",
   "Не врач и не экстренная помощь — поддержка по режиму",
 ] as const;
 

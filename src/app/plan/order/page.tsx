@@ -121,7 +121,7 @@ function CheckoutInner() {
       </h1>
       <p className="mt-2 text-sm leading-relaxed text-muted">{PLAN_OFFER_HOOK}</p>
       <p className="mt-1 text-xs text-muted">
-        PDF-план и {PLAN_CHAT_DAYS} дня в чате с вопросами. Команда Маи — не врач.
+        PDF-план и {PLAN_CHAT_DAYS} дня в чате с Марией. Не врач — поддержка по режиму.
       </p>
 
       <div className="mt-6 rounded-2xl border border-accent/30 bg-gradient-to-br from-accent-soft/60 to-card p-5 shadow-sm">
@@ -176,7 +176,7 @@ function CheckoutInner() {
 
       <p className="mt-4 text-center text-[11px] leading-relaxed text-muted">
         {payBypass ? (
-          <>Сейчас оплата не списывается — сразу откроется чат с командой Маи.</>
+          <>Сейчас оплата не списывается — сразу откроется чат с Марией.</>
         ) : (
           <>
             Нажимая «Оплатить», вы соглашаетесь с{" "}

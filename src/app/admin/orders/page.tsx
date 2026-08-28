@@ -299,8 +299,8 @@ export default function AdminOrdersPage() {
   if (!authed) {
     return (
       <div className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center gap-4 p-6">
-        <h1 className="font-display text-2xl font-semibold">Команда Маи</h1>
-        <p className="text-sm text-muted">Чаты с мамами по разборам</p>
+        <h1 className="font-display text-2xl font-semibold">Мария · чаты</h1>
+        <p className="text-sm text-muted">Разборы дневника с мамами</p>
         <input
           type="password"
           value={password}
@@ -327,7 +327,7 @@ export default function AdminOrdersPage() {
       <aside className="flex max-h-[42vh] min-h-0 w-full shrink-0 flex-col border-b border-line md:h-full md:max-h-none md:w-72 md:border-b-0 md:border-r">
         <div className="flex shrink-0 items-center justify-between border-b border-line p-3">
           <div>
-            <h1 className="font-display text-lg font-semibold">Команда Маи</h1>
+            <h1 className="font-display text-lg font-semibold">Мария</h1>
             <p className="text-[10px] text-muted">Чаты · дневники · PDF</p>
           </div>
           <Link href="/admin" className="text-xs text-accent">

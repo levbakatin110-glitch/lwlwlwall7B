@@ -320,14 +320,14 @@ export default function AdminPage() {
         className="mt-6 block rounded-2xl border border-zinc-600/50 bg-gradient-to-br from-zinc-800 to-zinc-950 p-5 text-white shadow-lg ring-1 ring-zinc-500/25 transition hover:from-zinc-700 hover:to-zinc-900"
       >
         <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400">
-          Команда Маи
+          Разбор дневника
         </p>
         <h2 className="font-display mt-1 text-xl font-semibold">
-          Чаты с мамами · разборы
+          Чаты с Марией
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-zinc-300">
-          Переписка, снимок дневника, ИИ-черновик разбора и отправка PDF. Сюда
-          же приходят уведомления в Telegram и на почту.
+          Переписка, снимок дневника, ИИ-черновик и отправка PDF. Отвечайте мамам
+          от лица Марии.
         </p>
         <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-zinc-100">
           Открыть чаты →
