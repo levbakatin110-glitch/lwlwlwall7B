@@ -13,6 +13,7 @@ import {
   trimesterLabel,
 } from "@/lib/pregnancy";
 import { localToday } from "@/lib/local-date";
+import { emptyPregnancy } from "@/lib/pregnancy";
 import { useAppStore } from "@/lib/store";
 
 const SECTIONS: {
@@ -108,8 +109,8 @@ const SECTIONS: {
 ];
 
 export default function MedCardPage() {
-  const pregnancy = useAppStore((s) => s.pregnancy);
-  const journals = useAppStore((s) => s.journals);
+  const pregnancy = useAppStore((s) => s.pregnancy ?? emptyPregnancy());
+  const journals = useAppStore((s) => s.journals ?? {});
   const setPregnancy = useAppStore((s) => s.setPregnancy);
   const enablePregnancyModules = useAppStore((s) => s.enablePregnancyModules);
   const setPendingChatPrompt = useAppStore((s) => s.setPendingChatPrompt);

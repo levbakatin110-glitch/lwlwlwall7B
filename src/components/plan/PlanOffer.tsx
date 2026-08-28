@@ -343,7 +343,7 @@ export function PlanOfferBanner({ moduleId }: { moduleId: string }) {
         : null;
 
   const journals = useAppStore((s) => s.journals);
-  const birthDate = useAppStore((s) => s.profile.birthDate);
+  const birthDate = useAppStore((s) => s.profile?.birthDate);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [closedId, setClosedId] = useState<string | null>(null);
 

@@ -200,20 +200,20 @@ export function isMomJournalId(moduleId: string): boolean {
 }
 
 function stripMomJournals(
-  journals: Record<string, JournalEntry[]>,
+  journals: Record<string, JournalEntry[]> | undefined,
 ): Record<string, JournalEntry[]> {
   const out: Record<string, JournalEntry[]> = {};
-  for (const [k, v] of Object.entries(journals)) {
+  for (const [k, v] of Object.entries(journals ?? {})) {
     if (!isMomJournalId(k)) out[k] = v;
   }
   return out;
 }
 
 function overlayMomJournals(
-  childJournals: Record<string, JournalEntry[]>,
-  momJournals: Record<string, JournalEntry[]>,
+  childJournals: Record<string, JournalEntry[]> | undefined,
+  momJournals: Record<string, JournalEntry[]> | undefined,
 ): Record<string, JournalEntry[]> {
-  return { ...childJournals, ...momJournals };
+  return { ...(childJournals ?? {}), ...(momJournals ?? {}) };
 }
 
 function withActiveSpace(
@@ -368,7 +368,7 @@ export const useAppStore = create<AppState>()(
       },
       setPregnancy: (patch) =>
         set((s) => ({
-          pregnancy: { ...s.pregnancy, ...patch },
+          pregnancy: { ...(s.pregnancy ?? emptyPregnancy()), ...patch },
         })),
       enablePregnancyModules: () => {
         const spaces = { ...get().childSpaces };
@@ -901,8 +901,13 @@ export const useAppStore = create<AppState>()(
         }
         if (!state.opsErrors) state.opsErrors = [];
         if (!state.subscription) state.subscription = emptySubscription();
-        if (!state.pregnancy) state.pregnancy = emptyPregnancy();
+        if (!state.pregnancy || typeof state.pregnancy !== "object") {
+          state.pregnancy = emptyPregnancy();
+        }
         if (!state.momJournals) state.momJournals = {};
+        if (!state.journals || typeof state.journals !== "object") {
+          state.journals = emptyJournals();
+        }
         if (!state.aiChatUsage) state.aiChatUsage = emptyAiUsage();
         if (state.accountEmail === undefined) state.accountEmail = null;
         if (state.emailVerified == null) state.emailVerified = false;
