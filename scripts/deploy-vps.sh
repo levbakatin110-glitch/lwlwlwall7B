@@ -16,7 +16,9 @@ if [ -z "${NEXT_SERVER_ACTIONS_ENCRYPTION_KEY:-}" ]; then
   export NEXT_SERVER_ACTIONS_ENCRYPTION_KEY='DPEZn35NF4GXiXF/tJrPE4tgrGS55JeVCSpLVZ39sWM='
 fi
 
+git checkout -- package-lock.json 2>/dev/null || true
 git pull
+npm install
 rm -rf .next
 npm run build
 pm2 restart maya
