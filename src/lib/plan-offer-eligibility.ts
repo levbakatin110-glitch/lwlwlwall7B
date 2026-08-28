@@ -2,10 +2,13 @@ import { buildDaySummary, dayNormHints } from "@/lib/day-summary";
 import type { PlanTopic } from "@/lib/plan-products";
 import type { JournalEntry } from "@/lib/types";
 
-/** С какого дня дневника можно показывать оффер (при отклонениях) */
+/** С какого дня показываем оффер (если сработал триггер на 1–2 день) */
 export const PLAN_OFFER_DAY_MIN = 3;
-/** До этого дня смотрим отклонения за весь период 3…N; после — только за текущий день */
+/** До этого дня держим оффер после триггера; с 8-го — только при свежих отклонениях */
 export const PLAN_OFFER_DAY_MAX = 7;
+/** Дни, по которым решаем, показывать ли оффер на 3–7 */
+export const PLAN_OFFER_TRIGGER_FROM = 1;
+export const PLAN_OFFER_TRIGGER_TO = 2;
 
 export type PlanOfferEligibility = {
   uniqueDays: number;
@@ -126,11 +129,12 @@ export function evaluatePlanOfferEligibility(input: {
   let hasConcerns: boolean;
 
   if (diaryDay <= PLAN_OFFER_DAY_MAX) {
-    // Дни 3–7: оффер, если за период с 3-го по сегодня было хоть одно отклонение
+    // Дни 3–7: оффер, если на 1-м или 2-м дне было хоть одно отклонение
+    // (даже если с 3-го по 7-й уже всё в норме)
     hasConcerns = anyConcernInDiaryDayRange({
       firstDate,
-      fromDay: PLAN_OFFER_DAY_MIN,
-      toDay: diaryDay,
+      fromDay: PLAN_OFFER_TRIGGER_FROM,
+      toDay: PLAN_OFFER_TRIGGER_TO,
       topic: input.topic,
       journals: input.journals,
       birthDate: input.birthDate,
