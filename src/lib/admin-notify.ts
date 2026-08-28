@@ -140,21 +140,38 @@ export async function notifyNewPlanOrder(order: PlanOrder) {
   ]);
 }
 
-export async function notifyPlanOrderMessage(order: PlanOrder, fromUser: boolean) {
+export async function notifyPlanOrderMessage(
+  order: PlanOrder,
+  fromUser: boolean,
+  messageText?: string,
+) {
   if (!fromUser) return;
   const topic = PLAN_TOPIC_LABEL[order.topic];
   const url = orderAdminUrl(order.id);
+  const preview = messageText?.trim().slice(0, 200);
   const subject = `Мая · ответ мамы · ${topic}`;
-  const text = `Мама ответила в заказе (${topic}): ${order.email}\n${url}`;
+  const text = [
+    `Мама ответила в заказе (${topic}): ${order.email}`,
+    preview ? `\n«${preview}${(messageText?.length ?? 0) > 200 ? "…" : ""}»` : "",
+    url,
+  ]
+    .filter(Boolean)
+    .join("\n");
 
   await Promise.all([
     sendAdminEmail(
       subject,
-      `<p>Мама ответила в заказе <b>${topic}</b></p><p>${order.email}</p><p><a href="${url}">Открыть</a></p>`,
+      `<p>Мама ответила в заказе <b>${topic}</b></p><p>${order.email}</p>${
+        preview
+          ? `<p style="color:#555">«${preview.replace(/</g, "&lt;")}»</p>`
+          : ""
+      }<p><a href="${url}">Открыть</a></p>`,
       text,
     ),
     sendAdminTelegram(
-      `<b>Ответ мамы</b> · ${topic}\n${order.email}\n<a href="${url}">Админка</a>`,
+      `<b>Ответ мамы</b> · ${topic}\n${order.email}${
+        preview ? `\n«${preview}»` : ""
+      }\n<a href="${url}">Админка</a>`,
     ),
   ]);
 }

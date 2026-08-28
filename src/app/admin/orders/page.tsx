@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ACCOMPANIMENT_RUB,
+  ORDER_STATUS_MOM,
   PLAN_TOPIC_LABEL,
   PLAN_TEAM_DISPLAY_NAME,
 } from "@/lib/plan-products";
@@ -26,6 +27,7 @@ type PlanOrder = {
   topic: "sleep" | "feed";
   status: string;
   chatClosedAt?: string;
+  chatDeadlineAt?: string;
   messages: OrderMessage[];
   diarySnapshot?: { entries: JournalEntry[]; capturedAt: string };
   aiDraft?: {
@@ -58,6 +60,27 @@ function fmtWhen(iso: string) {
   }
 }
 
+type QueueFilter = "all" | "active" | "needs_reply" | "closed";
+
+function orderNeedsReply(o: PlanOrder) {
+  if (o.chatClosedAt && o.status !== "accompaniment_active") return false;
+  const last = o.messages[o.messages.length - 1];
+  return last?.role === "user";
+}
+
+function orderIsActive(o: PlanOrder) {
+  return (
+    o.status !== "awaiting_payment" &&
+    o.status !== "closed" &&
+    o.status !== "completed" &&
+    (!o.chatClosedAt || o.status === "accompaniment_active")
+  );
+}
+
+function statusLabel(status: string) {
+  return ORDER_STATUS_MOM[status] ?? status;
+}
+
 export default function AdminOrdersPage() {
   const [password, setPassword] = useState("");
   const [authed, setAuthed] = useState(false);
@@ -65,6 +88,7 @@ export default function AdminOrdersPage() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [active, setActive] = useState<PlanOrder | null>(null);
   const [tab, setTab] = useState<"diary" | "ai">("diary");
+  const [queueFilter, setQueueFilter] = useState<QueueFilter>("active");
   const [reply, setReply] = useState("");
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
@@ -86,10 +110,20 @@ export default function AdminOrdersPage() {
       credentials: "include",
       body: JSON.stringify({ password }),
     });
-    if (!res.ok) return;
+    if (!res.ok) {
+      setNote("Неверный пароль");
+      return;
+    }
     setAuthed(true);
     sessionStorage.setItem(PASS_KEY, password);
   };
+
+  const filteredOrders = orders.filter((o) => {
+    if (queueFilter === "all") return true;
+    if (queueFilter === "active") return orderIsActive(o);
+    if (queueFilter === "needs_reply") return orderNeedsReply(o);
+    return o.status === "closed" || o.status === "completed" || Boolean(o.chatClosedAt);
+  });
 
   const loadList = useCallback(async () => {
     const res = await fetch("/api/admin/plan-orders", {
@@ -202,8 +236,12 @@ export default function AdminOrdersPage() {
 
   const openDraftPdf = async () => {
     if (!activeId || !active?.aiDraft?.pdfUrl) return;
+    await openPdfUrl(active.aiDraft.pdfUrl);
+  };
+
+  const openPdfUrl = async (url: string) => {
     try {
-      const res = await fetch(active.aiDraft.pdfUrl, {
+      const res = await fetch(url, {
         headers: { "x-admin-password": password },
       });
       if (!res.ok) {
@@ -211,8 +249,8 @@ export default function AdminOrdersPage() {
         return;
       }
       const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      window.open(url, "_blank", "noopener");
+      const blobUrl = URL.createObjectURL(blob);
+      window.open(blobUrl, "_blank", "noopener");
     } catch {
       setNote("Не удалось открыть PDF");
     }
@@ -296,8 +334,31 @@ export default function AdminOrdersPage() {
             Админка
           </Link>
         </div>
+        <div className="flex shrink-0 flex-wrap gap-1 border-b border-line p-2">
+          {(
+            [
+              ["active", "Активные"],
+              ["needs_reply", "Ждут ответа"],
+              ["closed", "Закрытые"],
+              ["all", "Все"],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setQueueFilter(id)}
+              className={`rounded-lg px-2.5 py-1 text-[11px] font-medium ${
+                queueFilter === id
+                  ? "bg-accent text-[var(--on-accent,#fff)]"
+                  : "bg-accent-soft/50 text-muted"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
         <div className="min-h-0 flex-1 overflow-y-auto">
-          {orders.map((o) => (
+          {filteredOrders.map((o) => (
             <button
               key={o.id}
               type="button"
@@ -309,13 +370,20 @@ export default function AdminOrdersPage() {
                 activeId === o.id ? "bg-accent-soft" : ""
               }`}
             >
-              <p className="font-medium">{PLAN_TOPIC_LABEL[o.topic]}</p>
+              <div className="flex items-start justify-between gap-2">
+                <p className="font-medium">{PLAN_TOPIC_LABEL[o.topic]}</p>
+                {orderNeedsReply(o) ? (
+                  <span className="rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-bold text-[var(--on-accent,#fff)]">
+                    новое
+                  </span>
+                ) : null}
+              </div>
               <p className="truncate text-xs text-muted">{o.email}</p>
-              <p className="text-[10px] text-muted">{o.status}</p>
+              <p className="text-[10px] text-muted">{statusLabel(o.status)}</p>
             </button>
           ))}
-          {orders.length === 0 ? (
-            <p className="p-4 text-sm text-muted">Заказов пока нет</p>
+          {filteredOrders.length === 0 ? (
+            <p className="p-4 text-sm text-muted">Заказов в этой очереди нет</p>
           ) : null}
         </div>
       </aside>
@@ -333,8 +401,13 @@ export default function AdminOrdersPage() {
                 {active.childName ? ` · ${active.childName}` : ""}
               </p>
               <p className="text-sm font-medium">
-                {PLAN_TOPIC_LABEL[active.topic]} · {active.status}
+                {PLAN_TOPIC_LABEL[active.topic]} · {statusLabel(active.status)}
               </p>
+              {active.chatDeadlineAt && !active.chatClosedAt ? (
+                <p className="text-[10px] text-muted">
+                  Чат до {fmtWhen(active.chatDeadlineAt)}
+                </p>
+              ) : null}
             </div>
 
             <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
@@ -356,9 +429,13 @@ export default function AdminOrdersPage() {
                   ) : null}
                   {m.text ? <p className="whitespace-pre-wrap">{m.text}</p> : null}
                   {m.pdfUrl ? (
-                    <a href={m.pdfUrl} className="mt-1 block text-xs underline">
+                    <button
+                      type="button"
+                      onClick={() => void openPdfUrl(m.pdfUrl!)}
+                      className="mt-1 block text-left text-xs underline"
+                    >
                       PDF план
-                    </a>
+                    </button>
                   ) : null}
                   <p className="mt-1 text-[10px] opacity-60">{fmtWhen(m.createdAt)}</p>
                 </div>

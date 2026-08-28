@@ -1,10 +1,13 @@
 import { randomBytes } from "crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync } from "fs";
 import { join } from "path";
+import { getDb } from "@/lib/db";
 import { normalizeEmail } from "@/lib/email-codes";
+import { applyOrderLifecycle } from "@/lib/plan-order-lifecycle";
 import type { JournalEntry } from "@/lib/types";
 import {
   ACCOMPANIMENT_RUB,
+  PLAN_CHAT_DAYS,
   type PlanProductId,
   type PlanTopic,
 } from "@/lib/plan-products";
@@ -63,14 +66,38 @@ export type PlanOrder = {
   };
   aiDraft?: OrderAiDraft;
   chatClosedAt?: string;
+  planSentAt?: string;
+  chatDeadlineAt?: string;
+  accompanimentDeadlineAt?: string;
 };
 
-type Store = { orders: PlanOrder[] };
+type DbRow = {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  email: string;
+  child_id: string | null;
+  child_name: string | null;
+  topic: PlanTopic;
+  product_id: PlanProductId;
+  status: OrderStatus;
+  price_rub: number;
+  paid_at: string | null;
+  payment_ref: string | null;
+  accompaniment_paid: number;
+  accompaniment_pending: number;
+  accompaniment_price_rub: number | null;
+  chat_closed_at: string | null;
+  plan_sent_at: string | null;
+  chat_deadline_at: string | null;
+  accompaniment_deadline_at: string | null;
+  messages_json: string;
+  diary_snapshot_json: string | null;
+  ai_draft_json: string | null;
+};
 
 const DATA_DIR = join(process.cwd(), "data");
-const DATA_FILE = join(DATA_DIR, "plan-orders.json");
 const PDF_DIR = join(DATA_DIR, "plan-pdfs");
-
 const AWAITING_TTL_MS = 45 * 60 * 1000;
 
 const SYSTEM_INTRO =
@@ -81,19 +108,118 @@ function ensure() {
   if (!existsSync(PDF_DIR)) mkdirSync(PDF_DIR, { recursive: true });
 }
 
-function load(): Store {
-  ensure();
-  if (!existsSync(DATA_FILE)) return { orders: [] };
-  try {
-    return JSON.parse(readFileSync(DATA_FILE, "utf8")) as Store;
-  } catch {
-    return { orders: [] };
-  }
+function rowToOrder(row: DbRow): PlanOrder {
+  return {
+    id: row.id,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    email: row.email,
+    childId: row.child_id ?? undefined,
+    childName: row.child_name ?? undefined,
+    topic: row.topic,
+    productId: row.product_id,
+    status: row.status,
+    priceRub: row.price_rub,
+    paidAt: row.paid_at ?? undefined,
+    paymentRef: row.payment_ref ?? undefined,
+    accompanimentPaid: Boolean(row.accompaniment_paid),
+    accompanimentPending: Boolean(row.accompaniment_pending),
+    accompanimentPriceRub: row.accompaniment_price_rub ?? undefined,
+    chatClosedAt: row.chat_closed_at ?? undefined,
+    planSentAt: row.plan_sent_at ?? undefined,
+    chatDeadlineAt: row.chat_deadline_at ?? undefined,
+    accompanimentDeadlineAt: row.accompaniment_deadline_at ?? undefined,
+    messages: JSON.parse(row.messages_json) as OrderMessage[],
+    diarySnapshot: row.diary_snapshot_json
+      ? (JSON.parse(row.diary_snapshot_json) as PlanOrder["diarySnapshot"])
+      : undefined,
+    aiDraft: row.ai_draft_json
+      ? (JSON.parse(row.ai_draft_json) as OrderAiDraft)
+      : undefined,
+  };
 }
 
-function save(store: Store) {
-  ensure();
-  writeFileSync(DATA_FILE, JSON.stringify(store, null, 2), "utf8");
+function orderToParams(order: PlanOrder) {
+  return {
+    id: order.id,
+    created_at: order.createdAt,
+    updated_at: order.updatedAt,
+    email: order.email,
+    child_id: order.childId ?? null,
+    child_name: order.childName ?? null,
+    topic: order.topic,
+    product_id: order.productId,
+    status: order.status,
+    price_rub: order.priceRub,
+    paid_at: order.paidAt ?? null,
+    payment_ref: order.paymentRef ?? null,
+    accompaniment_paid: order.accompanimentPaid ? 1 : 0,
+    accompaniment_pending: order.accompanimentPending ? 1 : 0,
+    accompaniment_price_rub: order.accompanimentPriceRub ?? null,
+    chat_closed_at: order.chatClosedAt ?? null,
+    plan_sent_at: order.planSentAt ?? null,
+    chat_deadline_at: order.chatDeadlineAt ?? null,
+    accompaniment_deadline_at: order.accompanimentDeadlineAt ?? null,
+    messages_json: JSON.stringify(order.messages),
+    diary_snapshot_json: order.diarySnapshot
+      ? JSON.stringify(order.diarySnapshot)
+      : null,
+    ai_draft_json: order.aiDraft ? JSON.stringify(order.aiDraft) : null,
+  };
+}
+
+function loadOrderRaw(id: string): PlanOrder | null {
+  const row = getDb()
+    .prepare("SELECT * FROM plan_orders WHERE id = ?")
+    .get(id) as DbRow | undefined;
+  if (!row) return null;
+  return rowToOrder(row);
+}
+
+export function getOrder(id: string): PlanOrder | null {
+  const raw = loadOrderRaw(id);
+  if (!raw) return null;
+  return applyOrderLifecycle(raw);
+}
+
+function upsertOrder(order: PlanOrder): PlanOrder {
+  const db = getDb();
+  const params = orderToParams(order);
+  db.prepare(
+    `INSERT INTO plan_orders (
+      id, created_at, updated_at, email, child_id, child_name, topic, product_id,
+      status, price_rub, paid_at, payment_ref, accompaniment_paid, accompaniment_pending,
+      accompaniment_price_rub, chat_closed_at, plan_sent_at, chat_deadline_at,
+      accompaniment_deadline_at, messages_json, diary_snapshot_json, ai_draft_json
+    ) VALUES (
+      @id, @created_at, @updated_at, @email, @child_id, @child_name, @topic, @product_id,
+      @status, @price_rub, @paid_at, @payment_ref, @accompaniment_paid, @accompaniment_pending,
+      @accompaniment_price_rub, @chat_closed_at, @plan_sent_at, @chat_deadline_at,
+      @accompaniment_deadline_at, @messages_json, @diary_snapshot_json, @ai_draft_json
+    )
+    ON CONFLICT(id) DO UPDATE SET
+      updated_at = excluded.updated_at,
+      email = excluded.email,
+      child_id = excluded.child_id,
+      child_name = excluded.child_name,
+      topic = excluded.topic,
+      product_id = excluded.product_id,
+      status = excluded.status,
+      price_rub = excluded.price_rub,
+      paid_at = excluded.paid_at,
+      payment_ref = excluded.payment_ref,
+      accompaniment_paid = excluded.accompaniment_paid,
+      accompaniment_pending = excluded.accompaniment_pending,
+      accompaniment_price_rub = excluded.accompaniment_price_rub,
+      chat_closed_at = excluded.chat_closed_at,
+      plan_sent_at = excluded.plan_sent_at,
+      chat_deadline_at = excluded.chat_deadline_at,
+      accompaniment_deadline_at = excluded.accompaniment_deadline_at,
+      messages_json = excluded.messages_json,
+      diary_snapshot_json = excluded.diary_snapshot_json,
+      ai_draft_json = excluded.ai_draft_json`,
+  ).run(params);
+  return order;
 }
 
 export function pdfDir() {
@@ -110,12 +236,18 @@ export function newMessageId() {
 }
 
 export function listOrders(): PlanOrder[] {
-  return load().orders.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  const rows = getDb()
+    .prepare("SELECT * FROM plan_orders ORDER BY updated_at DESC")
+    .all() as DbRow[];
+  return rows.map((r) => applyOrderLifecycle(rowToOrder(r)));
 }
 
 export function ordersForEmail(email: string): PlanOrder[] {
   const norm = normalizeEmail(email);
-  return listOrders().filter((o) => normalizeEmail(o.email) === norm);
+  const rows = getDb()
+    .prepare("SELECT * FROM plan_orders WHERE email = ? ORDER BY updated_at DESC")
+    .all(norm) as DbRow[];
+  return rows.map((r) => applyOrderLifecycle(rowToOrder(r)));
 }
 
 function isActivePlanOrder(o: PlanOrder) {
@@ -131,28 +263,37 @@ export function activeOrderForTopic(
   topic: PlanTopic,
 ): PlanOrder | null {
   const norm = normalizeEmail(email);
-  return (
-    listOrders().find(
-      (o) =>
-        normalizeEmail(o.email) === norm &&
-        o.topic === topic &&
-        isActivePlanOrder(o),
-    ) ?? null
-  );
+  const rows = getDb()
+    .prepare(
+      "SELECT * FROM plan_orders WHERE email = ? AND topic = ? ORDER BY updated_at DESC",
+    )
+    .all(norm, topic) as DbRow[];
+  for (const row of rows) {
+    const order = applyOrderLifecycle(rowToOrder(row));
+    if (isActivePlanOrder(order)) return order;
+  }
+  return null;
 }
 
-export function getOrder(id: string): PlanOrder | null {
-  return load().orders.find((o) => o.id === id) ?? null;
-}
-
-function purgeStaleAwaiting(store: Store, email: string, topic: PlanTopic) {
+function purgeStaleAwaiting(email: string, topic: PlanTopic) {
   const norm = normalizeEmail(email);
-  const cutoff = Date.now() - AWAITING_TTL_MS;
-  store.orders = store.orders.filter((o) => {
-    if (normalizeEmail(o.email) !== norm || o.topic !== topic) return true;
-    if (o.status !== "awaiting_payment") return true;
-    return new Date(o.createdAt).getTime() > cutoff;
-  });
+  const cutoff = new Date(Date.now() - AWAITING_TTL_MS).toISOString();
+  getDb()
+    .prepare(
+      `DELETE FROM plan_orders
+       WHERE email = ? AND topic = ? AND status = 'awaiting_payment' AND created_at < ?`,
+    )
+    .run(norm, topic, cutoff);
+}
+
+export function chatDeadlineFromNow(): string {
+  return new Date(
+    Date.now() + PLAN_CHAT_DAYS * 86_400_000,
+  ).toISOString();
+}
+
+export function accompanimentDeadlineFromNow(): string {
+  return new Date(Date.now() + 7 * 86_400_000).toISOString();
 }
 
 export function createPlanOrder(input: {
@@ -164,26 +305,27 @@ export function createPlanOrder(input: {
   childName?: string;
   clientEntries?: JournalEntry[];
 }): PlanOrder {
-  const store = load();
-  purgeStaleAwaiting(store, input.email, input.topic);
+  purgeStaleAwaiting(input.email, input.topic);
 
   const existing = activeOrderForTopic(input.email, input.topic);
   if (existing) return existing;
 
-  const awaiting = store.orders.find(
-    (o) =>
-      normalizeEmail(o.email) === normalizeEmail(input.email) &&
-      o.topic === input.topic &&
-      o.status === "awaiting_payment",
-  );
-  if (awaiting) return awaiting;
+  const norm = normalizeEmail(input.email);
+  const awaitingRow = getDb()
+    .prepare(
+      `SELECT * FROM plan_orders
+       WHERE email = ? AND topic = ? AND status = 'awaiting_payment'
+       ORDER BY created_at DESC LIMIT 1`,
+    )
+    .get(norm, input.topic) as DbRow | undefined;
+  if (awaitingRow) return rowToOrder(awaitingRow);
 
   const now = new Date().toISOString();
   const order: PlanOrder = {
     id: newOrderId(),
     createdAt: now,
     updatedAt: now,
-    email: normalizeEmail(input.email),
+    email: norm,
     childId: input.childId,
     childName: input.childName,
     topic: input.topic,
@@ -200,8 +342,7 @@ export function createPlanOrder(input: {
     aiDraft: { status: "pending" },
   };
 
-  store.orders.unshift(order);
-  save(store);
+  upsertOrder(order);
   return order;
 }
 
@@ -220,16 +361,20 @@ export function updateOrder(
       | "paidAt"
       | "paymentRef"
       | "messages"
+      | "planSentAt"
+      | "chatDeadlineAt"
+      | "accompanimentDeadlineAt"
     >
   >,
 ): PlanOrder | null {
-  const store = load();
-  const idx = store.orders.findIndex((o) => o.id === id);
-  if (idx < 0) return null;
-  const prev = store.orders[idx]!;
-  const next: PlanOrder = { ...prev, ...patch, updatedAt: new Date().toISOString() };
-  store.orders[idx] = next;
-  save(store);
+  const prev = loadOrderRaw(id);
+  if (!prev) return null;
+  const next: PlanOrder = {
+    ...prev,
+    ...patch,
+    updatedAt: new Date().toISOString(),
+  };
+  upsertOrder(next);
   return next;
 }
 
@@ -240,10 +385,8 @@ export function appendMessage(
     createdAt?: string;
   },
 ): PlanOrder | null {
-  const store = load();
-  const idx = store.orders.findIndex((o) => o.id === orderId);
-  if (idx < 0) return null;
-  const order = store.orders[idx]!;
+  const order = loadOrderRaw(orderId);
+  if (!order) return null;
   if (order.chatClosedAt && msg.role === "user") return null;
 
   const row: OrderMessage = {
@@ -253,21 +396,30 @@ export function appendMessage(
     text: msg.text,
     pdfFile: msg.pdfFile,
   };
+
+  let status = order.status;
+  if (msg.role === "specialist" && order.status === "paid") {
+    status = "contacted";
+  } else if (msg.pdfFile) {
+    status = "plan_sent";
+  } else if (order.status === "plan_sent") {
+    status = "clarifying";
+  }
+
+  const planPatch: Partial<PlanOrder> = {};
+  if (msg.pdfFile || status === "plan_sent") {
+    if (!order.planSentAt) planPatch.planSentAt = row.createdAt;
+    if (!order.chatDeadlineAt) planPatch.chatDeadlineAt = chatDeadlineFromNow();
+  }
+
   const next: PlanOrder = {
     ...order,
+    ...planPatch,
     messages: [...order.messages, row],
     updatedAt: row.createdAt,
-    status:
-      msg.role === "specialist" && order.status === "paid"
-        ? "contacted"
-        : msg.pdfFile
-          ? "plan_sent"
-          : order.status === "plan_sent"
-            ? "clarifying"
-            : order.status,
+    status,
   };
-  store.orders[idx] = next;
-  save(store);
+  upsertOrder(next);
   return next;
 }
 
@@ -293,10 +445,6 @@ export function fulfillPlanOrderPayment(
   if (order.status !== "awaiting_payment") return order;
 
   const now = new Date().toISOString();
-  const store = load();
-  const idx = store.orders.findIndex((o) => o.id === orderId);
-  if (idx < 0) return null;
-
   const next: PlanOrder = {
     ...order,
     status: "paid",
@@ -312,8 +460,7 @@ export function fulfillPlanOrderPayment(
       },
     ],
   };
-  store.orders[idx] = next;
-  save(store);
+  upsertOrder(next);
   return next;
 }
 
@@ -326,10 +473,6 @@ export function fulfillAccompanimentPayment(
   if (order.accompanimentPaid) return order;
 
   const now = new Date().toISOString();
-  const store = load();
-  const idx = store.orders.findIndex((o) => o.id === parentOrderId);
-  if (idx < 0) return null;
-
   const next: PlanOrder = {
     ...order,
     accompanimentPaid: true,
@@ -337,6 +480,7 @@ export function fulfillAccompanimentPayment(
     accompanimentPriceRub: ACCOMPANIMENT_RUB,
     status: "accompaniment_active",
     chatClosedAt: undefined,
+    accompanimentDeadlineAt: accompanimentDeadlineFromNow(),
     paymentRef: paymentRef ?? order.paymentRef,
     updatedAt: now,
     messages: [
@@ -350,8 +494,7 @@ export function fulfillAccompanimentPayment(
       },
     ],
   };
-  store.orders[idx] = next;
-  save(store);
+  upsertOrder(next);
   return next;
 }
 

@@ -19,11 +19,13 @@ export function usePlanTeamHref(): string {
       .then((d: { orders?: PlanOrderBrief[] } | null) => {
         const orders = d?.orders ?? [];
         const open = orders.find(
-          (o) => !o.chatClosedAt || o.status === "accompaniment_active",
+          (o) =>
+            o.status !== "awaiting_payment" &&
+            o.status !== "closed" &&
+            o.status !== "completed" &&
+            (!o.chatClosedAt || o.status === "accompaniment_active"),
         );
-        const latest = orders[0];
-        const id = open?.id ?? latest?.id;
-        if (id) setHref(`/plan/${id}`);
+        if (open?.id) setHref(`/plan/${open.id}`);
       })
       .catch(() => {});
   }, []);

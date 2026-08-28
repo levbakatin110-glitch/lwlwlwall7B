@@ -9,6 +9,7 @@ import {
   pdfDir,
   updateOrder,
 } from "@/lib/orders-store";
+import { notifyMomPlanTeamReply } from "@/lib/plan-notify";
 
 export const runtime = "nodejs";
 
@@ -24,6 +25,9 @@ export async function POST(req: Request, ctx: Ctx) {
   const order = getOrder(id);
   if (!order) {
     return Response.json({ error: "Не найдено" }, { status: 404 });
+  }
+  if (order.chatClosedAt && order.status !== "accompaniment_active") {
+    return Response.json({ error: "Чат закрыт" }, { status: 403 });
   }
 
   const ctype = req.headers.get("content-type") || "";
@@ -62,6 +66,10 @@ export async function POST(req: Request, ctx: Ctx) {
       updateOrder(id, { status: "contacted" });
     }
     const fresh = getOrder(id)!;
+    void notifyMomPlanTeamReply(fresh, {
+      text: text || undefined,
+      hasPdf: Boolean(pdfFile),
+    }).catch((e) => console.error("[admin plan] mom notify", e));
     return Response.json({ ok: true, order: orderForClient(fresh) });
   }
 
@@ -84,5 +92,8 @@ export async function POST(req: Request, ctx: Ctx) {
     updateOrder(id, { status: "contacted" });
   }
   const fresh = getOrder(id)!;
+  void notifyMomPlanTeamReply(fresh, { text }).catch((e) =>
+    console.error("[admin plan] mom notify", e),
+  );
   return Response.json({ ok: true, order: orderForClient(fresh) });
 }

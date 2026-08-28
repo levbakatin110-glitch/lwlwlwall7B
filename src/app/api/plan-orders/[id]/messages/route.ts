@@ -56,7 +56,7 @@ export async function POST(req: Request, ctx: Ctx) {
     return Response.json({ error: "Не удалось отправить" }, { status: 400 });
   }
 
-  void notifyPlanOrderMessage(updated, true).catch((e) =>
+  void notifyPlanOrderMessage(updated, true, text).catch((e) =>
     console.error("[plan-orders] notify msg", e),
   );
 

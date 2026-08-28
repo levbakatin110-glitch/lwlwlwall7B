@@ -21,6 +21,7 @@ function backupFileFor(email: string) {
 
 type BackupRoot = {
   data?: {
+    children?: { id?: string; birthDate?: string }[];
     childSpaces?: Record<
       string,
       { journals?: Record<string, JournalEntry[]> }
@@ -77,4 +78,49 @@ export function mergeDiaryEntries(
   if (client.length && fromBackup.length) source = "merged";
   else if (client.length) source = "client";
   return { capturedAt: new Date().toISOString(), entries, source };
+}
+
+function resolveChildSpaceId(
+  backup: BackupRoot | null,
+  childId?: string,
+): string | null {
+  const spaces = backup?.data?.childSpaces;
+  if (!spaces) return null;
+  if (childId && spaces[childId]) return childId;
+  const active = backup?.data?.activeChildId;
+  if (active && spaces[active]) return active;
+  const first = Object.keys(spaces)[0];
+  return first ?? null;
+}
+
+/** Контекст дневника с сервера для проверки оффера */
+export function planOfferContextFromBackup(
+  email: string,
+  topic: PlanTopic,
+  childId?: string,
+  clientEntries?: JournalEntry[],
+): {
+  entries: JournalEntry[];
+  journals: Record<string, JournalEntry[]>;
+  birthDate?: string | null;
+} {
+  const backup = readUserBackup(email);
+  const spaceId = resolveChildSpaceId(backup, childId);
+  const journals = spaceId
+    ? (backup?.data?.childSpaces?.[spaceId]?.journals ?? {})
+    : {};
+  const fromBackup = diaryEntriesFromBackup(email, topic, childId);
+  const client = clientEntries ?? [];
+  const byId = new Map<string, JournalEntry>();
+  for (const e of fromBackup) byId.set(e.id, e);
+  for (const e of client) byId.set(e.id, e);
+  const entries = sortEntries([...byId.values()]);
+
+  let birthDate: string | null = null;
+  const children = backup?.data?.children ?? [];
+  const child =
+    children.find((c) => c.id === (childId ?? spaceId)) ?? children[0];
+  birthDate = child?.birthDate?.trim() || null;
+
+  return { entries, journals, birthDate };
 }

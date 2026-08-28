@@ -16,6 +16,7 @@ import {
   type PlanTopic,
 } from "@/lib/plan-products";
 import { clientEntriesForTopic } from "@/lib/backup-read-client";
+import { readPlanOfferInstant } from "@/lib/plan-offer-instant";
 import { useAppStore } from "@/lib/store";
 import { LEGAL_OPERATOR } from "@/lib/legal";
 
@@ -83,6 +84,7 @@ function CheckoutInner() {
           childId: activeChildId,
           childName: child?.name,
           entries: entries.slice(0, 120),
+          instant: readPlanOfferInstant(),
         }),
       });
       const data = (await res.json()) as {

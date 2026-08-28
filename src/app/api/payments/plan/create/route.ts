@@ -1,4 +1,5 @@
 import { readSessionFromRequest } from "@/lib/session";
+import { normalizeEmail } from "@/lib/email-codes";
 import {
   ACCOMPANIMENT_RUB,
   PLAN_BREAKDOWN_RUB,
@@ -14,7 +15,9 @@ import {
   createProdamusPayUrl,
 } from "@/lib/plan-payments";
 import { activatePlanOrderAfterPayment } from "@/lib/plan-order-activate";
+import { assertPlanOfferEligible } from "@/lib/plan-offer-guard";
 import {
+  activeOrderForTopic,
   createPlanOrder,
   getOrder,
   markAccompanimentPending,
@@ -37,6 +40,7 @@ export async function POST(req: Request) {
     childId?: string;
     childName?: string;
     entries?: JournalEntry[];
+    instant?: boolean;
   };
   try {
     body = (await req.json()) as typeof body;
@@ -52,7 +56,7 @@ export async function POST(req: Request) {
       return Response.json({ error: "Нет заказа" }, { status: 400 });
     }
     const parent = getOrder(parentId);
-    if (!parent || parent.email !== session.email) {
+    if (!parent || normalizeEmail(parent.email) !== normalizeEmail(session.email)) {
       return Response.json({ error: "Заказ не найден" }, { status: 404 });
     }
     if (!parent.chatClosedAt && parent.status !== "closed") {
@@ -116,6 +120,20 @@ export async function POST(req: Request) {
 
   const entries =
     body.entries && body.entries.length > 0 ? body.entries : undefined;
+
+  const existing = activeOrderForTopic(session.email, topic);
+  if (!existing) {
+    const guard = assertPlanOfferEligible({
+      email: session.email,
+      topic,
+      childId: body.childId,
+      clientEntries: entries,
+      requestInstant: body.instant,
+    });
+    if (!guard.ok) {
+      return Response.json({ error: guard.error, code: guard.code }, { status: 403 });
+    }
+  }
 
   const order = createPlanOrder({
     email: session.email,
