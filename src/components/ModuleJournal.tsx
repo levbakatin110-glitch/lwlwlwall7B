@@ -488,7 +488,10 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
 
       {mod.custom && custom && <ModuleRepairBanner mod={custom} />}
 
-      {(moduleId === "sleep" || moduleId === "breastfeeding") && (
+      {(moduleId === "sleep" ||
+        moduleId === "breastfeeding" ||
+        moduleId === "formula" ||
+        moduleId === "solids") && (
         <div className="mt-4">
           <PlanOfferBanner moduleId={moduleId} />
         </div>

@@ -4,11 +4,14 @@ import { join } from "path";
 import { normalizeEmail } from "@/lib/email-codes";
 import type { JournalEntry } from "@/lib/types";
 import type { PlanTopic } from "@/lib/plan-products";
-import { PLAN_TOPIC_MODULE } from "@/lib/plan-products";
+import {
+  entriesFromSpaceJournals,
+  sortEntries,
+} from "@/lib/backup-read-client";
 
 const DATA_DIR = join(process.cwd(), "data", "backups");
 
-function fileFor(email: string) {
+function backupFileFor(email: string) {
   const key = createHash("sha256")
     .update(normalizeEmail(email))
     .digest("hex")
@@ -17,22 +20,18 @@ function fileFor(email: string) {
 }
 
 type BackupRoot = {
-  v?: number;
-  email?: string;
-  savedAt?: string;
   data?: {
     childSpaces?: Record<
       string,
       { journals?: Record<string, JournalEntry[]> }
     >;
     activeChildId?: string;
-    children?: { id: string; name: string }[];
   };
 };
 
 export function readUserBackup(email: string): BackupRoot | null {
   try {
-    const path = fileFor(email);
+    const path = backupFileFor(email);
     if (!existsSync(path)) return null;
     return JSON.parse(readFileSync(path, "utf8")) as BackupRoot;
   } catch {
@@ -47,7 +46,6 @@ export function diaryEntriesFromBackup(
 ): JournalEntry[] {
   const backup = readUserBackup(email);
   if (!backup?.data?.childSpaces) return [];
-  const moduleId = PLAN_TOPIC_MODULE[topic];
   const spaces = backup.data.childSpaces;
   const id =
     childId && spaces[childId]
@@ -56,10 +54,27 @@ export function diaryEntriesFromBackup(
         ? backup.data.activeChildId
         : Object.keys(spaces)[0];
   if (!id) return [];
-  const entries = spaces[id]?.journals?.[moduleId] ?? [];
-  return [...entries].sort((a, b) => {
-    const da = `${a.date}T${a.createdAt ?? "00:00"}`;
-    const db = `${b.date}T${b.createdAt ?? "00:00"}`;
-    return db.localeCompare(da);
-  });
+  return entriesFromSpaceJournals(spaces[id]?.journals ?? {}, topic);
+}
+
+export function mergeDiaryEntries(
+  email: string,
+  topic: PlanTopic,
+  childId: string | undefined,
+  clientEntries?: JournalEntry[],
+): {
+  capturedAt: string;
+  entries: JournalEntry[];
+  source: "client" | "backup" | "merged";
+} {
+  const fromBackup = diaryEntriesFromBackup(email, topic, childId);
+  const client = clientEntries ?? [];
+  const byId = new Map<string, JournalEntry>();
+  for (const e of fromBackup) byId.set(e.id, e);
+  for (const e of client) byId.set(e.id, e);
+  const entries = sortEntries([...byId.values()]);
+  let source: "client" | "backup" | "merged" = "backup";
+  if (client.length && fromBackup.length) source = "merged";
+  else if (client.length) source = "client";
+  return { capturedAt: new Date().toISOString(), entries, source };
 }

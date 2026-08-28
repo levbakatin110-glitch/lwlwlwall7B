@@ -1,5 +1,7 @@
 import { trackAnalyticsEvent } from "@/lib/analytics-store";
 import { grantPaidPlan } from "@/lib/paid-store";
+import { activatePlanOrderAfterPayment } from "@/lib/plan-order-activate";
+import { parseProdamusPlanExtra } from "@/lib/plan-payments";
 import { prodamusConfig, prodamusVerify } from "@/lib/prodamus";
 import { pushServerOpsError } from "@/lib/ops-log";
 import { planById, type PaidPlanId } from "@/lib/subscription";
@@ -81,6 +83,22 @@ export async function POST(req: Request) {
     const email = String(data.customer_email || "").trim().toLowerCase();
     const extra = String(data.customer_extra || "");
     const orderNum = String(data.order_num || data.order_id || "");
+    const paymentRef = String(data.order_id || orderNum || "");
+
+    const planPay = parseProdamusPlanExtra(extra);
+    if (planPay && email) {
+      activatePlanOrderAfterPayment(
+        planPay.productId,
+        planPay.orderId,
+        paymentRef,
+      );
+      trackAnalyticsEvent({
+        name: "plan_purchase",
+        meta: `${planPay.productId}:${email.slice(0, 20)}`,
+      });
+      return new Response("ok", { status: 200 });
+    }
+
     const planId = resolvePlanId(extra, orderNum);
 
     if (!email || !planId || !planById(planId)) {

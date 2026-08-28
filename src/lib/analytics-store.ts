@@ -11,7 +11,8 @@ export type AnalyticsEventName =
   | "subscribe_click"
   | "subscribe_activate"
   | "community_post"
-  | "push_enable";
+  | "push_enable"
+  | "plan_purchase";
 
 export type AnalyticsEvent = {
   id: string;
@@ -70,6 +71,7 @@ const ALLOWED = new Set<AnalyticsEventName>([
   "subscribe_activate",
   "community_post",
   "push_enable",
+  "plan_purchase",
 ]);
 
 export function trackAnalyticsEvent(input: {
@@ -108,6 +110,7 @@ export type DayStats = {
   subscribe_activate: number;
   community_post: number;
   push_enable: number;
+  plan_purchase: number;
   uniqueVisitors: number;
 };
 
@@ -144,6 +147,7 @@ export function getAnalyticsSummary(days = 14): AnalyticsSummary {
     subscribe_activate: 0,
     community_post: 0,
     push_enable: 0,
+    plan_purchase: 0,
     uniqueVisitors: 0,
   };
   const uniqAll = new Set<string>();
@@ -164,6 +168,7 @@ export function getAnalyticsSummary(days = 14): AnalyticsSummary {
         subscribe_activate: 0,
         community_post: 0,
         push_enable: 0,
+        plan_purchase: 0,
         uniqueVisitors: 0,
       };
       byDayMap.set(day, row);

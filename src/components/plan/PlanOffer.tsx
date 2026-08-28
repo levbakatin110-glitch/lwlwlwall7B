@@ -1,16 +1,19 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { clientEntriesForTopic } from "@/lib/backup-read-client";
+import { useAppStore } from "@/lib/store";
 import {
+  ACCOMPANIMENT_INCLUDES,
   ACCOMPANIMENT_RUB,
+  ORDER_STATUS_MOM,
   PLAN_BREAKDOWN_RUB,
   PLAN_TOPIC_LABEL,
   SPECIALIST_DISPLAY_NAME,
   type PlanTopic,
 } from "@/lib/plan-products";
-import { useAppStore } from "@/lib/store";
-import type { JournalEntry } from "@/lib/types";
 
 type OrderMessage = {
   id: string;
@@ -25,6 +28,8 @@ type PlanOrder = {
   status: string;
   topic: PlanTopic;
   chatClosedAt?: string;
+  accompanimentPaid?: boolean;
+  accompanimentPending?: boolean;
   messages: OrderMessage[];
 };
 
@@ -42,10 +47,12 @@ function fmtTime(iso: string) {
 }
 
 export function SpecialistChat({ orderId }: { orderId: string }) {
+  const router = useRouter();
   const [order, setOrder] = useState<PlanOrder | null>(null);
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [payBusy, setPayBusy] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => {
@@ -53,13 +60,17 @@ export function SpecialistChat({ orderId }: { orderId: string }) {
       const res = await fetch(`/api/plan-orders/${orderId}`, {
         credentials: "include",
       });
+      if (res.status === 404) {
+        router.replace("/modules");
+        return;
+      }
       if (!res.ok) return;
       const data = (await res.json()) as { order: PlanOrder };
       setOrder(data.order);
     } catch {
       /* ignore */
     }
-  }, [orderId]);
+  }, [orderId, router]);
 
   useEffect(() => {
     void load();
@@ -98,8 +109,58 @@ export function SpecialistChat({ orderId }: { orderId: string }) {
     }
   };
 
-  const closed = Boolean(order?.chatClosedAt);
+  const buyAccompaniment = async () => {
+    setPayBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/payments/plan/create", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: "accompany", parentOrderId: orderId }),
+      });
+      const data = (await res.json()) as {
+        error?: string;
+        url?: string;
+        redirect?: string;
+      };
+      if (!res.ok) {
+        setError(data.error ?? "Не удалось оформить");
+        return;
+      }
+      if (data.url) {
+        window.location.href = data.url;
+        return;
+      }
+      if (data.redirect) router.push(data.redirect);
+      else void load();
+    } catch {
+      setError("Нет связи");
+    } finally {
+      setPayBusy(false);
+    }
+  };
+
+  const closed = Boolean(order?.chatClosedAt) && !order?.accompanimentPaid;
   const topic = order ? PLAN_TOPIC_LABEL[order.topic] : "";
+  const statusHint = order ? ORDER_STATUS_MOM[order.status] : null;
+
+  if (order?.status === "awaiting_payment") {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
+        <p className="font-display text-lg font-semibold">Ожидаем оплату…</p>
+        <p className="mt-2 text-sm text-muted">
+          Если вы уже оплатили — подождите несколько секунд.
+        </p>
+        <Link
+          href={`/plan/order/success?order=${orderId}`}
+          className="mt-4 text-sm font-medium text-accent"
+        >
+          Обновить статус
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -110,9 +171,9 @@ export function SpecialistChat({ orderId }: { orderId: string }) {
         <h1 className="font-display text-lg font-semibold">
           {SPECIALIST_DISPLAY_NAME}
         </h1>
-        <p className="mt-1 text-xs text-muted">
-          Персональный план + разбор · {PLAN_BREAKDOWN_RUB} ₽
-        </p>
+        {statusHint ? (
+          <p className="mt-1 text-xs text-accent">{statusHint}</p>
+        ) : null}
       </div>
 
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-3 py-4">
@@ -158,7 +219,7 @@ export function SpecialistChat({ orderId }: { orderId: string }) {
                         : "bg-accent-soft text-foreground"
                     }`}
                   >
-                    📄 Персональный план (PDF)
+                    Персональный план (PDF)
                   </a>
                 ) : null}
                 <p
@@ -176,23 +237,65 @@ export function SpecialistChat({ orderId }: { orderId: string }) {
       {closed ? (
         <div className="shrink-0 border-t border-line bg-card/90 p-4">
           <p className="text-center text-sm text-muted">
-            Разбор завершён. План остаётся у вас.
+            Разбор завершён. План остаётся у вас в переписке.
           </p>
-          <p className="mt-3 text-center text-sm">
-            <span className="text-muted">Нужна поддержка всю неделю? </span>
-            <span className="font-semibold">
-              Сопровождение · +{ACCOMPANIMENT_RUB} ₽
-            </span>
-            <span className="mt-1 block text-xs text-muted">
-              (оплата подключим вместе с кассой)
-            </span>
-          </p>
+          <div className="mt-4 rounded-2xl border border-accent/25 bg-accent-soft/40 p-4">
+            <p className="font-display text-base font-semibold">
+              Сопровождение неделю · {ACCOMPANIMENT_RUB} ₽
+            </p>
+            <ul className="mt-2 space-y-1 text-xs text-muted">
+              {ACCOMPANIMENT_INCLUDES.map((line) => (
+                <li key={line}>· {line}</li>
+              ))}
+            </ul>
+            <button
+              type="button"
+              disabled={payBusy || order?.accompanimentPending}
+              onClick={() => void buyAccompaniment()}
+              className="mt-3 w-full rounded-xl bg-accent py-2.5 text-sm font-semibold text-[var(--on-accent,#fff)] disabled:opacity-60"
+            >
+              {order?.accompanimentPending
+                ? "Ожидаем оплату…"
+                : payBusy
+                  ? "Переход к оплате…"
+                  : "Хочу, чтобы вели неделю"}
+            </button>
+          </div>
           <Link
-            href="/"
+            href="/modules"
             className="mt-4 block text-center text-sm font-medium text-accent"
           >
-            На главную
+            К дневникам
           </Link>
+        </div>
+      ) : order?.accompanimentPaid ? (
+        <div className="shrink-0 border-t border-line bg-card/90 p-3">
+          {error ? (
+            <p className="mb-2 text-center text-xs text-red-600">{error}</p>
+          ) : null}
+          <div className="flex gap-2">
+            <textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              rows={2}
+              placeholder="Сообщение специалисту…"
+              className="min-h-[44px] flex-1 resize-none rounded-2xl border border-line bg-background px-3 py-2 text-sm"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  void send();
+                }
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => void send()}
+              disabled={sending || !text.trim()}
+              className="shrink-0 rounded-2xl bg-accent px-4 text-sm font-semibold text-[var(--on-accent,#fff)] disabled:opacity-50"
+            >
+              →
+            </button>
+          </div>
         </div>
       ) : (
         <div className="shrink-0 border-t border-line bg-card/90 p-3">
@@ -230,56 +333,49 @@ export function SpecialistChat({ orderId }: { orderId: string }) {
 
 export function PlanOfferBanner({ moduleId }: { moduleId: string }) {
   const topic: PlanTopic | null =
-    moduleId === "sleep" ? "sleep" : moduleId === "breastfeeding" ? "feed" : null;
-  const activeChildId = useAppStore((s) => s.activeChildId);
-  const child = useAppStore((s) =>
-    s.children.find((c) => c.id === s.activeChildId),
-  );
+    moduleId === "sleep"
+      ? "sleep"
+      : moduleId === "breastfeeding" ||
+          moduleId === "formula" ||
+          moduleId === "solids"
+        ? "feed"
+        : null;
+
   const journals = useAppStore((s) => s.journals);
-  const [busy, setBusy] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [closedId, setClosedId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!topic) return;
     void fetch("/api/plan-orders", { credentials: "include" })
       .then((r) => r.json())
-      .then((d: { orders?: { id: string; topic: string; chatClosedAt?: string }[] }) => {
-        const hit = d.orders?.find(
-          (o) => o.topic === topic && !o.chatClosedAt,
-        );
-        setActiveId(hit?.id ?? null);
-      })
+      .then(
+        (d: {
+          orders?: {
+            id: string;
+            topic: string;
+            chatClosedAt?: string;
+            accompanimentPaid?: boolean;
+            status: string;
+          }[];
+        }) => {
+          const mine = (d.orders ?? []).filter((o) => o.topic === topic);
+          const open = mine.find(
+            (o) => !o.chatClosedAt || o.status === "accompaniment_active",
+          );
+          const closed = mine.find((o) => o.chatClosedAt && !o.accompanimentPaid);
+          setActiveId(open?.id ?? null);
+          setClosedId(closed?.id ?? null);
+        },
+      )
       .catch(() => {});
   }, [topic]);
 
   if (!topic) return null;
 
-  const entries = (journals[moduleId] ?? []) as JournalEntry[];
+  const entries = clientEntriesForTopic(journals, topic);
   const entryCount = entries.length;
   const label = PLAN_TOPIC_LABEL[topic];
-
-  const start = async () => {
-    setBusy(true);
-    try {
-      const res = await fetch("/api/plan-orders", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          topic,
-          childId: activeChildId,
-          childName: child?.name,
-          entries: entries.slice(0, 80),
-        }),
-      });
-      const data = (await res.json()) as { order?: { id: string }; error?: string };
-      if (data.order?.id) {
-        window.location.href = `/plan/${data.order.id}`;
-      }
-    } finally {
-      setBusy(false);
-    }
-  };
 
   if (activeId) {
     return (
@@ -298,12 +394,29 @@ export function PlanOfferBanner({ moduleId }: { moduleId: string }) {
     );
   }
 
+  if (closedId) {
+    return (
+      <div className="mb-4 rounded-2xl border border-line bg-card/70 p-4">
+        <p className="text-sm font-semibold">Разбор завершён</p>
+        <p className="mt-1 text-xs text-muted">
+          План в чате · сопровождение неделю — {ACCOMPANIMENT_RUB} ₽
+        </p>
+        <Link
+          href={`/plan/${closedId}`}
+          className="mt-3 inline-flex rounded-xl border border-accent/40 bg-accent-soft px-4 py-2 text-sm font-semibold text-accent"
+        >
+          Открыть чат
+        </Link>
+      </div>
+    );
+  }
+
   if (entryCount < 2) {
     return (
       <div className="mb-4 rounded-2xl border border-line bg-card/60 p-4">
         <p className="text-sm text-muted">
           Ведите дневник {label} ещё день-два — и можно заказать персональный
-          план + разбор ({PLAN_BREAKDOWN_RUB} ₽).
+          план + разбор за {PLAN_BREAKDOWN_RUB} ₽.
         </p>
       </div>
     );
@@ -315,20 +428,15 @@ export function PlanOfferBanner({ moduleId }: { moduleId: string }) {
         Персональный план + разбор
       </p>
       <p className="mt-1 text-xs leading-relaxed text-muted">
-        Специалист разберёт ваш дневник ({label}) и составит план. Ожидание — до
-        24 часов. · {PLAN_BREAKDOWN_RUB} ₽
+        Специалист разберёт дневник ({label}) и составит план в PDF. До 24 часов
+        на подготовку. · {PLAN_BREAKDOWN_RUB} ₽
       </p>
-      <button
-        type="button"
-        disabled={busy}
-        onClick={() => void start()}
-        className="mt-3 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-[var(--on-accent,#fff)] disabled:opacity-60"
+      <Link
+        href={`/plan/order?topic=${topic}`}
+        className="mt-3 inline-flex rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-[var(--on-accent,#fff)]"
       >
-        {busy ? "Создаём…" : "Заказать разбор"}
-      </button>
-      <p className="mt-2 text-[10px] text-muted">
-        Оплата подключится с кассой — сейчас тестовый доступ
-      </p>
+        Заказать за {PLAN_BREAKDOWN_RUB} ₽
+      </Link>
     </div>
   );
 }

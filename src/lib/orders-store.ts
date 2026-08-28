@@ -3,8 +3,12 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { normalizeEmail } from "@/lib/email-codes";
 import type { JournalEntry } from "@/lib/types";
-import type { PlanProductId, PlanTopic } from "@/lib/plan-products";
-import { diaryEntriesFromBackup } from "@/lib/backup-read";
+import {
+  ACCOMPANIMENT_RUB,
+  type PlanProductId,
+  type PlanTopic,
+} from "@/lib/plan-products";
+import { mergeDiaryEntries } from "@/lib/backup-read";
 
 export type OrderStatus =
   | "awaiting_payment"
@@ -23,7 +27,6 @@ export type OrderMessage = {
   createdAt: string;
   role: OrderMessageRole;
   text?: string;
-  /** имя файла в data/plan-pdfs */
   pdfFile?: string;
 };
 
@@ -48,7 +51,9 @@ export type PlanOrder = {
   status: OrderStatus;
   priceRub: number;
   paidAt?: string;
+  paymentRef?: string;
   accompanimentPaid?: boolean;
+  accompanimentPending?: boolean;
   accompanimentPriceRub?: number;
   messages: OrderMessage[];
   diarySnapshot?: {
@@ -65,6 +70,11 @@ type Store = { orders: PlanOrder[] };
 const DATA_DIR = join(process.cwd(), "data");
 const DATA_FILE = join(DATA_DIR, "plan-orders.json");
 const PDF_DIR = join(DATA_DIR, "plan-pdfs");
+
+const AWAITING_TTL_MS = 45 * 60 * 1000;
+
+const SYSTEM_INTRO =
+  "Специалист проанализирует записи в дневнике и составит персональный план. Ожидание — до 24 часов.";
 
 function ensure() {
   if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
@@ -100,14 +110,20 @@ export function newMessageId() {
 }
 
 export function listOrders(): PlanOrder[] {
-  return load().orders.sort(
-    (a, b) => b.updatedAt.localeCompare(a.updatedAt),
-  );
+  return load().orders.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 
 export function ordersForEmail(email: string): PlanOrder[] {
   const norm = normalizeEmail(email);
   return listOrders().filter((o) => normalizeEmail(o.email) === norm);
+}
+
+function isActivePlanOrder(o: PlanOrder) {
+  if (o.status === "awaiting_payment") return false;
+  if (o.status === "accompaniment_active") return true;
+  if (o.chatClosedAt && !o.accompanimentPaid) return false;
+  if (o.status === "closed" || o.status === "completed") return false;
+  return true;
 }
 
 export function activeOrderForTopic(
@@ -120,8 +136,7 @@ export function activeOrderForTopic(
       (o) =>
         normalizeEmail(o.email) === norm &&
         o.topic === topic &&
-        !["completed", "closed"].includes(o.status) &&
-        !o.chatClosedAt,
+        isActivePlanOrder(o),
     ) ?? null
   );
 }
@@ -130,29 +145,17 @@ export function getOrder(id: string): PlanOrder | null {
   return load().orders.find((o) => o.id === id) ?? null;
 }
 
-function mergeDiary(
-  email: string,
-  topic: PlanTopic,
-  childId: string | undefined,
-  clientEntries?: JournalEntry[],
-): PlanOrder["diarySnapshot"] {
-  const fromBackup = diaryEntriesFromBackup(email, topic, childId);
-  const client = clientEntries ?? [];
-  const byId = new Map<string, JournalEntry>();
-  for (const e of fromBackup) byId.set(e.id, e);
-  for (const e of client) byId.set(e.id, e);
-  const entries = [...byId.values()].sort((a, b) => {
-    const da = `${a.date}T${a.createdAt ?? "00:00"}`;
-    const db = `${b.date}T${b.createdAt ?? "00:00"}`;
-    return db.localeCompare(da);
+function purgeStaleAwaiting(store: Store, email: string, topic: PlanTopic) {
+  const norm = normalizeEmail(email);
+  const cutoff = Date.now() - AWAITING_TTL_MS;
+  store.orders = store.orders.filter((o) => {
+    if (normalizeEmail(o.email) !== norm || o.topic !== topic) return true;
+    if (o.status !== "awaiting_payment") return true;
+    return new Date(o.createdAt).getTime() > cutoff;
   });
-  let source: "client" | "backup" | "merged" = "backup";
-  if (client.length && fromBackup.length) source = "merged";
-  else if (client.length) source = "client";
-  return { capturedAt: new Date().toISOString(), entries, source };
 }
 
-export function createOrder(input: {
+export function createPlanOrder(input: {
   email: string;
   topic: PlanTopic;
   productId: PlanProductId;
@@ -160,12 +163,22 @@ export function createOrder(input: {
   childId?: string;
   childName?: string;
   clientEntries?: JournalEntry[];
-  skipPayment?: boolean;
 }): PlanOrder {
-  const now = new Date().toISOString();
+  const store = load();
+  purgeStaleAwaiting(store, input.email, input.topic);
+
   const existing = activeOrderForTopic(input.email, input.topic);
   if (existing) return existing;
 
+  const awaiting = store.orders.find(
+    (o) =>
+      normalizeEmail(o.email) === normalizeEmail(input.email) &&
+      o.topic === input.topic &&
+      o.status === "awaiting_payment",
+  );
+  if (awaiting) return awaiting;
+
+  const now = new Date().toISOString();
   const order: PlanOrder = {
     id: newOrderId(),
     createdAt: now,
@@ -175,19 +188,10 @@ export function createOrder(input: {
     childName: input.childName,
     topic: input.topic,
     productId: input.productId,
-    status: input.skipPayment ? "paid" : "awaiting_payment",
+    status: "awaiting_payment",
     priceRub: input.priceRub,
-    paidAt: input.skipPayment ? now : undefined,
-    messages: [
-      {
-        id: newMessageId(),
-        createdAt: now,
-        role: "system",
-        text:
-          "Специалист проанализирует записи в дневнике и составит персональный план. Ожидание — до 24 часов.",
-      },
-    ],
-    diarySnapshot: mergeDiary(
+    messages: [],
+    diarySnapshot: mergeDiaryEntries(
       input.email,
       input.topic,
       input.childId,
@@ -196,7 +200,6 @@ export function createOrder(input: {
     aiDraft: { status: "pending" },
   };
 
-  const store = load();
   store.orders.unshift(order);
   save(store);
   return order;
@@ -211,8 +214,12 @@ export function updateOrder(
       | "aiDraft"
       | "chatClosedAt"
       | "accompanimentPaid"
+      | "accompanimentPending"
       | "accompanimentPriceRub"
       | "diarySnapshot"
+      | "paidAt"
+      | "paymentRef"
+      | "messages"
     >
   >,
 ): PlanOrder | null {
@@ -220,11 +227,7 @@ export function updateOrder(
   const idx = store.orders.findIndex((o) => o.id === id);
   if (idx < 0) return null;
   const prev = store.orders[idx]!;
-  const next: PlanOrder = {
-    ...prev,
-    ...patch,
-    updatedAt: new Date().toISOString(),
-  };
+  const next: PlanOrder = { ...prev, ...patch, updatedAt: new Date().toISOString() };
   store.orders[idx] = next;
   save(store);
   return next;
@@ -259,7 +262,9 @@ export function appendMessage(
         ? "contacted"
         : msg.pdfFile
           ? "plan_sent"
-          : order.status,
+          : order.status === "plan_sent"
+            ? "clarifying"
+            : order.status,
   };
   store.orders[idx] = next;
   save(store);
@@ -270,7 +275,7 @@ export function refreshDiarySnapshot(orderId: string): PlanOrder | null {
   const order = getOrder(orderId);
   if (!order) return null;
   return updateOrder(orderId, {
-    diarySnapshot: mergeDiary(
+    diarySnapshot: mergeDiaryEntries(
       order.email,
       order.topic,
       order.childId,
@@ -279,7 +284,81 @@ export function refreshDiarySnapshot(orderId: string): PlanOrder | null {
   });
 }
 
-/** Для API — без лишних полей */
+export function fulfillPlanOrderPayment(
+  orderId: string,
+  paymentRef?: string,
+): PlanOrder | null {
+  const order = getOrder(orderId);
+  if (!order) return null;
+  if (order.status !== "awaiting_payment") return order;
+
+  const now = new Date().toISOString();
+  const store = load();
+  const idx = store.orders.findIndex((o) => o.id === orderId);
+  if (idx < 0) return null;
+
+  const next: PlanOrder = {
+    ...order,
+    status: "paid",
+    paidAt: now,
+    paymentRef: paymentRef ?? order.paymentRef,
+    updatedAt: now,
+    messages: [
+      {
+        id: newMessageId(),
+        createdAt: now,
+        role: "system",
+        text: SYSTEM_INTRO,
+      },
+    ],
+  };
+  store.orders[idx] = next;
+  save(store);
+  return next;
+}
+
+export function fulfillAccompanimentPayment(
+  parentOrderId: string,
+  paymentRef?: string,
+): PlanOrder | null {
+  const order = getOrder(parentOrderId);
+  if (!order) return null;
+  if (order.accompanimentPaid) return order;
+
+  const now = new Date().toISOString();
+  const store = load();
+  const idx = store.orders.findIndex((o) => o.id === parentOrderId);
+  if (idx < 0) return null;
+
+  const next: PlanOrder = {
+    ...order,
+    accompanimentPaid: true,
+    accompanimentPending: false,
+    accompanimentPriceRub: ACCOMPANIMENT_RUB,
+    status: "accompaniment_active",
+    chatClosedAt: undefined,
+    paymentRef: paymentRef ?? order.paymentRef,
+    updatedAt: now,
+    messages: [
+      ...order.messages,
+      {
+        id: newMessageId(),
+        createdAt: now,
+        role: "system",
+        text:
+          "Сопровождение подключено на 7 дней. Специалист будет смотреть дневник и подсказывать по ходу.",
+      },
+    ],
+  };
+  store.orders[idx] = next;
+  save(store);
+  return next;
+}
+
+export function markAccompanimentPending(orderId: string): PlanOrder | null {
+  return updateOrder(orderId, { accompanimentPending: true });
+}
+
 export function orderForClient(order: PlanOrder) {
   const pdfUrl = (file?: string) =>
     file ? `/api/plan-orders/${order.id}/pdf/${file}` : undefined;
@@ -291,10 +370,18 @@ export function orderForClient(order: PlanOrder) {
       pdfUrl: pdfUrl(m.pdfFile),
     })),
     aiDraft: order.aiDraft
-      ? {
-          ...order.aiDraft,
-          pdfUrl: pdfUrl(order.aiDraft.pdfFile),
-        }
+      ? { ...order.aiDraft, pdfUrl: pdfUrl(order.aiDraft.pdfFile) }
       : order.aiDraft,
   };
+}
+
+/** @deprecated */
+export function createOrder(
+  input: Parameters<typeof createPlanOrder>[0] & { skipPayment?: boolean },
+): PlanOrder {
+  const order = createPlanOrder(input);
+  if (input.skipPayment && order.status === "awaiting_payment") {
+    return fulfillPlanOrderPayment(order.id) ?? order;
+  }
+  return order;
 }

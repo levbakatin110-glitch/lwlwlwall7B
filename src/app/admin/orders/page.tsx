@@ -225,6 +225,26 @@ export default function AdminOrdersPage() {
     setNote("Вопросы скопированы");
   };
 
+  const insertAiQuestions = async () => {
+    if (!activeId || !active?.aiDraft?.analysis) return;
+    const block = active.aiDraft.analysis.split("---").pop()?.trim();
+    if (!block) return;
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/admin/plan-orders/${activeId}/messages`, {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify({ text: block }),
+      });
+      if (res.ok) {
+        setNote("Вопросы отправлены в чат");
+        void loadOne(activeId);
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const closeChat = async () => {
     if (!activeId) return;
     setBusy(true);
@@ -446,13 +466,23 @@ export default function AdminOrdersPage() {
                           : "Сгенерировать ИИ"}
                     </button>
                     {active.aiDraft?.analysis ? (
-                      <button
-                        type="button"
-                        onClick={copyQuestions}
-                        className="rounded-lg border border-line px-3 py-1.5 text-[11px]"
-                      >
-                        Копировать вопросы
-                      </button>
+                      <>
+                        <button
+                          type="button"
+                          onClick={copyQuestions}
+                          className="rounded-lg border border-line px-3 py-1.5 text-[11px]"
+                        >
+                          Копировать
+                        </button>
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => void insertAiQuestions()}
+                          className="rounded-lg border border-accent/40 bg-accent-soft px-3 py-1.5 text-[11px] font-semibold text-accent"
+                        >
+                          В чат маме
+                        </button>
+                      </>
                     ) : null}
                   </div>
 
