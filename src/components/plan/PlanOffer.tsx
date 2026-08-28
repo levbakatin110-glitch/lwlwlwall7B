@@ -15,8 +15,11 @@ import {
   ACCOMPANIMENT_RUB,
   ORDER_STATUS_MOM,
   PLAN_BREAKDOWN_RUB,
+  PLAN_CHAT_DAYS,
+  PLAN_OFFER_HOOK,
+  PLAN_OFFER_TITLE,
   PLAN_TOPIC_LABEL,
-  SPECIALIST_DISPLAY_NAME,
+  PLAN_TEAM_DISPLAY_NAME,
   type PlanTopic,
 } from "@/lib/plan-products";
 
@@ -174,8 +177,9 @@ export function SpecialistChat({ orderId }: { orderId: string }) {
           Разбор · {topic}
         </p>
         <h1 className="font-display text-lg font-semibold">
-          {SPECIALIST_DISPLAY_NAME}
+          {PLAN_TEAM_DISPLAY_NAME}
         </h1>
+        <p className="text-[11px] text-muted">Поддержка по дневнику · не врач</p>
         {statusHint ? (
           <p className="mt-1 text-xs text-accent">{statusHint}</p>
         ) : null}
@@ -209,7 +213,7 @@ export function SpecialistChat({ orderId }: { orderId: string }) {
               >
                 {!mine && (
                   <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide opacity-70">
-                    {SPECIALIST_DISPLAY_NAME}
+                    {PLAN_TEAM_DISPLAY_NAME}
                   </p>
                 )}
                 {m.text ? <p className="whitespace-pre-wrap">{m.text}</p> : null}
@@ -283,7 +287,7 @@ export function SpecialistChat({ orderId }: { orderId: string }) {
               value={text}
               onChange={(e) => setText(e.target.value)}
               rows={2}
-              placeholder="Сообщение специалисту…"
+              placeholder="Сообщение команде Маи…"
               className="min-h-[44px] flex-1 resize-none rounded-2xl border border-line bg-background px-3 py-2 text-sm"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
@@ -312,7 +316,7 @@ export function SpecialistChat({ orderId }: { orderId: string }) {
               value={text}
               onChange={(e) => setText(e.target.value)}
               rows={2}
-              placeholder="Ваш ответ специалисту…"
+              placeholder="Ваш вопрос команде Маи…"
               className="min-h-[44px] flex-1 resize-none rounded-2xl border border-line bg-background px-3 py-2 text-sm"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
@@ -399,7 +403,7 @@ export function PlanOfferBanner({ moduleId }: { moduleId: string }) {
       <div className="mb-4 rounded-2xl border border-accent/30 bg-accent-soft/50 p-4">
         <p className="text-sm font-semibold">Ваш разбор · {label}</p>
         <p className="mt-1 text-xs text-muted">
-          Специалист готовит план по дневнику
+          Команда Маи готовит план по дневнику
         </p>
         <Link
           href={`/plan/${activeId}`}
@@ -447,19 +451,21 @@ export function PlanOfferBanner({ moduleId }: { moduleId: string }) {
 
   return (
     <div className="mb-4 rounded-2xl border border-accent/25 bg-gradient-to-br from-accent-soft/80 to-card p-4">
-      <p className="font-display text-base font-semibold">
-        Персональный план + разбор
-      </p>
-      <p className="mt-1 text-xs leading-relaxed text-muted">
-        По дневнику ({label}) видны моменты, где стоит разобраться — специалист
-        составит план в PDF. До 24 часов на подготовку. · {PLAN_BREAKDOWN_RUB}{" "}
-        ₽
-      </p>
+      <p className="font-display text-base font-semibold">{PLAN_OFFER_TITLE}</p>
+      <p className="mt-1 text-xs leading-relaxed text-muted">{PLAN_OFFER_HOOK}</p>
+      <ul className="mt-2 space-y-1 text-[11px] text-muted">
+        <li>· PDF-план за 24 часа</li>
+        <li>
+          · {PLAN_CHAT_DAYS} дня в чате — вопросы и уточнения, как при
+          сопровождении
+        </li>
+        <li>· {PLAN_BREAKDOWN_RUB} ₽ · не врач, поддержка по режиму</li>
+      </ul>
       <Link
         href={`/plan/order?topic=${topic}`}
         className="mt-3 inline-flex rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-[var(--on-accent,#fff)]"
       >
-        Заказать за {PLAN_BREAKDOWN_RUB} ₽
+        Разобрать дневник · {PLAN_BREAKDOWN_RUB} ₽
       </Link>
     </div>
   );

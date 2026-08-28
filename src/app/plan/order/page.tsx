@@ -7,7 +7,10 @@ import {
   ACCOMPANIMENT_INCLUDES,
   ACCOMPANIMENT_RUB,
   PLAN_BREAKDOWN_RUB,
+  PLAN_CHAT_DAYS,
   PLAN_INCLUDES,
+  PLAN_OFFER_TITLE,
+  PLAN_OFFER_HOOK,
   PLAN_TOPIC_LABEL,
   PLAN_TOPIC_LABEL_NOM,
   type PlanTopic,
@@ -30,6 +33,14 @@ function CheckoutInner() {
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [payBypass, setPayBypass] = useState(true);
+
+  useEffect(() => {
+    void fetch("/api/payments/plan/config", { credentials: "include" })
+      .then((r) => r.json())
+      .then((d: { bypass?: boolean }) => setPayBypass(Boolean(d.bypass)))
+      .catch(() => setPayBypass(true));
+  }, []);
 
   const entries = useMemo(() => {
     if (!topic) return [];
@@ -55,8 +66,8 @@ function CheckoutInner() {
       router.push("/register");
       return;
     }
-    if (entries.length < 2) {
-      setError(`Добавьте ещё записи в дневник «${title}» — нужно минимум 2.`);
+    if (entries.length < 1) {
+      setError(`Добавьте хотя бы одну запись в дневник «${title}».`);
       return;
     }
     setBusy(true);
@@ -104,17 +115,20 @@ function CheckoutInner() {
       </Link>
 
       <h1 className="font-display mt-4 text-2xl font-semibold tracking-tight">
-        План + разбор · {title.toLowerCase()}
+        {PLAN_OFFER_TITLE} · {title.toLowerCase()}
       </h1>
-      <p className="mt-2 text-sm text-muted">
-        Персонально по вашему дневнику. Специалист свяжется в чате, план придёт в PDF.
+      <p className="mt-2 text-sm leading-relaxed text-muted">{PLAN_OFFER_HOOK}</p>
+      <p className="mt-1 text-xs text-muted">
+        PDF-план и {PLAN_CHAT_DAYS} дня в чате с вопросами. Команда Маи — не врач.
       </p>
 
-      <div className="mt-6 rounded-2xl border border-line bg-card/80 p-5">
+      <div className="mt-6 rounded-2xl border border-accent/30 bg-gradient-to-br from-accent-soft/60 to-card p-5 shadow-sm">
         <p className="font-display text-3xl font-semibold">
           {PLAN_BREAKDOWN_RUB} ₽
         </p>
-        <p className="mt-1 text-xs text-muted">разовая оплата</p>
+        <p className="mt-1 text-xs text-muted">
+          {payBypass ? "сейчас без списания — тест до подключения оплаты" : "разовая оплата"}
+        </p>
         <ul className="mt-4 space-y-2 text-sm leading-relaxed">
           {PLAN_INCLUDES.map((line) => (
             <li key={line} className="flex gap-2">
@@ -145,19 +159,32 @@ function CheckoutInner() {
 
       <button
         type="button"
-        disabled={busy || entries.length < 2}
+        disabled={busy || entries.length < 1}
         onClick={() => void pay()}
         className="mt-6 w-full rounded-2xl bg-accent py-3.5 text-base font-semibold text-[var(--on-accent,#fff)] disabled:opacity-50"
       >
-        {busy ? "Переход к оплате…" : `Оплатить ${PLAN_BREAKDOWN_RUB} ₽`}
+        {busy
+          ? payBypass
+            ? "Открываем чат…"
+            : "Переход к оплате…"
+          : payBypass
+            ? "Получить разбор"
+            : `Оплатить ${PLAN_BREAKDOWN_RUB} ₽`}
       </button>
 
       <p className="mt-4 text-center text-[11px] leading-relaxed text-muted">
-        Нажимая «Оплатить», вы соглашаетесь с{" "}
-        <Link href="/legal/offer" className="text-accent underline">
-          офертой
-        </Link>
-        . Поддержка:{" "}
+        {payBypass ? (
+          <>Сейчас оплата не списывается — сразу откроется чат с командой Маи.</>
+        ) : (
+          <>
+            Нажимая «Оплатить», вы соглашаетесь с{" "}
+            <Link href="/legal/offer" className="text-accent underline">
+              офертой
+            </Link>
+            .
+          </>
+        )}{" "}
+        Поддержка:{" "}
         <a href={`mailto:${LEGAL_OPERATOR.supportEmail}`} className="text-accent">
           {LEGAL_OPERATOR.supportEmail}
         </a>

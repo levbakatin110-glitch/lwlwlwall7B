@@ -4,7 +4,7 @@ import {
   PLAN_BREAKDOWN_RUB,
   accompanyProductForTopic,
   planPaymentsBypass,
-  planPaymentsConfigured,
+  planPaymentsLive,
   planProductForTopic,
   priceForProduct,
   type PlanTopic,
@@ -85,7 +85,7 @@ export async function POST(req: Request) {
       });
     }
 
-    if (!planPaymentsConfigured()) {
+    if (!planPaymentsLive()) {
       return Response.json(
         { error: "Оплата временно недоступна. Попробуйте чуть позже." },
         { status: 503 },
@@ -149,7 +149,7 @@ export async function POST(req: Request) {
     });
   }
 
-  if (!planPaymentsConfigured()) {
+  if (!planPaymentsLive()) {
     return Response.json(
       { error: "Оплата временно недоступна. Попробуйте чуть позже." },
       { status: 503 },

@@ -74,7 +74,7 @@ const PDF_DIR = join(DATA_DIR, "plan-pdfs");
 const AWAITING_TTL_MS = 45 * 60 * 1000;
 
 const SYSTEM_INTRO =
-  "Специалист проанализирует записи в дневнике и составит персональный план. Ожидание — до 24 часов.";
+  "Команда Маи разберёт записи в дневнике и составит персональный план. Ожидание — до 24 часов. Это не врач.";
 
 function ensure() {
   if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
@@ -346,7 +346,7 @@ export function fulfillAccompanimentPayment(
         createdAt: now,
         role: "system",
         text:
-          "Сопровождение подключено на 7 дней. Специалист будет смотреть дневник и подсказывать по ходу.",
+          "Сопровождение подключено на 7 дней. Команда Маи будет смотреть дневник и подсказывать по ходу.",
       },
     ],
   };

@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ACCOMPANIMENT_RUB,
   PLAN_TOPIC_LABEL,
-  SPECIALIST_DISPLAY_NAME,
+  PLAN_TEAM_DISPLAY_NAME,
 } from "@/lib/plan-products";
 import type { JournalEntry } from "@/lib/types";
 
