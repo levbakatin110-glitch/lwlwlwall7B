@@ -17,20 +17,16 @@ export const ACCOMPANIMENT_RUB = 1990;
 /** Сколько дней после плана можно писать в чат с вопросами */
 export const PLAN_CHAT_DAYS = 3;
 
-/** Имя в переписке (от лица консультанта) */
-export const PLAN_TEAM_DISPLAY_NAME = "Мария";
 /** Подпись в навигации и баннерах */
 export const PLAN_TEAM_ENTRY_LABEL = "План + чат";
 export const PLAN_TEAM_ENTRY_HINT =
-  "Персональный план по сну или кормлению · Мария на связи · не врач";
+  "Персональный план по сну или кормлению · консультант на связи · не врач";
 /** Две строки на плавающей кнопке */
 export const PLAN_TEAM_FAB_LINE1 = "план";
 export const PLAN_TEAM_FAB_LINE2 = "чат";
-export const PLAN_TEAM_FAB_HINT = "План по дневнику и чат с поддержкой · не врач";
-export const PLAN_TEAM_ROLE = "помогу с режимом по дневнику · не врач";
-export const PLAN_MARIA_AVATAR = "/avatars/maria-v2.jpg";
-/** @deprecated используйте PLAN_TEAM_DISPLAY_NAME */
-export const SPECIALIST_DISPLAY_NAME = PLAN_TEAM_DISPLAY_NAME;
+export const PLAN_TEAM_FAB_HINT = "План по дневнику и чат с консультантом · не врач";
+/** Имена консультантов для баннеров */
+export const PLAN_CONSULTANT_NAMES = "Марина, Юлия и Анна";
 
 export const PLAN_OFFER_TITLE = "План по дневнику + разбор";
 export const PLAN_OFFER_HOOK =
@@ -101,20 +97,20 @@ export function planPaymentsBypass(): boolean {
 }
 
 export const ORDER_STATUS_MOM: Record<string, string> = {
-  paid: "Мария готовит разбор — до 24 часов",
-  contacted: "Мария на связи",
-  plan_sent: "План отправлен — можно уточнить у Марии",
+  paid: "Консультант готовит разбор — до 24 часов",
+  contacted: "Консультант на связи",
+  plan_sent: "План отправлен — можно уточнить в чате",
   clarifying: "Уточняем детали по плану",
   closed: "Разбор завершён",
-  accompaniment_active: "Сопровождение с Марией · неделя",
+  accompaniment_active: "Сопровождение · неделя",
   completed: "Завершено",
 };
 
 export const PLAN_INCLUDES = [
   "Разбор дневника по вашей теме (сон или кормление)",
   "Персональный план на 7–14 дней в PDF",
-  `${PLAN_CHAT_DAYS} дня в чате — задавайте вопросы Марии, как при сопровождении`,
-  "Ответ Марии в течение суток после готовности плана",
+  `${PLAN_CHAT_DAYS} дня в чате — вопросы консультанту, как при сопровождении`,
+  "Ответ консультанта в течение суток после готовности плана",
   "Не врач и не экстренная помощь — поддержка по режиму",
 ] as const;
 

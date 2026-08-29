@@ -6,8 +6,14 @@ import {
   ACCOMPANIMENT_RUB,
   ORDER_STATUS_MOM,
   PLAN_TOPIC_LABEL,
-  PLAN_TEAM_DISPLAY_NAME,
 } from "@/lib/plan-products";
+import {
+  consultantRoleForTopic,
+  getPlanConsultant,
+  orderStatusHint,
+} from "@/lib/plan-consultants";
+import { PlanConsultantAvatar } from "@/components/plan/PlanConsultantAvatar";
+import type { PlanConsultantId } from "@/lib/plan-consultants";
 import type { JournalEntry } from "@/lib/types";
 
 const PASS_KEY = "maya-admin-pass";
@@ -26,6 +32,7 @@ type PlanOrder = {
   childName?: string;
   topic: "sleep" | "feed";
   status: string;
+  consultantId?: PlanConsultantId | string;
   chatClosedAt?: string;
   chatDeadlineAt?: string;
   messages: OrderMessage[];
@@ -77,8 +84,9 @@ function orderIsActive(o: PlanOrder) {
   );
 }
 
-function statusLabel(status: string) {
-  return ORDER_STATUS_MOM[status] ?? status;
+function statusLabel(order: PlanOrder) {
+  const c = getPlanConsultant(order.consultantId);
+  return orderStatusHint(order.status, c.name) ?? ORDER_STATUS_MOM[order.status] ?? order.status;
 }
 
 export default function AdminOrdersPage() {
@@ -296,11 +304,14 @@ export default function AdminOrdersPage() {
     setNote("Чат закрыт");
   };
 
+  const activeConsultant = active ? getPlanConsultant(active.consultantId) : null;
+  const activeRole = active ? consultantRoleForTopic(active.topic) : "";
+
   if (!authed) {
     return (
       <div className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center gap-4 p-6">
-        <h1 className="font-display text-2xl font-semibold">Мария · чаты</h1>
-        <p className="text-sm text-muted">Разборы дневника с мамами</p>
+        <h1 className="font-display text-2xl font-semibold">План + чат</h1>
+        <p className="text-sm text-muted">Разборы дневника · Марина, Юлия, Анна</p>
         <input
           type="password"
           value={password}
@@ -327,7 +338,7 @@ export default function AdminOrdersPage() {
       <aside className="flex max-h-[42vh] min-h-0 w-full shrink-0 flex-col border-b border-line md:h-full md:max-h-none md:w-72 md:border-b-0 md:border-r">
         <div className="flex shrink-0 items-center justify-between border-b border-line p-3">
           <div>
-            <h1 className="font-display text-lg font-semibold">Мария</h1>
+            <h1 className="font-display text-lg font-semibold">Консультанты</h1>
             <p className="text-[10px] text-muted">Чаты · дневники · PDF</p>
           </div>
           <Link href="/admin" className="text-xs text-accent">
@@ -379,7 +390,9 @@ export default function AdminOrdersPage() {
                 ) : null}
               </div>
               <p className="truncate text-xs text-muted">{o.email}</p>
-              <p className="text-[10px] text-muted">{statusLabel(o.status)}</p>
+              <p className="text-[10px] text-muted">
+                {getPlanConsultant(o.consultantId).name} · {statusLabel(o)}
+              </p>
             </button>
           ))}
           {filteredOrders.length === 0 ? (
@@ -396,12 +409,22 @@ export default function AdminOrdersPage() {
         <div className="flex min-h-0 min-w-0 flex-1 flex-col lg:flex-row">
           <div className="flex min-h-0 flex-1 flex-col border-b border-line lg:border-b-0 lg:border-r">
             <div className="shrink-0 border-b border-line p-3">
-              <p className="text-xs text-muted">
+              <div className="flex items-center gap-3">
+                <PlanConsultantAvatar
+                  consultantId={activeConsultant!.id}
+                  size={40}
+                />
+                <div className="min-w-0">
+                  <p className="font-medium">{activeConsultant!.name}</p>
+                  <p className="text-[11px] text-muted">{activeRole}</p>
+                </div>
+              </div>
+              <p className="mt-2 text-xs text-muted">
                 {active.email}
                 {active.childName ? ` · ${active.childName}` : ""}
               </p>
               <p className="text-sm font-medium">
-                {PLAN_TOPIC_LABEL[active.topic]} · {statusLabel(active.status)}
+                {PLAN_TOPIC_LABEL[active.topic]} · {statusLabel(active)}
               </p>
               {active.chatDeadlineAt && !active.chatClosedAt ? (
                 <p className="text-[10px] text-muted">
@@ -424,7 +447,7 @@ export default function AdminOrdersPage() {
                 >
                   {m.role === "specialist" ? (
                     <p className="mb-1 text-[10px] opacity-70">
-                      {PLAN_TEAM_DISPLAY_NAME}
+                      {activeConsultant!.name}
                     </p>
                   ) : null}
                   {m.text ? <p className="whitespace-pre-wrap">{m.text}</p> : null}
@@ -449,7 +472,7 @@ export default function AdminOrdersPage() {
                   value={reply}
                   onChange={(e) => setReply(e.target.value)}
                   rows={3}
-                  placeholder={`Сообщение от ${PLAN_TEAM_DISPLAY_NAME}…`}
+                  placeholder={`Сообщение от ${activeConsultant!.name}…`}
                   className="w-full rounded-xl border border-line px-3 py-2 text-sm"
                 />
                 <input

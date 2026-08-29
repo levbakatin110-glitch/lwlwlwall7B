@@ -3,8 +3,12 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { MayaIcon } from "@/components/icons/MayaIcon";
+import { PlanConsultantAvatar } from "@/components/plan/PlanConsultantAvatar";
 import {
-  PLAN_TEAM_DISPLAY_NAME,
+  PLAN_CONSULTANT_IDS,
+} from "@/lib/plan-consultants";
+import {
+  PLAN_CONSULTANT_NAMES,
   PLAN_TEAM_ENTRY_HINT,
   PLAN_TEAM_ENTRY_LABEL,
   PLAN_TEAM_FAB_HINT,
@@ -44,7 +48,7 @@ export function usePlanTeamHref(): string {
 const graphiteFab =
   "pointer-events-auto flex h-[3.85rem] w-[3.85rem] flex-col items-center justify-center rounded-full border border-zinc-600/80 bg-gradient-to-b from-zinc-700 to-zinc-900 text-white shadow-[0_8px_28px_rgba(0,0,0,0.35)] ring-2 ring-zinc-500/35 transition hover:from-zinc-600 hover:to-zinc-800";
 
-/** Плавающая кнопка: план по дневнику + чат; внутри отвечает Мария */
+/** Плавающая кнопка: план по дневнику + чат с консультантом */
 export function PlanTeamFloatingButton() {
   const href = usePlanTeamHref();
   return (
@@ -109,13 +113,20 @@ export function PlanTeamChatBanner() {
       href={href}
       className="mt-3 inline-flex w-full max-w-sm items-center gap-3 rounded-2xl border border-zinc-600/50 bg-gradient-to-br from-zinc-800 to-zinc-950 px-4 py-3.5 text-left text-white shadow-lg ring-1 ring-zinc-500/25 transition hover:from-zinc-700 hover:to-zinc-900"
     >
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/15">
-        <MayaIcon name="study" size={22} className="text-zinc-100" />
+      <span className="flex shrink-0 -space-x-2">
+        {PLAN_CONSULTANT_IDS.map((id) => (
+          <PlanConsultantAvatar
+            key={id}
+            consultantId={id}
+            size={28}
+            className="ring-2 ring-zinc-800"
+          />
+        ))}
       </span>
       <span>
         <span className="block text-sm font-semibold">{PLAN_TEAM_ENTRY_LABEL}</span>
         <span className="mt-0.5 block text-xs leading-snug text-zinc-300">
-          Сон или кормление · в чате {PLAN_TEAM_DISPLAY_NAME} · не врач
+          Сон или кормление · {PLAN_CONSULTANT_NAMES} · не врач
         </span>
       </span>
     </Link>

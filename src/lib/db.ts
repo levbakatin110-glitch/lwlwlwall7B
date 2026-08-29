@@ -34,6 +34,7 @@ function migrateSchema(db: DatabaseSync) {
       plan_sent_at TEXT,
       chat_deadline_at TEXT,
       accompaniment_deadline_at TEXT,
+      consultant_id TEXT NOT NULL DEFAULT 'marina',
       messages_json TEXT NOT NULL DEFAULT '[]',
       diary_snapshot_json TEXT,
       ai_draft_json TEXT
@@ -42,6 +43,14 @@ function migrateSchema(db: DatabaseSync) {
     CREATE INDEX IF NOT EXISTS idx_plan_orders_updated ON plan_orders(updated_at DESC);
     CREATE INDEX IF NOT EXISTS idx_plan_orders_status ON plan_orders(status);
   `);
+  const cols = db.prepare("PRAGMA table_info(plan_orders)").all() as {
+    name: string;
+  }[];
+  if (!cols.some((c) => c.name === "consultant_id")) {
+    db.exec(
+      "ALTER TABLE plan_orders ADD COLUMN consultant_id TEXT NOT NULL DEFAULT 'marina'",
+    );
+  }
 }
 
 function migrateLegacyJson(db: DatabaseSync) {

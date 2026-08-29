@@ -1,9 +1,7 @@
 import { MAYA_SITE } from "@/lib/telegram";
 import { getResend, resendFromAddress } from "@/lib/resend";
-import {
-  PLAN_TEAM_DISPLAY_NAME,
-  PLAN_TOPIC_LABEL,
-} from "@/lib/plan-products";
+import { PLAN_TOPIC_LABEL } from "@/lib/plan-products";
+import { getPlanConsultant } from "@/lib/plan-consultants";
 import type { PlanOrder } from "@/lib/orders-store";
 
 function planChatUrl(orderId: string) {
@@ -42,13 +40,14 @@ export async function notifyMomPlanTeamReply(
   const topic = PLAN_TOPIC_LABEL[order.topic];
   const url = planChatUrl(order.id);
   const preview = input.text?.trim().slice(0, 180);
+  const consultant = getPlanConsultant(order.consultantId);
   const subject = input.hasPdf
     ? `Мая · ваш персональный план · ${topic}`
-    : `Мая · ответ ${PLAN_TEAM_DISPLAY_NAME} · ${topic}`;
+    : `Мая · ответ ${consultant.name} · ${topic}`;
 
   const lead = input.hasPdf
-    ? `${PLAN_TEAM_DISPLAY_NAME} отправила персональный план по теме «${topic}».`
-    : `${PLAN_TEAM_DISPLAY_NAME} ответила в чате по теме «${topic}».`;
+    ? `${consultant.name} отправила персональный план по теме «${topic}».`
+    : `${consultant.name} ответила в чате по теме «${topic}».`;
 
   const text = [
     lead,

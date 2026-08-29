@@ -29,6 +29,11 @@ import {
   freeChatRemaining,
   isSubscriptionActive,
 } from "@/lib/subscription";
+import {
+  CHAT_INCLUDED_MSGS,
+  CHAT_TOPUP_MSGS,
+  CHAT_TOPUP_RUB,
+} from "@/lib/chat-quota";
 import { useAppStore } from "@/lib/store";
 import { trackEvent } from "@/lib/analytics-client";
 import type { ModuleBlueprint, ModuleId, WeatherSnapshot } from "@/lib/types";
@@ -67,8 +72,6 @@ export function ChatView() {
   const enabledModules = useAppStore((s) => s.enabledModules ?? []);
   const customModules = useAppStore((s) => s.customModules ?? []);
   const wardrobe = useAppStore((s) => s.wardrobe ?? []);
-  const memories = useAppStore((s) => s.memories ?? []);
-  const memoryStory = useAppStore((s) => s.memoryStory);
   const journals = useAppStore((s) => s.journals ?? {});
   const pregnancy = useAppStore((s) => s.pregnancy);
   const addMessage = useAppStore((s) => s.addMessage);
@@ -86,12 +89,20 @@ export function ChatView() {
   const refundAiChatQuota = useAppStore((s) => s.refundAiChatQuota);
   const premium = isSubscriptionActive(subscription);
   const chatLeft = freeChatRemaining(subscription, aiChatUsage);
+  const accountEmail = useAppStore((s) => s.accountEmail);
+  const emailVerified = useAppStore((s) => s.emailVerified);
 
   const pendingChatPrompt = useAppStore((s) => s.pendingChatPrompt);
   const setPendingChatPrompt = useAppStore((s) => s.setPendingChatPrompt);
 
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [needTopup, setNeedTopup] = useState(false);
+  const [topupBusy, setTopupBusy] = useState(false);
+  const [premiumQuota, setPremiumQuota] = useState<{
+    remaining: number;
+    allowance: number;
+  } | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [logPreview, setLogPreview] = useState<LogPreviewData | null>(null);
   const [listening, setListening] = useState(false);
@@ -110,6 +121,81 @@ export function ChatView() {
   const inputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<SpeechRec | null>(null);
   const voiceBaseRef = useRef("");
+
+  async function refreshPremiumQuota() {
+    if (!premium || !emailVerified || !accountEmail) {
+      setPremiumQuota(null);
+      return;
+    }
+    try {
+      const res = await fetch(
+        `/api/chat/quota?email=${encodeURIComponent(accountEmail)}`,
+        { credentials: "include" },
+      );
+      if (!res.ok) return;
+      const data = (await res.json()) as {
+        remaining?: number;
+        allowance?: number;
+      };
+      if (typeof data.remaining === "number" && typeof data.allowance === "number") {
+        setPremiumQuota({
+          remaining: data.remaining,
+          allowance: data.allowance,
+        });
+        setNeedTopup(data.remaining <= 0);
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  useEffect(() => {
+    void refreshPremiumQuota();
+  }, [premium, emailVerified, accountEmail]);
+
+  async function buyChatTopup() {
+    if (!accountEmail) {
+      router.push("/register");
+      return;
+    }
+    setTopupBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/payments/create", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: "chat_boost", email: accountEmail }),
+      });
+      const data = (await res.json()) as {
+        error?: string;
+        url?: string;
+        bypass?: boolean;
+        message?: string;
+        quota?: { remaining: number; allowance: number };
+      };
+      if (!res.ok) {
+        setError(data.error ?? "Не удалось оформить доплату");
+        return;
+      }
+      if (data.url) {
+        window.location.href = data.url;
+        return;
+      }
+      if (data.bypass && data.quota) {
+        setPremiumQuota({
+          remaining: data.quota.remaining,
+          allowance: data.quota.allowance,
+        });
+        setNeedTopup(false);
+        setError(null);
+      }
+    } catch {
+      setError("Нет связи");
+    } finally {
+      setTopupBusy(false);
+    }
+  }
 
   function requestPhoneLocation() {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
@@ -363,7 +449,13 @@ export function ChatView() {
       );
       return;
     }
-    if (!consumeAiChatQuota()) {
+    if (premium && needTopup) {
+      setError(
+        `Пакет чата на месяц закончился (~${CHAT_INCLUDED_MSGS} сообщ.). Доплата ${CHAT_TOPUP_RUB} ₽ — ещё ${CHAT_TOPUP_MSGS}.`,
+      );
+      return;
+    }
+    if (!premium && !consumeAiChatQuota()) {
       setError(
         `На сегодня лимит бесплатных сообщений (${FREE_CHAT_LIMIT}). Завтра снова или оформите подписку.`,
       );
@@ -372,6 +464,7 @@ export function ChatView() {
 
     setInput("");
     setError(null);
+    setNeedTopup(false);
 
     addMessage({ role: "user", content: text });
     trackEvent("chat_send");
@@ -401,6 +494,7 @@ export function ChatView() {
 
         const res = await fetch("/api/chat", {
           method: "POST",
+          credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             messages: history,
@@ -408,8 +502,6 @@ export function ChatView() {
             enabledModules,
             customModules,
             wardrobe: wardrobeForChat(wardrobe),
-            memories,
-            memoryStory,
             journals: journalsForChat,
             coords: sendCoords,
             pregnancy,
@@ -418,8 +510,24 @@ export function ChatView() {
         });
 
         if (!res.ok) {
-          const data = (await res.json().catch(() => null)) as { error?: string } | null;
+          const data = (await res.json().catch(() => null)) as {
+            error?: string;
+            code?: string;
+          } | null;
           const errMsg = data?.error || `Ошибка сервера (${res.status})`;
+          if (data?.code === "chat_quota") {
+            setNeedTopup(true);
+            setPremiumQuota((q) =>
+              q ? { ...q, remaining: 0 } : { remaining: 0, allowance: CHAT_INCLUDED_MSGS },
+            );
+          }
+          if (data?.code === "auth_required") {
+            setError(errMsg);
+            refundAiChatQuota();
+            updateMessage(assistantId, { content: "" });
+            router.push("/register");
+            return;
+          }
           pushOpsError({
             source: "chat",
             message: errMsg,
@@ -427,6 +535,15 @@ export function ChatView() {
             userSnippet: text.slice(0, 120),
           });
           throw new Error(errMsg);
+        }
+
+        const rem = res.headers.get("X-Maya-Chat-Remaining");
+        const allw = res.headers.get("X-Maya-Chat-Allowance");
+        if (rem != null && allw != null) {
+          setPremiumQuota({
+            remaining: Number(rem) || 0,
+            allowance: Number(allw) || CHAT_INCLUDED_MSGS,
+          });
         }
 
         const weatherSnap = decodeWeatherHeader(res.headers.get("X-Maya-Weather"));
@@ -1079,17 +1196,28 @@ export function ChatView() {
           </div>
 
           {error && (
-            <p className="mx-4 mb-2 shrink-0 rounded-xl border border-blush/40 bg-blush-soft px-3 py-2 text-sm">
-              {error}
+            <div className="mx-4 mb-2 shrink-0 rounded-xl border border-blush/40 bg-blush-soft px-3 py-2 text-sm">
+              <p>{error}</p>
               {!premium && chatLeft === 0 && (
-                <>
-                  {" "}
+                <p className="mt-1">
                   <Link href="/pricing" className="font-semibold underline">
                     Подписка
                   </Link>
-                </>
+                </p>
               )}
-            </p>
+              {needTopup && premium ? (
+                <button
+                  type="button"
+                  disabled={topupBusy}
+                  onClick={() => void buyChatTopup()}
+                  className="mt-2 w-full rounded-xl bg-accent py-2 text-sm font-semibold text-[var(--on-accent,#fff)] disabled:opacity-60"
+                >
+                  {topupBusy
+                    ? "Открываем оплату…"
+                    : `Доплатить ${CHAT_TOPUP_RUB} ₽ · +${CHAT_TOPUP_MSGS} сообщений`}
+                </button>
+              ) : null}
+            </div>
           )}
 
           {!premium && chatLeft != null && (
@@ -1100,10 +1228,31 @@ export function ChatView() {
               </span>
               {" · "}
               <Link href="/pricing" className="text-accent underline">
-                безлимит
+                Premium
               </Link>
             </p>
           )}
+
+          {premium && premiumQuota ? (
+            <p className="mx-4 mb-1.5 shrink-0 text-[11px] text-muted">
+              Пакет чата в этом месяце:{" "}
+              <span className="font-medium text-foreground">
+                {premiumQuota.remaining} из {premiumQuota.allowance}
+              </span>
+              {premiumQuota.remaining <= 20 ? (
+                <>
+                  {" · "}
+                  <button
+                    type="button"
+                    className="text-accent underline"
+                    onClick={() => void buyChatTopup()}
+                  >
+                    +{CHAT_TOPUP_MSGS} за {CHAT_TOPUP_RUB} ₽
+                  </button>
+                </>
+              ) : null}
+            </p>
+          ) : null}
 
           <form
             className="flex shrink-0 gap-2 border-t border-line p-3"

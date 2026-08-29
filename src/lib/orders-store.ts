@@ -11,6 +11,14 @@ import {
   type PlanProductId,
   type PlanTopic,
 } from "@/lib/plan-products";
+import {
+  accompanimentIntroMessage,
+  consultantRoleForTopic,
+  getPlanConsultant,
+  pickConsultantForNewOrder,
+  systemIntroMessage,
+  type PlanConsultantId,
+} from "@/lib/plan-consultants";
 import { mergeDiaryEntries } from "@/lib/backup-read";
 
 export type OrderStatus =
@@ -69,6 +77,7 @@ export type PlanOrder = {
   planSentAt?: string;
   chatDeadlineAt?: string;
   accompanimentDeadlineAt?: string;
+  consultantId: PlanConsultantId;
 };
 
 type DbRow = {
@@ -91,6 +100,7 @@ type DbRow = {
   plan_sent_at: string | null;
   chat_deadline_at: string | null;
   accompaniment_deadline_at: string | null;
+  consultant_id: string;
   messages_json: string;
   diary_snapshot_json: string | null;
   ai_draft_json: string | null;
@@ -99,9 +109,6 @@ type DbRow = {
 const DATA_DIR = join(process.cwd(), "data");
 const PDF_DIR = join(DATA_DIR, "plan-pdfs");
 const AWAITING_TTL_MS = 45 * 60 * 1000;
-
-const SYSTEM_INTRO =
-  "Мария разберёт записи в дневнике и составит персональный план. Ожидание — до 24 часов. Это не врач.";
 
 function ensure() {
   if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
@@ -129,6 +136,7 @@ function rowToOrder(row: DbRow): PlanOrder {
     planSentAt: row.plan_sent_at ?? undefined,
     chatDeadlineAt: row.chat_deadline_at ?? undefined,
     accompanimentDeadlineAt: row.accompaniment_deadline_at ?? undefined,
+    consultantId: getPlanConsultant(row.consultant_id).id,
     messages: JSON.parse(row.messages_json) as OrderMessage[],
     diarySnapshot: row.diary_snapshot_json
       ? (JSON.parse(row.diary_snapshot_json) as PlanOrder["diarySnapshot"])
@@ -160,6 +168,7 @@ function orderToParams(order: PlanOrder) {
     plan_sent_at: order.planSentAt ?? null,
     chat_deadline_at: order.chatDeadlineAt ?? null,
     accompaniment_deadline_at: order.accompanimentDeadlineAt ?? null,
+    consultant_id: order.consultantId,
     messages_json: JSON.stringify(order.messages),
     diary_snapshot_json: order.diarySnapshot
       ? JSON.stringify(order.diarySnapshot)
@@ -190,12 +199,12 @@ function upsertOrder(order: PlanOrder): PlanOrder {
       id, created_at, updated_at, email, child_id, child_name, topic, product_id,
       status, price_rub, paid_at, payment_ref, accompaniment_paid, accompaniment_pending,
       accompaniment_price_rub, chat_closed_at, plan_sent_at, chat_deadline_at,
-      accompaniment_deadline_at, messages_json, diary_snapshot_json, ai_draft_json
+      accompaniment_deadline_at, consultant_id, messages_json, diary_snapshot_json, ai_draft_json
     ) VALUES (
       @id, @created_at, @updated_at, @email, @child_id, @child_name, @topic, @product_id,
       @status, @price_rub, @paid_at, @payment_ref, @accompaniment_paid, @accompaniment_pending,
       @accompaniment_price_rub, @chat_closed_at, @plan_sent_at, @chat_deadline_at,
-      @accompaniment_deadline_at, @messages_json, @diary_snapshot_json, @ai_draft_json
+      @accompaniment_deadline_at, @consultant_id, @messages_json, @diary_snapshot_json, @ai_draft_json
     )
     ON CONFLICT(id) DO UPDATE SET
       updated_at = excluded.updated_at,
@@ -215,6 +224,7 @@ function upsertOrder(order: PlanOrder): PlanOrder {
       plan_sent_at = excluded.plan_sent_at,
       chat_deadline_at = excluded.chat_deadline_at,
       accompaniment_deadline_at = excluded.accompaniment_deadline_at,
+      consultant_id = excluded.consultant_id,
       messages_json = excluded.messages_json,
       diary_snapshot_json = excluded.diary_snapshot_json,
       ai_draft_json = excluded.ai_draft_json`,
@@ -320,6 +330,13 @@ export function createPlanOrder(input: {
     .get(norm, input.topic) as DbRow | undefined;
   if (awaitingRow) return rowToOrder(awaitingRow);
 
+  const orderCount = (
+    getDb().prepare("SELECT COUNT(*) AS c FROM plan_orders").get() as {
+      c: number;
+    }
+  ).c;
+  const consultantId = pickConsultantForNewOrder(orderCount);
+
   const now = new Date().toISOString();
   const order: PlanOrder = {
     id: newOrderId(),
@@ -332,6 +349,7 @@ export function createPlanOrder(input: {
     productId: input.productId,
     status: "awaiting_payment",
     priceRub: input.priceRub,
+    consultantId,
     messages: [],
     diarySnapshot: mergeDiaryEntries(
       input.email,
@@ -445,6 +463,7 @@ export function fulfillPlanOrderPayment(
   if (order.status !== "awaiting_payment") return order;
 
   const now = new Date().toISOString();
+  const consultant = getPlanConsultant(order.consultantId);
   const next: PlanOrder = {
     ...order,
     status: "paid",
@@ -456,7 +475,7 @@ export function fulfillPlanOrderPayment(
         id: newMessageId(),
         createdAt: now,
         role: "system",
-        text: SYSTEM_INTRO,
+        text: systemIntroMessage(consultant.name),
       },
     ],
   };
@@ -473,6 +492,7 @@ export function fulfillAccompanimentPayment(
   if (order.accompanimentPaid) return order;
 
   const now = new Date().toISOString();
+  const consultant = getPlanConsultant(order.consultantId);
   const next: PlanOrder = {
     ...order,
     accompanimentPaid: true,
@@ -489,8 +509,7 @@ export function fulfillAccompanimentPayment(
         id: newMessageId(),
         createdAt: now,
         role: "system",
-        text:
-          "Сопровождение подключено на 7 дней. Мария будет смотреть дневник и подсказывать по ходу.",
+        text: accompanimentIntroMessage(consultant.name),
       },
     ],
   };
@@ -506,8 +525,15 @@ export function orderForClient(order: PlanOrder) {
   const pdfUrl = (file?: string) =>
     file ? `/api/plan-orders/${order.id}/pdf/${file}` : undefined;
 
+  const c = getPlanConsultant(order.consultantId);
   return {
     ...order,
+    consultant: {
+      id: c.id,
+      name: c.name,
+      avatar: c.avatar,
+      role: consultantRoleForTopic(order.topic),
+    },
     messages: order.messages.map((m) => ({
       ...m,
       pdfUrl: pdfUrl(m.pdfFile),

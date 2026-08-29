@@ -10,20 +10,18 @@ import {
   readPlanOfferInstant,
 } from "@/lib/plan-offer-instant";
 import { useAppStore } from "@/lib/store";
+import { orderStatusHint } from "@/lib/plan-consultants";
 import {
   ACCOMPANIMENT_INCLUDES,
   ACCOMPANIMENT_RUB,
-  ORDER_STATUS_MOM,
   PLAN_BREAKDOWN_RUB,
   PLAN_CHAT_DAYS,
   PLAN_OFFER_HOOK,
   PLAN_OFFER_TITLE,
   PLAN_TOPIC_LABEL,
-  PLAN_TEAM_DISPLAY_NAME,
-  PLAN_TEAM_ROLE,
   type PlanTopic,
 } from "@/lib/plan-products";
-import { PlanMariaAvatar } from "@/components/plan/PlanMariaAvatar";
+import { PlanConsultantAvatar } from "@/components/plan/PlanConsultantAvatar";
 
 type OrderMessage = {
   id: string;
@@ -41,6 +39,12 @@ type PlanOrder = {
   accompanimentPaid?: boolean;
   accompanimentPending?: boolean;
   messages: OrderMessage[];
+  consultant?: {
+    id: string;
+    name: string;
+    avatar: string;
+    role: string;
+  };
 };
 
 function fmtTime(iso: string) {
@@ -153,7 +157,11 @@ export function SpecialistChat({ orderId }: { orderId: string }) {
 
   const closed = Boolean(order?.chatClosedAt) && !order?.accompanimentPaid;
   const topic = order ? PLAN_TOPIC_LABEL[order.topic] : "";
-  const statusHint = order ? ORDER_STATUS_MOM[order.status] : null;
+  const consultant = order?.consultant;
+  const statusHint =
+    order && consultant
+      ? orderStatusHint(order.status, consultant.name)
+      : null;
 
   if (order?.status === "awaiting_payment") {
     return (
@@ -176,15 +184,24 @@ export function SpecialistChat({ orderId }: { orderId: string }) {
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="shrink-0 border-b border-line bg-card/80 px-4 py-3">
         <div className="flex items-center gap-3">
-          <PlanMariaAvatar size={48} />
+          {consultant ? (
+            <PlanConsultantAvatar
+              consultantId={consultant.id}
+              name={consultant.name}
+              avatar={consultant.avatar}
+              size={48}
+            />
+          ) : null}
           <div className="min-w-0">
             <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
               Разбор · {topic}
             </p>
             <h1 className="font-display text-lg font-semibold">
-              {PLAN_TEAM_DISPLAY_NAME}
+              {consultant?.name ?? "Консультант"}
             </h1>
-            <p className="text-[11px] text-muted">{PLAN_TEAM_ROLE}</p>
+            <p className="text-[11px] text-muted">
+              {consultant?.role ?? "Консультант по режиму"} · не врач
+            </p>
           </div>
         </div>
         {statusHint ? (
@@ -211,7 +228,15 @@ export function SpecialistChat({ orderId }: { orderId: string }) {
               key={m.id}
               className={`flex items-end gap-2 ${mine ? "justify-end" : "justify-start"}`}
             >
-              {!mine ? <PlanMariaAvatar size={32} className="mb-1" /> : null}
+              {!mine && consultant ? (
+                <PlanConsultantAvatar
+                  consultantId={consultant.id}
+                  name={consultant.name}
+                  avatar={consultant.avatar}
+                  size={32}
+                  className="mb-1"
+                />
+              ) : null}
               <div
                 className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
                   mine
@@ -219,11 +244,11 @@ export function SpecialistChat({ orderId }: { orderId: string }) {
                     : "border border-line bg-card"
                 }`}
               >
-                {!mine && (
+                {!mine && consultant ? (
                   <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide opacity-70">
-                    {PLAN_TEAM_DISPLAY_NAME}
+                    {consultant.name}
                   </p>
-                )}
+                ) : null}
                 {m.text ? <p className="whitespace-pre-wrap">{m.text}</p> : null}
                 {m.pdfUrl ? (
                   <a
@@ -295,7 +320,7 @@ export function SpecialistChat({ orderId }: { orderId: string }) {
               value={text}
               onChange={(e) => setText(e.target.value)}
               rows={2}
-              placeholder="Сообщение Марии…"
+              placeholder={consultant ? `Сообщение ${consultant.name}…` : "Сообщение…"}
               className="min-h-[44px] flex-1 resize-none rounded-2xl border border-line bg-background px-3 py-2 text-sm"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
@@ -324,7 +349,7 @@ export function SpecialistChat({ orderId }: { orderId: string }) {
               value={text}
               onChange={(e) => setText(e.target.value)}
               rows={2}
-              placeholder="Ваш вопрос Марии…"
+              placeholder={consultant ? `Ваш вопрос ${consultant.name}…` : "Ваш вопрос…"}
               className="min-h-[44px] flex-1 resize-none rounded-2xl border border-line bg-background px-3 py-2 text-sm"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
@@ -411,7 +436,7 @@ export function PlanOfferBanner({ moduleId }: { moduleId: string }) {
       <div className="mb-4 rounded-2xl border border-accent/30 bg-accent-soft/50 p-4">
         <p className="text-sm font-semibold">Ваш разбор · {label}</p>
         <p className="mt-1 text-xs text-muted">
-          Мария готовит план по дневнику
+          Консультант готовит план по дневнику
         </p>
         <Link
           href={`/plan/${activeId}`}

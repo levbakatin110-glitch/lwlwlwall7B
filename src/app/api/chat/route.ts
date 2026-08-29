@@ -1,5 +1,7 @@
 import { buildSystemPrompt, type ClientChatPayload } from "@/lib/ai-context";
 import { trackAnalyticsEvent } from "@/lib/analytics-store";
+import { CHAT_INCLUDED_MSGS, CHAT_TOPUP_RUB } from "@/lib/chat-quota";
+import { tryConsumeChatQuota } from "@/lib/chat-quota-store";
 import { withTimeout } from "@/lib/fetch-timeout";
 import { clientIpFromRequest, lookupIpGeo } from "@/lib/ip-geo";
 import {
@@ -8,6 +10,9 @@ import {
 } from "@/lib/ip-rate-limit";
 import { chatModel, createOpenAI } from "@/lib/openai";
 import { pushServerOpsError } from "@/lib/ops-log";
+import { getServerSubscription } from "@/lib/paid-store";
+import { readSessionFromRequest } from "@/lib/session";
+import { TEMP_UNLOCK_ALL } from "@/lib/subscription";
 import { encodeWeatherHeader, resolveWeather } from "@/lib/weather";
 
 export const runtime = "nodejs";
@@ -24,17 +29,24 @@ export async function POST(req: Request) {
   }
 
   const ip = clientIpFromRequest(req);
-  const ipGate = checkIpChatLimit(ip);
-  if (!ipGate.ok) {
-    const error =
-      "С этого адреса сегодня слишком много запросов к Мае. Завтра снова или оформите подписку.";
-    pushServerOpsError({
-      source: "chat",
-      message: "IP chat limit",
-      status: 429,
-      detail: ip.slice(0, 40),
-    });
-    return Response.json({ error }, { status: 429 });
+  const session = readSessionFromRequest(req);
+  const premium =
+    TEMP_UNLOCK_ALL ||
+    Boolean(session?.email && getServerSubscription(session.email));
+
+  if (!premium) {
+    const ipGate = checkIpChatLimit(ip);
+    if (!ipGate.ok) {
+      const error =
+        "С этого адреса сегодня слишком много запросов к Мае. Завтра снова или оформите подписку.";
+      pushServerOpsError({
+        source: "chat",
+        message: "IP chat limit",
+        status: 429,
+        detail: ip.slice(0, 40),
+      });
+      return Response.json({ error }, { status: 429 });
+    }
   }
 
   let body: ClientChatPayload;
@@ -54,6 +66,36 @@ export async function POST(req: Request) {
   }
 
   const lastUser = [...body.messages].reverse().find((m) => m.role === "user");
+
+  let quotaHeaders: Record<string, string> = {};
+  if (premium) {
+    const quotaKey = session?.email || `guest:${ip || "unknown"}`;
+    if (!session?.email && !TEMP_UNLOCK_ALL) {
+      return Response.json(
+        {
+          error:
+            "Чтобы писать Мае по подписке, войдите в аккаунт — так считаем пакет сообщений.",
+          code: "auth_required",
+        },
+        { status: 401 },
+      );
+    }
+    const consumed = tryConsumeChatQuota(quotaKey);
+    if (!consumed.ok) {
+      return Response.json(
+        {
+          error: `Пакет чата на месяц закончился (~${CHAT_INCLUDED_MSGS} сообщений). Доплата ${CHAT_TOPUP_RUB} ₽ — ещё столько же.`,
+          code: "chat_quota",
+          quota: consumed.view,
+        },
+        { status: 402 },
+      );
+    }
+    quotaHeaders = {
+      "X-Maya-Chat-Remaining": String(consumed.view.remaining),
+      "X-Maya-Chat-Allowance": String(consumed.view.allowance),
+    };
+  }
 
   trackAnalyticsEvent({
     name: "chat_send",
@@ -103,8 +145,6 @@ export async function POST(req: Request) {
       enabledModules: body.enabledModules ?? [],
       customModules: body.customModules ?? [],
       wardrobe: body.wardrobe ?? [],
-      memories: body.memories ?? [],
-      memoryStory: body.memoryStory ?? null,
       journals: body.journals ?? ({} as ClientChatPayload["journals"]),
       weather,
       pregnancy: body.pregnancy ?? null,
@@ -123,8 +163,7 @@ export async function POST(req: Request) {
       temperature: 0.6,
     });
 
-    // Списываем IP-квоту только после успешного старта ответа
-    consumeIpChatLimit(ip);
+    if (!premium) consumeIpChatLimit(ip);
 
     const encoder = new TextEncoder();
     const readable = new ReadableStream({
@@ -152,8 +191,14 @@ export async function POST(req: Request) {
     const headers: Record<string, string> = {
       "Content-Type": "text/plain; charset=utf-8",
       "Cache-Control": "no-cache",
+      ...quotaHeaders,
     };
-    const expose = ["X-Maya-Weather", "X-Maya-Vpn-Suspect"];
+    const expose = [
+      "X-Maya-Weather",
+      "X-Maya-Vpn-Suspect",
+      "X-Maya-Chat-Remaining",
+      "X-Maya-Chat-Allowance",
+    ];
     if (weather) {
       headers["X-Maya-Weather"] = encodeWeatherHeader(weather);
     }

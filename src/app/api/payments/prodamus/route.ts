@@ -1,4 +1,5 @@
 import { trackAnalyticsEvent } from "@/lib/analytics-store";
+import { grantChatTopup } from "@/lib/chat-quota-store";
 import { grantPaidPlan } from "@/lib/paid-store";
 import { activatePlanOrderAfterPayment } from "@/lib/plan-order-activate";
 import { parseProdamusPlanExtra } from "@/lib/plan-payments";
@@ -95,6 +96,15 @@ export async function POST(req: Request) {
       trackAnalyticsEvent({
         name: "plan_purchase",
         meta: `${planPay.productId}:${email.slice(0, 20)}`,
+      });
+      return new Response("ok", { status: 200 });
+    }
+
+    if (email && /^chat_boost:/i.test(extra)) {
+      grantChatTopup(email, paymentRef || extra);
+      trackAnalyticsEvent({
+        name: "chat_topup",
+        meta: email.slice(0, 24),
       });
       return new Response("ok", { status: 200 });
     }
