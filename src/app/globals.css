@@ -503,6 +503,51 @@ body::before {
   animation-delay: 0.3s;
 }
 
+.maya-chat-text p {
+  margin: 0.2em 0;
+}
+
+.maya-chat-text--live {
+  animation: maya-stream-soft 0.45s ease-out both;
+}
+
+.maya-stream-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1.05em;
+  margin-left: 3px;
+  vertical-align: -0.15em;
+  border-radius: 1px;
+  background: color-mix(in srgb, var(--accent) 85%, transparent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 35%, transparent);
+  animation: maya-stream-caret 0.9s ease-in-out infinite;
+}
+
+@keyframes maya-stream-soft {
+  from {
+    opacity: 0.55;
+    filter: blur(1.5px);
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+}
+
+@keyframes maya-stream-caret {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+  50% {
+    opacity: 0.25;
+    transform: scaleY(0.85);
+  }
+}
+
 @keyframes maya-mic-pulse {
   0%,
   100% {

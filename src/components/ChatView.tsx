@@ -7,6 +7,7 @@ import { HomeWeatherCard } from "@/components/HomeWeatherCard";
 import { JournalEntryChip } from "@/components/JournalEntryChip";
 import { LogPreviewSheet, type LogPreviewData } from "@/components/LogPreviewSheet";
 import { KitchenCarousel } from "@/components/KitchenCarousel";
+import { MayaChatText } from "@/components/MayaChatText";
 import { CHAT_PROMPTS } from "@/components/TipsCarousel";
 import { VpnHintBanner } from "@/components/VpnHintBanner";
 import { WeatherWidget } from "@/components/WeatherWidget";
@@ -121,6 +122,42 @@ export function ChatView() {
   const inputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<SpeechRec | null>(null);
   const voiceBaseRef = useRef("");
+  /** Плавная «печать»: цель с сети → показываем догоняющим rAF */
+  const [streamingId, setStreamingId] = useState<string | null>(null);
+  const [streamShown, setStreamShown] = useState("");
+  const streamTargetRef = useRef("");
+  const streamShownRef = useRef("");
+  const streamRafRef = useRef(0);
+
+  function stopStreamReveal() {
+    if (streamRafRef.current) cancelAnimationFrame(streamRafRef.current);
+    streamRafRef.current = 0;
+  }
+
+  function kickStreamReveal() {
+    if (streamRafRef.current) return;
+    const tick = () => {
+      const target = streamTargetRef.current;
+      let shown = streamShownRef.current;
+      if (shown === target) {
+        streamRafRef.current = 0;
+        return;
+      }
+      const lag = target.length - shown.length;
+      // Догоняем быстрее, если сеть ушла далеко — без рывков по 1 символу
+      const step = lag > 80 ? 12 : lag > 30 ? 6 : lag > 10 ? 3 : 2;
+      shown = target.slice(0, Math.min(target.length, shown.length + step));
+      streamShownRef.current = shown;
+      setStreamShown(shown);
+      streamRafRef.current = requestAnimationFrame(tick);
+    };
+    streamRafRef.current = requestAnimationFrame(tick);
+  }
+
+  function pushStreamTarget(next: string) {
+    streamTargetRef.current = next;
+    kickStreamReveal();
+  }
 
   async function refreshPremiumQuota() {
     if (!premium || !emailVerified || !accountEmail) {
@@ -308,7 +345,7 @@ export function ChatView() {
     const el = listRef.current;
     if (!el) return;
     el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-  }, [messages, pending]);
+  }, [messages, pending, streamShown]);
 
   useEffect(() => {
     const w = window as Window & {
@@ -469,6 +506,11 @@ export function ChatView() {
     addMessage({ role: "user", content: text });
     trackEvent("chat_send");
     const assistantId = addMessage({ role: "assistant", content: "" });
+    stopStreamReveal();
+    streamTargetRef.current = "";
+    streamShownRef.current = "";
+    setStreamShown("");
+    setStreamingId(assistantId);
 
     startTransition(async () => {
       try {
@@ -524,6 +566,8 @@ export function ChatView() {
           if (data?.code === "auth_required") {
             setError(errMsg);
             refundAiChatQuota();
+            stopStreamReveal();
+            setStreamingId(null);
             updateMessage(assistantId, { content: "" });
             router.push("/register");
             return;
@@ -554,15 +598,28 @@ export function ChatView() {
 
         const decoder = new TextDecoder();
         let full = "";
+        let lastStoreAt = 0;
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
           full += decoder.decode(value, { stream: true });
           const { text: live } = stripSuggestMarker(full);
-          updateMessage(assistantId, { content: live });
+          pushStreamTarget(live);
+          // В store реже — меньше лагов списка; на экране — плавная печать
+          const now = performance.now();
+          if (now - lastStoreAt > 80) {
+            lastStoreAt = now;
+            updateMessage(assistantId, { content: live });
+          }
         }
 
         const parsed = stripSuggestMarker(full);
+        stopStreamReveal();
+        streamShownRef.current = parsed.text;
+        streamTargetRef.current = parsed.text;
+        setStreamShown(parsed.text);
+        updateMessage(assistantId, { content: parsed.text });
+        setStreamingId(null);
         const state = useAppStore.getState();
 
         const userMentionsDiaryFact = looksLikeDiaryFact(text);
@@ -759,6 +816,8 @@ export function ChatView() {
           userSnippet: text.slice(0, 120),
         });
         setError(msg);
+        stopStreamReveal();
+        setStreamingId(null);
         updateMessage(assistantId, {
           content: `Не удалось получить ответ: ${msg}`,
         });
@@ -1005,12 +1064,21 @@ export function ChatView() {
                   />
                 )}
 
-                {m.role === "assistant" && !m.content && pending ? (
+                {m.role === "assistant" && !m.content && !streamShown && pending ? (
                   <p className="maya-typing text-muted" aria-label="Печатает">
                     <span />
                     <span />
                     <span />
                   </p>
+                ) : m.role === "assistant" ? (
+                  <MayaChatText
+                    text={
+                      streamingId === m.id
+                        ? streamShown || m.content
+                        : m.content
+                    }
+                    live={streamingId === m.id && pending}
+                  />
                 ) : (
                   <p className="whitespace-pre-wrap">{m.content}</p>
                 )}

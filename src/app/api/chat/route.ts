@@ -160,7 +160,8 @@ export async function POST(req: Request) {
           content: m.content,
         })),
       ],
-      temperature: 0.6,
+      temperature: 0.65,
+      max_tokens: 1800,
     });
 
     if (!premium) consumeIpChatLimit(ip);
