@@ -6,6 +6,7 @@ import { normalizeEmail } from "@/lib/email-codes";
 import { applyOrderLifecycle } from "@/lib/plan-order-lifecycle";
 import type { JournalEntry } from "@/lib/types";
 import {
+  ACCOMPANIMENT_DAYS,
   ACCOMPANIMENT_RUB,
   PLAN_CHAT_DAYS,
   type PlanProductId,
@@ -303,7 +304,7 @@ export function chatDeadlineFromNow(): string {
 }
 
 export function accompanimentDeadlineFromNow(): string {
-  return new Date(Date.now() + 7 * 86_400_000).toISOString();
+  return new Date(Date.now() + ACCOMPANIMENT_DAYS * 86_400_000).toISOString();
 }
 
 export function createPlanOrder(input: {

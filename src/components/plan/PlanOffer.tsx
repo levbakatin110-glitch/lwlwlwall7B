@@ -294,7 +294,7 @@ export function SpecialistChat({ orderId }: { orderId: string }) {
           </p>
           <div className="mt-4 rounded-2xl border border-accent/25 bg-accent-soft/40 p-4">
             <p className="font-display text-base font-semibold">
-              Сопровождение неделю · {ACCOMPANIMENT_RUB} ₽
+              Сопровождение месяц · {ACCOMPANIMENT_RUB} ₽
             </p>
             <ul className="mt-2 space-y-1 text-xs text-muted">
               {ACCOMPANIMENT_INCLUDES.map((line) => (
@@ -311,7 +311,7 @@ export function SpecialistChat({ orderId }: { orderId: string }) {
                 ? "Ожидаем оплату…"
                 : payBusy
                   ? "Переход к оплате…"
-                  : "Хочу, чтобы вели неделю"}
+                  : "Хочу, чтобы вели месяц"}
             </button>
           </div>
           <Link

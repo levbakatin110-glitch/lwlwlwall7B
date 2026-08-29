@@ -64,7 +64,7 @@ export function orderStatusHint(
     plan_sent: "План отправлен — можно уточнить в чате",
     clarifying: "Уточняем детали по плану",
     closed: "Разбор завершён",
-    accompaniment_active: `Сопровождение с ${consultantName} · неделя`,
+    accompaniment_active: `Сопровождение с ${consultantName} · месяц`,
     completed: "Завершено",
   };
   return map[status] ?? null;
@@ -75,7 +75,7 @@ export function systemIntroMessage(consultantName: string): string {
 }
 
 export function accompanimentIntroMessage(consultantName: string): string {
-  return `Сопровождение подключено на 7 дней. ${consultantName} будет смотреть дневник и подсказывать по ходу.`;
+  return `Сопровождение подключено на 30 дней. ${consultantName} будет смотреть дневник и подсказывать по ходу.`;
 }
 
 /** @deprecated */

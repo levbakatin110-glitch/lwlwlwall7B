@@ -133,7 +133,7 @@ function CheckoutInner() {
       </div>
 
       <div className="mt-4 rounded-2xl border border-dashed border-line bg-accent-soft/30 p-4 text-xs leading-relaxed text-muted">
-        <p className="font-semibold text-foreground">Сопровождение неделю</p>
+        <p className="font-semibold text-foreground">Сопровождение месяц</p>
         <p className="mt-1">
           После разбора можно подключить за {ACCOMPANIMENT_RUB} ₽:{" "}
           {ACCOMPANIMENT_INCLUDES[0].toLowerCase()}.

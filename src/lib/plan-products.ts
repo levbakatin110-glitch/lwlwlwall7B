@@ -12,8 +12,10 @@ export type PlanProductId =
 
 export type PlanPaymentKind = "plan" | "accompany";
 
-export const PLAN_BREAKDOWN_RUB = 1490;
+export const PLAN_BREAKDOWN_RUB = 790;
 export const ACCOMPANIMENT_RUB = 1990;
+/** Сколько дней сопровождения после оплаты */
+export const ACCOMPANIMENT_DAYS = 30;
 /** Сколько дней после плана можно писать в чат с вопросами */
 export const PLAN_CHAT_DAYS = 3;
 
@@ -54,8 +56,8 @@ export const FEED_MODULE_IDS = ["breastfeeding", "formula", "solids"] as const;
 export const PLAN_PRODUCT_TITLE: Record<PlanProductId, string> = {
   plan_sleep: "Персональный план + разбор · сон",
   plan_feed: "Персональный план + разбор · кормление",
-  accompany_sleep: "Сопровождение неделю · сон",
-  accompany_feed: "Сопровождение неделю · кормление",
+  accompany_sleep: "Сопровождение месяц · сон",
+  accompany_feed: "Сопровождение месяц · кормление",
 };
 
 export function planProductForTopic(topic: PlanTopic): PlanProductId {
@@ -103,7 +105,7 @@ export const ORDER_STATUS_MOM: Record<string, string> = {
   plan_sent: "План отправлен — можно уточнить в чате",
   clarifying: "Уточняем детали по плану",
   closed: "Разбор завершён",
-  accompaniment_active: "Сопровождение · неделя",
+  accompaniment_active: "Сопровождение · месяц",
   completed: "Завершено",
 };
 
@@ -116,8 +118,8 @@ export const PLAN_INCLUDES = [
 ] as const;
 
 export const ACCOMPANIMENT_INCLUDES = [
-  "7 дней — ведём по дневнику и отвечаем на всё, что волнует",
-  "2–3 касания по записям",
+  "30 дней — ведём по дневнику и отвечаем на всё, что волнует",
+  "Регулярные касания по записям",
   "Корректировки плана по ходу",
-  "Короткий итог в конце недели",
+  "Короткий итог в конце месяца",
 ] as const;
