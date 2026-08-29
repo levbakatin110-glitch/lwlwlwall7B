@@ -8,7 +8,7 @@ export type DiaryStat = {
   hint?: string;
 };
 
-/** Карточка метрик — как у Huckleberry / референс схваток */
+/** Карточка метрик */
 export function DiaryStats({ items }: { items: DiaryStat[] }) {
   const n = Math.min(4, Math.max(1, items.length));
   return (
@@ -51,7 +51,7 @@ export function DiarySectionTitle({
   );
 }
 
-/** Строка таймлайна с кружком по центру */
+/** Строка записи — карточка, без «плывущей» сетки таймлайна */
 export function DiaryTimelineRow({
   left,
   right,
@@ -70,43 +70,43 @@ export function DiaryTimelineRow({
     <Tag
       type={onClick ? "button" : undefined}
       onClick={onClick}
-      className="relative grid w-full grid-cols-[1fr_2.5rem_1fr] items-center gap-2 py-2.5 text-left"
+      className={`flex w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left shadow-sm transition ${
+        accent
+          ? "border-accent/35 bg-accent-soft/50"
+          : "border-line bg-card"
+      } ${onClick ? "active:scale-[0.99]" : ""}`}
     >
-      <div className="pr-1 text-right">{left}</div>
-      <div className="relative z-[1] flex justify-center">
-        <span
-          className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-[var(--on-accent,#fff)] shadow-sm ${
-            accent
-              ? "bg-gradient-to-br from-accent to-[color-mix(in_oklab,var(--accent)_65%,#fb7185)] ring-4 ring-accent/15"
-              : "bg-gradient-to-br from-accent/90 to-[color-mix(in_oklab,var(--accent)_70%,#fb7185)]"
-          }`}
-        >
-          {mark}
-        </span>
+      <span
+        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold text-[var(--on-accent,#fff)] shadow-sm ${
+          accent
+            ? "bg-gradient-to-br from-accent to-[color-mix(in_oklab,var(--accent)_65%,#fb7185)] ring-4 ring-accent/15"
+            : "bg-gradient-to-br from-accent/90 to-[color-mix(in_oklab,var(--accent)_70%,#fb7185)]"
+        }`}
+      >
+        {mark}
+      </span>
+      <div className="min-w-0 flex-1 text-left [&>div]:items-start [&>div]:text-left [&_.items-end]:!items-start [&_.text-right]:!text-left">
+        {left}
       </div>
-      <div className="pl-1">{right}</div>
+      {right != null ? (
+        <div className="max-w-[40%] shrink-0 text-right text-sm">{right}</div>
+      ) : null}
     </Tag>
   );
 }
 
 export function DiaryTimeline({ children }: { children: ReactNode }) {
-  return (
-    <div className="relative">
-      <div
-        className="pointer-events-none absolute bottom-3 left-1/2 top-3 w-px -translate-x-1/2 bg-accent/25"
-        aria-hidden
-      />
-      <ul>{children}</ul>
-    </div>
-  );
+  return <ul className="space-y-2">{children}</ul>;
 }
 
+/**
+ * CTA в потоке (order-first), не position:fixed.
+ * У .maya-page animation с transform ломает fixed — кнопка уезжала поверх списка.
+ */
 export function DiaryStickyCta({ children }: { children: ReactNode }) {
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 flex justify-center px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2">
-      <div className="pointer-events-auto flex w-full max-w-md flex-col gap-2">
-        {children}
-      </div>
+    <div className="order-first rounded-2xl border border-line bg-card p-3 shadow-sm">
+      <div className="flex w-full flex-col gap-2">{children}</div>
     </div>
   );
 }
@@ -172,18 +172,19 @@ export function DiaryChip({
 
 export function DiaryEmpty({ children }: { children: ReactNode }) {
   return (
-    <p className="mt-8 text-center text-sm text-muted">{children}</p>
+    <p className="mt-6 text-center text-sm text-muted">{children}</p>
   );
 }
 
 export function DiaryPage({
   children,
-  stickyPad,
+  stickyPad: _stickyPad,
 }: {
   children: ReactNode;
+  /** @deprecated CTA больше не fixed — отступ не нужен */
   stickyPad?: boolean;
 }) {
   return (
-    <div className={`relative ${stickyPad ? "pb-28" : ""}`}>{children}</div>
+    <div className="relative flex flex-col gap-4">{children}</div>
   );
 }
