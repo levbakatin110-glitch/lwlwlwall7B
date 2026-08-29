@@ -24,6 +24,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isLegalPage =
     pathname === "/legal" || pathname.startsWith("/legal/");
   const isCommunity = pathname === "/community";
+  const isHome = pathname === "/";
   const isPlanFlow =
     pathname.startsWith("/plan/") || pathname.startsWith("/plan/order");
   const isPlanChat = pathname.startsWith("/plan/") && !pathname.startsWith("/plan/order");
@@ -101,7 +102,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </header>
           )}
           {!isCommunity && !isPlanFlow && <PregnancyStatusBanner />}
-          <main className={`relative flex min-h-0 flex-1 flex-col overflow-x-hidden overscroll-none pb-[env(safe-area-inset-bottom)] ${isPlanChat ? "overflow-hidden" : "overflow-y-auto"}`}>
+          <main className={`relative flex min-h-0 flex-1 flex-col overflow-x-hidden overscroll-none pb-[env(safe-area-inset-bottom)] ${isPlanChat || isHome ? "overflow-hidden" : "overflow-y-auto"}`}>
             {children}
           </main>
         </div>

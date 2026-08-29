@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { ChatChart } from "@/components/ChatChart";
 import { ChatNewsFeed } from "@/components/ChatNewsFeed";
-import { HomeWeatherCard } from "@/components/HomeWeatherCard";
 import { JournalEntryChip } from "@/components/JournalEntryChip";
 import { LogPreviewSheet, type LogPreviewData } from "@/components/LogPreviewSheet";
 import { KitchenCarousel } from "@/components/KitchenCarousel";
@@ -44,7 +43,7 @@ import { useRouter } from "next/navigation";
 
 function isOutfitIntent(text: string) {
   const t = text.toLowerCase();
-  return /одеть|надеть|прогул|гулять|погод|улиц|что.*нос|гардероб|комбинезон|куртк|холодно|жарко|дожд|снег|температур/.test(
+  return /одеть|надеть|прогул|гулять|погод|улиц|что.*нос|гардероб|комбинезон|куртк|холодно|жарко|дожд|снег|температур|градус|ветер|зонт|шапк|вареж|сапог|ботин|куртк|пальто|что взять с собой на улиц/.test(
     t,
   );
 }
@@ -112,7 +111,6 @@ export function ChatView() {
     latitude: number;
     longitude: number;
   } | null>(null);
-  const [geoPending, setGeoPending] = useState(true);
   const [vpnSuspect, setVpnSuspect] = useState(false);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
@@ -236,29 +234,24 @@ export function ChatView() {
 
   function requestPhoneLocation() {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
-      setGeoPending(false);
       void fallbackIpLocation();
       return;
     }
     // На http:// (не localhost) Chrome часто запрещает GPS
     if (typeof window !== "undefined" && !window.isSecureContext) {
-      setGeoPending(false);
       setCoords(null);
       void fallbackIpLocation();
       return;
     }
     setCoords(null);
-    setGeoPending(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setCoords({
           latitude: pos.coords.latitude,
           longitude: pos.coords.longitude,
         });
-        setGeoPending(false);
       },
       () => {
-        setGeoPending(false);
         setCoords(null);
         void fallbackIpLocation();
       },
@@ -592,6 +585,9 @@ export function ChatView() {
 
         const weatherSnap = decodeWeatherHeader(res.headers.get("X-Maya-Weather"));
         const wantWeatherWidget = isOutfitIntent(text);
+        if (res.headers.get("X-Maya-Vpn-Suspect") === "1") {
+          setVpnSuspect(true);
+        }
 
         const reader = res.body?.getReader();
         if (!reader) throw new Error("Нет потока ответа");
@@ -971,32 +967,24 @@ export function ChatView() {
   const empty = messages.length === 0;
 
   return (
-    <div className="relative h-full min-h-0 flex-1 overflow-y-auto overscroll-none">
-      <div className="relative z-10 mx-auto flex w-full max-w-3xl flex-col px-3 pb-2 pt-2 md:px-4 md:pt-3">
-        {/* Чат на высоту экрана — ниже лента, листайте вниз */}
-        <div className="flex min-h-[calc(100dvh-7.5rem)] flex-col md:min-h-[calc(100dvh-3.5rem)]">
-          <div
-            ref={chatPanelRef}
-            className="maya-sketch-frame maya-chat-paper flex min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--radius-panel)] border border-line shadow-sm backdrop-blur-xl"
-          >
+    <div className="relative flex h-full min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain">
+      <div className="relative z-10 mx-auto flex w-full max-w-3xl min-h-0 flex-1 flex-col px-3 pt-2 md:px-4 md:pt-3">
+        {/* Окно чата на высоту экрана — скролл только у ленты сообщений */}
+        <div
+          ref={chatPanelRef}
+          className="maya-sketch-frame maya-chat-paper flex h-[calc(100dvh-7.5rem)] min-h-[22rem] max-h-[calc(100dvh-7.5rem)] flex-col overflow-hidden rounded-[var(--radius-panel)] border border-line shadow-sm backdrop-blur-xl md:h-[calc(100dvh-3.75rem)] md:max-h-[calc(100dvh-3.75rem)]"
+        >
           <div
             ref={listRef}
-            className="relative flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-none p-4"
+            className="relative flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-contain p-4"
           >
-            <div className="shrink-0 space-y-2">
-              <HomeWeatherCard
-                coords={coords}
-                geoPending={geoPending}
-                compact={!empty}
-                onRequestLocation={requestPhoneLocation}
-                onVpnSuspect={setVpnSuspect}
-              />
+            {vpnSuspect ? (
               <VpnHintBanner
                 coords={coords}
                 city={profile.city}
-                forceShow={vpnSuspect}
+                forceShow
               />
-            </div>
+            ) : null}
 
             {empty && (
               <div className="relative m-auto max-w-md py-6 text-center maya-rise">
@@ -1379,7 +1367,6 @@ export function ChatView() {
               {pending ? "…" : "Отправить"}
             </button>
           </form>
-        </div>
         </div>
 
         <div className="mt-2 space-y-5 pb-4">
