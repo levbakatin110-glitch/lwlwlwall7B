@@ -8,10 +8,10 @@ import {
 } from "@/lib/chat-quota";
 
 /**
- * ВРЕМЕННО: полный Premium всем (чат без лимита + все дневники).
- * Выставь false и задеплой, когда демо клиентке закончится.
+ * ВРЕМЕННО было: полный Premium всем.
+ * Выключено: снова работают подписка + IP-лимит бесплатных.
  */
-export const TEMP_UNLOCK_ALL = true;
+export const TEMP_UNLOCK_ALL = false;
 
 export type PlanId = "free" | "m1" | "m3" | "m6";
 

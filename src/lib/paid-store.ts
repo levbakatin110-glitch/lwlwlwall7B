@@ -1,5 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
-import { join } from "path";
+import { getDb } from "@/lib/db";
 import type { PaidPlanId, PlanId } from "@/lib/subscription";
 import { activatePaidPlan, isSubscriptionActive } from "@/lib/subscription";
 
@@ -11,31 +10,6 @@ export type ServerSubscription = {
   updatedAt: string;
 };
 
-type Store = { byEmail: Record<string, ServerSubscription> };
-
-const DATA_DIR = join(process.cwd(), "data");
-const DATA_FILE = join(DATA_DIR, "subscriptions.json");
-
-function load(): Store {
-  try {
-    if (!existsSync(DATA_FILE)) return { byEmail: {} };
-    const raw = JSON.parse(readFileSync(DATA_FILE, "utf8")) as Store;
-    if (!raw.byEmail || typeof raw.byEmail !== "object") return { byEmail: {} };
-    return raw;
-  } catch {
-    return { byEmail: {} };
-  }
-}
-
-function save(store: Store) {
-  try {
-    if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
-    writeFileSync(DATA_FILE, JSON.stringify(store, null, 2), "utf8");
-  } catch {
-    // ignore
-  }
-}
-
 export function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
@@ -44,8 +18,30 @@ export function getServerSubscription(
   email: string | null | undefined,
 ): ServerSubscription | null {
   if (!email?.trim()) return null;
-  const row = load().byEmail[normalizeEmail(email)];
-  if (!row) return null;
+  const key = normalizeEmail(email);
+  const raw = getDb()
+    .prepare(
+      `SELECT email, plan_id AS planId, expires_at AS expiresAt,
+              order_id AS orderId, updated_at AS updatedAt
+       FROM subscriptions WHERE email = ?`,
+    )
+    .get(key) as
+    | {
+        email: string;
+        planId: PlanId;
+        expiresAt: string | null;
+        orderId: string | null;
+        updatedAt: string;
+      }
+    | undefined;
+  if (!raw) return null;
+  const row: ServerSubscription = {
+    email: raw.email,
+    planId: raw.planId,
+    expiresAt: raw.expiresAt,
+    orderId: raw.orderId ?? undefined,
+    updatedAt: raw.updatedAt,
+  };
   if (!isSubscriptionActive(row)) return null;
   return row;
 }
@@ -57,7 +53,6 @@ export function grantPaidPlan(opts: {
 }): ServerSubscription {
   const email = normalizeEmail(opts.email);
   const activated = activatePaidPlan(opts.planId);
-  const store = load();
   const row: ServerSubscription = {
     email,
     planId: activated.planId,
@@ -65,7 +60,22 @@ export function grantPaidPlan(opts: {
     orderId: opts.orderId,
     updatedAt: new Date().toISOString(),
   };
-  store.byEmail[email] = row;
-  save(store);
+  getDb()
+    .prepare(
+      `INSERT INTO subscriptions (email, plan_id, expires_at, order_id, updated_at)
+       VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT(email) DO UPDATE SET
+         plan_id = excluded.plan_id,
+         expires_at = excluded.expires_at,
+         order_id = excluded.order_id,
+         updated_at = excluded.updated_at`,
+    )
+    .run(
+      row.email,
+      row.planId,
+      row.expiresAt,
+      row.orderId ?? null,
+      row.updatedAt,
+    );
   return row;
 }

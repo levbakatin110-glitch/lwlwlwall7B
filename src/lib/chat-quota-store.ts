@@ -1,5 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
-import { join } from "path";
+import { getDb } from "@/lib/db";
 import {
   chatAllowance,
   chatMonthKey,
@@ -13,53 +12,25 @@ import {
 import { normalizeEmail } from "@/lib/paid-store";
 
 type MonthRow = { used: number; boosts: number };
-type Store = { byEmail: Record<string, Record<string, MonthRow>> };
 
-const DATA_DIR = join(process.cwd(), "data");
-const DATA_FILE = join(DATA_DIR, "chat-quota.json");
-
-function load(): Store {
-  try {
-    if (!existsSync(DATA_FILE)) return { byEmail: {} };
-    const raw = JSON.parse(readFileSync(DATA_FILE, "utf8")) as Store;
-    if (!raw.byEmail || typeof raw.byEmail !== "object") return { byEmail: {} };
-    return raw;
-  } catch {
-    return { byEmail: {} };
-  }
+function quotaKey(email: string) {
+  return normalizeEmail(email);
 }
 
-function save(store: Store) {
-  try {
-    if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
-    writeFileSync(DATA_FILE, JSON.stringify(store, null, 2), "utf8");
-  } catch {
-    /* ignore */
-  }
-}
-
-function rowFor(email: string, month: string): MonthRow {
-  const store = load();
-  const key = normalizeEmail(email);
-  const months = store.byEmail[key] ?? {};
-  const row = months[month] ?? { used: 0, boosts: 0 };
+function rowFor(key: string, month: string): MonthRow {
+  const db = getDb();
+  const row = db
+    .prepare(
+      "SELECT used, boosts FROM chat_quota WHERE quota_key = ? AND month = ?",
+    )
+    .get(key, month) as { used: number; boosts: number } | undefined;
   return {
-    used: Math.max(0, row.used | 0),
-    boosts: Math.max(0, row.boosts | 0),
+    used: Math.max(0, Number(row?.used) || 0),
+    boosts: Math.max(0, Number(row?.boosts) || 0),
   };
 }
 
-function writeRow(email: string, month: string, row: MonthRow) {
-  const store = load();
-  const key = normalizeEmail(email);
-  if (!store.byEmail[key]) store.byEmail[key] = {};
-  store.byEmail[key]![month] = row;
-  save(store);
-}
-
-export function getChatQuotaView(email: string): ChatQuotaView {
-  const month = chatMonthKey();
-  const row = rowFor(email, month);
+function viewFrom(key: string, month: string, row: MonthRow): ChatQuotaView {
   const allowance = chatAllowance(row.boosts);
   const remaining = Math.max(0, allowance - row.used);
   return {
@@ -77,28 +48,92 @@ export function getChatQuotaView(email: string): ChatQuotaView {
   };
 }
 
+export function getChatQuotaView(email: string): ChatQuotaView {
+  const month = chatMonthKey();
+  const key = quotaKey(email);
+  return viewFrom(key, month, rowFor(key, month));
+}
+
 /** true = можно слать; false = нужна доплата */
 export function tryConsumeChatQuota(email: string): {
   ok: boolean;
   view: ChatQuotaView;
 } {
   const month = chatMonthKey();
-  const row = rowFor(email, month);
-  const allowance = chatAllowance(row.boosts);
-  if (row.used >= allowance) {
-    return { ok: false, view: getChatQuotaView(email) };
+  const key = quotaKey(email);
+  const db = getDb();
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    const row = rowFor(key, month);
+    const allowance = chatAllowance(row.boosts);
+    if (row.used >= allowance) {
+      db.exec("COMMIT");
+      return { ok: false, view: viewFrom(key, month, row) };
+    }
+    db.prepare(
+      `INSERT INTO chat_quota (quota_key, month, used, boosts) VALUES (?, ?, 1, 0)
+       ON CONFLICT(quota_key, month) DO UPDATE SET used = used + 1`,
+    ).run(key, month);
+    const next = rowFor(key, month);
+    db.exec("COMMIT");
+    return { ok: true, view: viewFrom(key, month, next) };
+  } catch (e) {
+    try {
+      db.exec("ROLLBACK");
+    } catch {
+      /* ignore */
+    }
+    throw e;
   }
-  writeRow(email, month, { ...row, used: row.used + 1 });
-  return { ok: true, view: getChatQuotaView(email) };
+}
+
+/** Вернуть 1 сообщение (ошибка API до ответа / обрыв без токенов) */
+export function refundChatQuota(email: string): ChatQuotaView {
+  const month = chatMonthKey();
+  const key = quotaKey(email);
+  const db = getDb();
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    const row = rowFor(key, month);
+    const used = Math.max(0, row.used - 1);
+    db.prepare(
+      `INSERT INTO chat_quota (quota_key, month, used, boosts) VALUES (?, ?, ?, ?)
+       ON CONFLICT(quota_key, month) DO UPDATE SET used = ?`,
+    ).run(key, month, used, row.boosts, used);
+    const next = rowFor(key, month);
+    db.exec("COMMIT");
+    return viewFrom(key, month, next);
+  } catch (e) {
+    try {
+      db.exec("ROLLBACK");
+    } catch {
+      /* ignore */
+    }
+    throw e;
+  }
 }
 
 export function grantChatTopup(email: string, orderId?: string): ChatQuotaView {
   const month = chatMonthKey();
-  const row = rowFor(email, month);
-  writeRow(email, month, {
-    used: row.used,
-    boosts: row.boosts + 1,
-  });
-  void orderId;
-  return getChatQuotaView(email);
+  const key = quotaKey(email);
+  const db = getDb();
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    const row = rowFor(key, month);
+    db.prepare(
+      `INSERT INTO chat_quota (quota_key, month, used, boosts) VALUES (?, ?, ?, 1)
+       ON CONFLICT(quota_key, month) DO UPDATE SET boosts = boosts + 1`,
+    ).run(key, month, row.used);
+    const next = rowFor(key, month);
+    db.exec("COMMIT");
+    void orderId;
+    return viewFrom(key, month, next);
+  } catch (e) {
+    try {
+      db.exec("ROLLBACK");
+    } catch {
+      /* ignore */
+    }
+    throw e;
+  }
 }

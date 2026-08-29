@@ -1,10 +1,6 @@
-/** Простой лимит запросов к ИИ по IP (in-memory, на процесс pm2). */
+/** Лимит бесплатных запросов к ИИ по IP — общий через SQLite (все воркеры pm2). */
 
-import { TEMP_UNLOCK_ALL } from "@/lib/subscription";
-
-type Bucket = { day: string; count: number };
-
-const buckets = new Map<string, Bucket>();
+import { getDb } from "@/lib/db";
 
 function todayUtc(): string {
   return new Date().toISOString().slice(0, 10);
@@ -18,32 +14,37 @@ export function checkIpChatLimit(ip: string): {
   remaining: number;
   limit: number;
 } {
-  if (TEMP_UNLOCK_ALL) {
-    return { ok: true, remaining: 9999, limit: 9999 };
-  }
   const key = (ip || "unknown").slice(0, 64);
   const day = todayUtc();
-  const cur = buckets.get(key);
-  if (!cur || cur.day !== day) {
-    buckets.set(key, { day, count: 0 });
-  }
-  const b = buckets.get(key)!;
-  const remaining = Math.max(0, IP_CHAT_LIMIT_PER_DAY - b.count);
+  const row = getDb()
+    .prepare("SELECT count FROM ip_chat_limits WHERE ip = ? AND day = ?")
+    .get(key, day) as { count: number } | undefined;
+  const count = Math.max(0, Number(row?.count) || 0);
+  const remaining = Math.max(0, IP_CHAT_LIMIT_PER_DAY - count);
   return {
-    ok: b.count < IP_CHAT_LIMIT_PER_DAY,
+    ok: count < IP_CHAT_LIMIT_PER_DAY,
     remaining,
     limit: IP_CHAT_LIMIT_PER_DAY,
   };
 }
 
 export function consumeIpChatLimit(ip: string): void {
-  if (TEMP_UNLOCK_ALL) return;
   const key = (ip || "unknown").slice(0, 64);
   const day = todayUtc();
-  const cur = buckets.get(key);
-  if (!cur || cur.day !== day) {
-    buckets.set(key, { day, count: 1 });
-    return;
+  const db = getDb();
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    db.prepare(
+      `INSERT INTO ip_chat_limits (ip, day, count) VALUES (?, ?, 1)
+       ON CONFLICT(ip, day) DO UPDATE SET count = count + 1`,
+    ).run(key, day);
+    db.exec("COMMIT");
+  } catch (e) {
+    try {
+      db.exec("ROLLBACK");
+    } catch {
+      /* ignore */
+    }
+    throw e;
   }
-  cur.count += 1;
 }

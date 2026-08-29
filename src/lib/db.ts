@@ -42,6 +42,52 @@ function migrateSchema(db: DatabaseSync) {
     CREATE INDEX IF NOT EXISTS idx_plan_orders_email ON plan_orders(email);
     CREATE INDEX IF NOT EXISTS idx_plan_orders_updated ON plan_orders(updated_at DESC);
     CREATE INDEX IF NOT EXISTS idx_plan_orders_status ON plan_orders(status);
+
+    CREATE TABLE IF NOT EXISTS chat_quota (
+      quota_key TEXT NOT NULL,
+      month TEXT NOT NULL,
+      used INTEGER NOT NULL DEFAULT 0,
+      boosts INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (quota_key, month)
+    );
+
+    CREATE TABLE IF NOT EXISTS chat_leases (
+      id TEXT PRIMARY KEY,
+      acquired_at INTEGER NOT NULL,
+      expires_at INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_chat_leases_exp ON chat_leases(expires_at);
+
+    CREATE TABLE IF NOT EXISTS chat_waiters (
+      id TEXT PRIMARY KEY,
+      created_at INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS analytics_events (
+      id TEXT PRIMARY KEY,
+      at TEXT NOT NULL,
+      name TEXT NOT NULL,
+      day TEXT NOT NULL,
+      visitor_id TEXT,
+      meta TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_analytics_day ON analytics_events(day);
+    CREATE INDEX IF NOT EXISTS idx_analytics_at ON analytics_events(at DESC);
+
+    CREATE TABLE IF NOT EXISTS ip_chat_limits (
+      ip TEXT NOT NULL,
+      day TEXT NOT NULL,
+      count INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (ip, day)
+    );
+
+    CREATE TABLE IF NOT EXISTS subscriptions (
+      email TEXT PRIMARY KEY,
+      plan_id TEXT NOT NULL,
+      expires_at TEXT,
+      order_id TEXT,
+      updated_at TEXT NOT NULL
+    );
   `);
   const cols = db.prepare("PRAGMA table_info(plan_orders)").all() as {
     name: string;
@@ -124,6 +170,134 @@ function migrateLegacyJson(db: DatabaseSync) {
   }
 }
 
+function migrateJsonSidecars(db: DatabaseSync) {
+  const quotaFile = join(DATA_DIR, "chat-quota.json");
+  const quotaCount = (
+    db.prepare("SELECT COUNT(*) AS c FROM chat_quota").get() as { c: number }
+  ).c;
+  if (quotaCount === 0 && existsSync(quotaFile)) {
+    try {
+      const raw = JSON.parse(readFileSync(quotaFile, "utf8")) as {
+        byEmail?: Record<string, Record<string, { used?: number; boosts?: number }>>;
+      };
+      const insert = db.prepare(
+        `INSERT OR IGNORE INTO chat_quota (quota_key, month, used, boosts) VALUES (?, ?, ?, ?)`,
+      );
+      db.exec("BEGIN IMMEDIATE");
+      try {
+        for (const [key, months] of Object.entries(raw.byEmail ?? {})) {
+          for (const [month, row] of Object.entries(months ?? {})) {
+            insert.run(
+              key,
+              month,
+              Math.max(0, Number(row?.used) || 0),
+              Math.max(0, Number(row?.boosts) || 0),
+            );
+          }
+        }
+        db.exec("COMMIT");
+      } catch (e) {
+        db.exec("ROLLBACK");
+        throw e;
+      }
+      renameSync(quotaFile, `${quotaFile}.migrated`);
+      console.info("[db] migrated chat-quota.json → sqlite");
+    } catch (e) {
+      console.error("[db] chat-quota migration failed", e);
+    }
+  }
+
+  const analyticsFile = join(DATA_DIR, "analytics.json");
+  const analyticsCount = (
+    db.prepare("SELECT COUNT(*) AS c FROM analytics_events").get() as {
+      c: number;
+    }
+  ).c;
+  if (analyticsCount === 0 && existsSync(analyticsFile)) {
+    try {
+      const raw = JSON.parse(readFileSync(analyticsFile, "utf8")) as {
+        events?: Array<{
+          id?: string;
+          at?: string;
+          name?: string;
+          day?: string;
+          visitorId?: string;
+          meta?: string;
+        }>;
+      };
+      const insert = db.prepare(
+        `INSERT OR IGNORE INTO analytics_events (id, at, name, day, visitor_id, meta) VALUES (?, ?, ?, ?, ?, ?)`,
+      );
+      db.exec("BEGIN IMMEDIATE");
+      try {
+        for (const e of raw.events ?? []) {
+          if (!e?.id || !e.at || !e.name || !e.day) continue;
+          insert.run(
+            e.id,
+            e.at,
+            e.name,
+            e.day,
+            e.visitorId ?? null,
+            e.meta ?? null,
+          );
+        }
+        db.exec("COMMIT");
+      } catch (err) {
+        db.exec("ROLLBACK");
+        throw err;
+      }
+      renameSync(analyticsFile, `${analyticsFile}.migrated`);
+      console.info("[db] migrated analytics.json → sqlite");
+    } catch (e) {
+      console.error("[db] analytics migration failed", e);
+    }
+  }
+
+  const subsFile = join(DATA_DIR, "subscriptions.json");
+  const subsCount = (
+    db.prepare("SELECT COUNT(*) AS c FROM subscriptions").get() as { c: number }
+  ).c;
+  if (subsCount === 0 && existsSync(subsFile)) {
+    try {
+      const raw = JSON.parse(readFileSync(subsFile, "utf8")) as {
+        byEmail?: Record<
+          string,
+          {
+            email?: string;
+            planId?: string;
+            expiresAt?: string | null;
+            orderId?: string;
+            updatedAt?: string;
+          }
+        >;
+      };
+      const insert = db.prepare(
+        `INSERT OR IGNORE INTO subscriptions (email, plan_id, expires_at, order_id, updated_at) VALUES (?, ?, ?, ?, ?)`,
+      );
+      db.exec("BEGIN IMMEDIATE");
+      try {
+        for (const [email, row] of Object.entries(raw.byEmail ?? {})) {
+          insert.run(
+            email,
+            row.planId || "free",
+            row.expiresAt ?? null,
+            row.orderId ?? null,
+            row.updatedAt || new Date().toISOString(),
+          );
+        }
+        db.exec("COMMIT");
+      } catch (e) {
+        db.exec("ROLLBACK");
+        throw e;
+      }
+      renameSync(subsFile, `${subsFile}.migrated`);
+      console.info("[db] migrated subscriptions.json → sqlite");
+    } catch (e) {
+      console.error("[db] subscriptions migration failed", e);
+    }
+  }
+}
+
 export function getDb(): DatabaseSync {
   const g = globalThis as GlobalDb;
   if (g.__mayaSqlite) return g.__mayaSqlite;
@@ -131,9 +305,11 @@ export function getDb(): DatabaseSync {
   if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
   const db = new DatabaseSync(dbPath());
   db.exec("PRAGMA journal_mode = WAL");
-  db.exec("PRAGMA busy_timeout = 5000");
+  db.exec("PRAGMA busy_timeout = 8000");
+  db.exec("PRAGMA synchronous = NORMAL");
   migrateSchema(db);
   migrateLegacyJson(db);
+  migrateJsonSidecars(db);
   g.__mayaSqlite = db;
   return db;
 }

@@ -1,5 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
-import { join } from "path";
+import { getDb } from "@/lib/db";
 
 export type AnalyticsEventName =
   | "visit"
@@ -23,41 +22,10 @@ export type AnalyticsEvent = {
   meta?: string;
 };
 
-type Store = {
-  events: AnalyticsEvent[];
-};
-
 const MAX_EVENTS = 8_000;
-const DATA_DIR = join(process.cwd(), "data");
-const DATA_FILE = join(DATA_DIR, "analytics.json");
 
 function uid() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
-function emptyStore(): Store {
-  return { events: [] };
-}
-
-function load(): Store {
-  try {
-    if (!existsSync(DATA_FILE)) return emptyStore();
-    const raw = readFileSync(DATA_FILE, "utf8");
-    const parsed = JSON.parse(raw) as Store;
-    if (!Array.isArray(parsed.events)) return emptyStore();
-    return parsed;
-  } catch {
-    return emptyStore();
-  }
-}
-
-function save(store: Store) {
-  try {
-    if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
-    writeFileSync(DATA_FILE, JSON.stringify(store), "utf8");
-  } catch {
-    // диск недоступен — не роняем запрос
-  }
 }
 
 const ALLOWED = new Set<AnalyticsEventName>([
@@ -74,6 +42,27 @@ const ALLOWED = new Set<AnalyticsEventName>([
   "plan_purchase",
 ]);
 
+function trimOldEvents() {
+  try {
+    const db = getDb();
+    const count = (
+      db.prepare("SELECT COUNT(*) AS c FROM analytics_events").get() as {
+        c: number;
+      }
+    ).c;
+    if (count <= MAX_EVENTS) return;
+    const cut = count - MAX_EVENTS;
+    db.prepare(
+      `DELETE FROM analytics_events WHERE id IN (
+         SELECT id FROM analytics_events ORDER BY at ASC LIMIT ?
+       )`,
+    ).run(cut);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Быстрый INSERT в SQLite — не блокирует чат перезаписью большого JSON */
 export function trackAnalyticsEvent(input: {
   name: string;
   visitorId?: string;
@@ -91,10 +80,25 @@ export function trackAnalyticsEvent(input: {
     meta: input.meta?.slice(0, 120),
   };
 
-  const store = load();
-  store.events.unshift(row);
-  if (store.events.length > MAX_EVENTS) store.events.length = MAX_EVENTS;
-  save(store);
+  try {
+    getDb()
+      .prepare(
+        `INSERT INTO analytics_events (id, at, name, day, visitor_id, meta)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        row.id,
+        row.at,
+        row.name,
+        row.day,
+        row.visitorId ?? null,
+        row.meta ?? null,
+      );
+    // trim редко, не на каждый чат
+    if (Math.random() < 0.02) trimOldEvents();
+  } catch {
+    /* ignore */
+  }
   return row;
 }
 
@@ -129,12 +133,17 @@ export type AnalyticsSummary = {
 };
 
 export function getAnalyticsSummary(days = 14): AnalyticsSummary {
-  const store = load();
   const since = new Date();
   since.setUTCDate(since.getUTCDate() - (days - 1));
   const sinceDay = since.toISOString().slice(0, 10);
 
-  const filtered = store.events.filter((e) => e.day >= sinceDay);
+  const db = getDb();
+  const filtered = db
+    .prepare(
+      `SELECT id, at, name, day, visitor_id AS visitorId, meta
+       FROM analytics_events WHERE day >= ? ORDER BY at DESC LIMIT 8000`,
+    )
+    .all(sinceDay) as AnalyticsEvent[];
 
   const totals = {
     visit: 0,
@@ -179,7 +188,8 @@ export function getAnalyticsSummary(days = 14): AnalyticsSummary {
   const uniqByDay = new Map<string, Set<string>>();
 
   for (const e of filtered) {
-    totals[e.name] += 1;
+    if (!(e.name in totals) || e.name === ("uniqueVisitors" as never)) continue;
+    totals[e.name as Exclude<keyof typeof totals, "uniqueVisitors">] += 1;
     if (e.visitorId) uniqAll.add(e.visitorId);
     const row = dayRow(e.day);
     row[e.name] += 1;
@@ -199,7 +209,9 @@ export function getAnalyticsSummary(days = 14): AnalyticsSummary {
     if (row) row.uniqueVisitors = set.size;
   }
 
-  const byDay = [...byDayMap.values()].sort((a, b) => b.day.localeCompare(a.day));
+  const byDay = [...byDayMap.values()].sort((a, b) =>
+    b.day.localeCompare(a.day),
+  );
   const pct = (a: number, b: number) =>
     b > 0 ? Math.round((a / b) * 1000) / 10 : 0;
 
@@ -208,19 +220,31 @@ export function getAnalyticsSummary(days = 14): AnalyticsSummary {
     byDay,
     recent: filtered.slice(0, 80),
     funnel: {
-      visitToRegisterPct: pct(totals.register, totals.visit || totals.uniqueVisitors),
+      visitToRegisterPct: pct(
+        totals.register,
+        totals.visit || totals.uniqueVisitors,
+      ),
       registerToOnboardPct: pct(totals.onboarding_done, totals.register),
-      visitToChatPct: pct(totals.chat_send, totals.visit || totals.uniqueVisitors),
+      visitToChatPct: pct(
+        totals.chat_send,
+        totals.visit || totals.uniqueVisitors,
+      ),
       clickToPayPct: pct(totals.subscribe_activate, totals.subscribe_click),
     },
   };
 }
 
 export function clearAnalytics() {
-  save(emptyStore());
+  try {
+    getDb().exec("DELETE FROM analytics_events");
+  } catch {
+    /* ignore */
+  }
 }
 
-export function analyticsPasswordOk(password: string | null | undefined): boolean {
+export function analyticsPasswordOk(
+  password: string | null | undefined,
+): boolean {
   const expected =
     process.env.ANALYTICS_PASSWORD?.trim() ||
     process.env.ADMIN_PASSWORD?.trim() ||

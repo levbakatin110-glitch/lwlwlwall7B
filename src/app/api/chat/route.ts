@@ -1,7 +1,11 @@
 import { buildSystemPrompt, type ClientChatPayload } from "@/lib/ai-context";
 import { trackAnalyticsEvent } from "@/lib/analytics-store";
 import { CHAT_INCLUDED_MSGS, CHAT_TOPUP_RUB } from "@/lib/chat-quota";
-import { tryConsumeChatQuota } from "@/lib/chat-quota-store";
+import {
+  getChatQuotaView,
+  refundChatQuota,
+  tryConsumeChatQuota,
+} from "@/lib/chat-quota-store";
 import {
   acquireChatSlot,
   chatBusyMessage,
@@ -71,11 +75,10 @@ export async function POST(req: Request) {
 
   const lastUser = [...body.messages].reverse().find((m) => m.role === "user");
 
-  let quotaHeaders: Record<string, string> = {};
   let quotaKey: string | null = null;
   if (premium) {
-    quotaKey = session?.email || `guest:${ip || "unknown"}`;
-    if (!session?.email && !TEMP_UNLOCK_ALL) {
+    quotaKey = session?.email || null;
+    if (!quotaKey) {
       return Response.json(
         {
           error:
@@ -85,55 +88,20 @@ export async function POST(req: Request) {
         { status: 401 },
       );
     }
+    const peek = getChatQuotaView(quotaKey);
+    if (peek.remaining <= 0) {
+      return Response.json(
+        {
+          error: `Пакет чата на месяц закончился (~${CHAT_INCLUDED_MSGS} сообщений). Доплата ${CHAT_TOPUP_RUB} ₽ — ещё столько же.`,
+          code: "chat_quota",
+          quota: peek,
+        },
+        { status: 402 },
+      );
+    }
   }
-
-  trackAnalyticsEvent({
-    name: "chat_send",
-    meta: lastUser?.content?.slice(0, 40),
-  });
-
-  /** Слот берём до квоты и до ProxyAPI — ожидание в очереди сообщение не списывает */
-  const slot = await acquireChatSlot();
-  if (!slot.ok) {
-    const error = chatBusyMessage(slot.reason);
-    pushServerOpsError({
-      source: "chat",
-      message: `chat_busy:${slot.reason}`,
-      status: 503,
-      detail: `a${slot.snapshot.active}/w${slot.snapshot.waiting}`,
-    });
-    return Response.json(
-      {
-        error,
-        code: "chat_busy",
-        reason: slot.reason,
-        queue: slot.snapshot,
-      },
-      { status: 503 },
-    );
-  }
-  const { lease } = slot;
 
   try {
-    if (premium && quotaKey) {
-      const consumed = tryConsumeChatQuota(quotaKey);
-      if (!consumed.ok) {
-        lease.release();
-        return Response.json(
-          {
-            error: `Пакет чата на месяц закончился (~${CHAT_INCLUDED_MSGS} сообщений). Доплата ${CHAT_TOPUP_RUB} ₽ — ещё столько же.`,
-            code: "chat_quota",
-            quota: consumed.view,
-          },
-          { status: 402 },
-        );
-      }
-      quotaHeaders = {
-        "X-Maya-Chat-Remaining": String(consumed.view.remaining),
-        "X-Maya-Chat-Allowance": String(consumed.view.allowance),
-      };
-    }
-
     let coords = body.coords ?? null;
     const hasCoords =
       coords &&
@@ -181,83 +149,164 @@ export async function POST(req: Request) {
       pregnancy: body.pregnancy ?? null,
     });
 
-    const stream = await openai.chat.completions.create({
-      model: chatModel(),
-      stream: true,
-      messages: [
-        { role: "system", content: system },
-        ...body.messages.map((m) => ({
-          role: m.role,
-          content: m.content,
-        })),
-      ],
-      temperature: 0.65,
-      max_tokens: 1800,
-    });
+    const slot = await acquireChatSlot();
+    if (!slot.ok) {
+      const error = chatBusyMessage(slot.reason);
+      pushServerOpsError({
+        source: "chat",
+        message: `chat_busy:${slot.reason}`,
+        status: 503,
+        detail: `a${slot.snapshot.active}/w${slot.snapshot.waiting}`,
+      });
+      return Response.json(
+        {
+          error,
+          code: "chat_busy",
+          reason: slot.reason,
+          queue: slot.snapshot,
+        },
+        { status: 503 },
+      );
+    }
+    const { lease } = slot;
 
-    if (!premium) consumeIpChatLimit(ip);
+    let charged = false;
+    let quotaHeaders: Record<string, string> = {};
 
-    const encoder = new TextEncoder();
-    let released = false;
-    const releaseOnce = () => {
-      if (released) return;
-      released = true;
-      lease.release();
-    };
+    try {
+      const stream = await openai.chat.completions.create({
+        model: chatModel(),
+        stream: true,
+        messages: [
+          { role: "system", content: system },
+          ...body.messages.map((m) => ({
+            role: m.role,
+            content: m.content,
+          })),
+        ],
+        temperature: 0.65,
+        max_tokens: 1800,
+      });
 
-    const readable = new ReadableStream({
-      async start(controller) {
-        try {
-          for await (const chunk of stream) {
-            const delta = chunk.choices[0]?.delta?.content;
-            if (delta) controller.enqueue(encoder.encode(delta));
-          }
-          controller.close();
-        } catch (err) {
-          const message =
-            err instanceof Error ? err.message : "Ошибка потока ответа";
-          pushServerOpsError({
-            source: "chat",
-            message,
-            userSnippet: lastUser?.content?.slice(0, 120),
-            detail: "stream",
-          });
-          controller.error(err);
-        } finally {
-          releaseOnce();
+      // Списываем только после того, как провайдер принял запрос
+      if (premium && quotaKey) {
+        const consumed = tryConsumeChatQuota(quotaKey);
+        if (!consumed.ok) {
+          lease.release();
+          return Response.json(
+            {
+              error: `Пакет чата на месяц закончился (~${CHAT_INCLUDED_MSGS} сообщений). Доплата ${CHAT_TOPUP_RUB} ₽ — ещё столько же.`,
+              code: "chat_quota",
+              quota: consumed.view,
+            },
+            { status: 402 },
+          );
         }
-      },
-      cancel() {
-        releaseOnce();
-      },
-    });
+        charged = true;
+        quotaHeaders = {
+          "X-Maya-Chat-Remaining": String(consumed.view.remaining),
+          "X-Maya-Chat-Allowance": String(consumed.view.allowance),
+        };
+      } else if (!premium) {
+        consumeIpChatLimit(ip);
+        charged = true;
+      }
 
-    const headers: Record<string, string> = {
-      "Content-Type": "text/plain; charset=utf-8",
-      "Cache-Control": "no-cache",
-      ...quotaHeaders,
-    };
-    if (lease.fromQueue) {
-      headers["X-Maya-Queue-Wait-Ms"] = String(lease.waitedMs);
-    }
-    const expose = [
-      "X-Maya-Weather",
-      "X-Maya-Vpn-Suspect",
-      "X-Maya-Chat-Remaining",
-      "X-Maya-Chat-Allowance",
-      "X-Maya-Queue-Wait-Ms",
-    ];
-    if (weather) {
-      headers["X-Maya-Weather"] = encodeWeatherHeader(weather);
-    }
-    if (resolved.vpnSuspect) {
-      headers["X-Maya-Vpn-Suspect"] = "1";
-    }
-    headers["Access-Control-Expose-Headers"] = expose.join(", ");
+      trackAnalyticsEvent({
+        name: "chat_send",
+        meta: lastUser?.content?.slice(0, 40),
+      });
 
-    return new Response(readable, { headers });
+      const encoder = new TextEncoder();
+      let released = false;
+      let sentBytes = 0;
+      const touchTimer = setInterval(() => lease.touch(), 45_000);
+
+      const releaseOnce = () => {
+        clearInterval(touchTimer);
+        if (released) return;
+        released = true;
+        lease.release();
+      };
+
+      const maybeRefund = () => {
+        if (charged && sentBytes === 0 && quotaKey) {
+          try {
+            refundChatQuota(quotaKey);
+          } catch {
+            /* ignore */
+          }
+        }
+      };
+
+      const readable = new ReadableStream({
+        async start(controller) {
+          try {
+            for await (const chunk of stream) {
+              const delta = chunk.choices[0]?.delta?.content;
+              if (!delta) continue;
+              sentBytes += delta.length;
+              controller.enqueue(encoder.encode(delta));
+            }
+            if (sentBytes === 0) maybeRefund();
+            controller.close();
+          } catch (err) {
+            maybeRefund();
+            const message =
+              err instanceof Error ? err.message : "Ошибка потока ответа";
+            pushServerOpsError({
+              source: "chat",
+              message,
+              userSnippet: lastUser?.content?.slice(0, 120),
+              detail: "stream",
+            });
+            controller.error(err);
+          } finally {
+            releaseOnce();
+          }
+        },
+        cancel() {
+          maybeRefund();
+          releaseOnce();
+        },
+      });
+
+      const headers: Record<string, string> = {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "no-cache",
+        ...quotaHeaders,
+      };
+      if (lease.fromQueue) {
+        headers["X-Maya-Queue-Wait-Ms"] = String(lease.waitedMs);
+      }
+      const expose = [
+        "X-Maya-Weather",
+        "X-Maya-Vpn-Suspect",
+        "X-Maya-Chat-Remaining",
+        "X-Maya-Chat-Allowance",
+        "X-Maya-Queue-Wait-Ms",
+      ];
+      if (weather) {
+        headers["X-Maya-Weather"] = encodeWeatherHeader(weather);
+      }
+      if (resolved.vpnSuspect) {
+        headers["X-Maya-Vpn-Suspect"] = "1";
+      }
+      headers["Access-Control-Expose-Headers"] = expose.join(", ");
+
+      return new Response(readable, { headers });
+    } catch (e) {
+      lease.release();
+      if (charged && quotaKey) {
+        try {
+          refundChatQuota(quotaKey);
+        } catch {
+          /* ignore */
+        }
+      }
+      throw e;
+    }
   } catch (e) {
-    lease.release();
     const message = e instanceof Error ? e.message : "Ошибка OpenAI";
     pushServerOpsError({
       source: "chat",

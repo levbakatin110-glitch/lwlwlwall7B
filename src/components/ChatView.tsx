@@ -541,7 +541,7 @@ export function ChatView() {
             coords: sendCoords,
             pregnancy,
           }),
-          signal: AbortSignal.timeout(55_000),
+          signal: AbortSignal.timeout(100_000),
         });
 
         if (!res.ok) {

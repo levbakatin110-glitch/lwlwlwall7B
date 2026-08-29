@@ -1,54 +1,158 @@
 /**
- * In-memory очередь чата (на процесс pm2).
- * Пока слот свободен — сразу к API. Если все заняты — ждём в очереди.
- * Если очередь переполнена или ждать слишком долго — вежливый отказ.
+ * Общая очередь чата через SQLite — работает между несколькими процессами pm2.
+ * Слоты с TTL: если воркер умер, через ~3 мин слот освободится сам.
  */
+
+import { randomBytes } from "crypto";
+import { getDb } from "@/lib/db";
 
 export const CHAT_MAX_CONCURRENT = Math.max(
   1,
-  Number(process.env.CHAT_MAX_CONCURRENT) || 80,
+  Number(process.env.CHAT_MAX_CONCURRENT) || 50,
 );
 
-/** Сколько человек могут ждать слот (сверх активных) */
 export const CHAT_MAX_WAITING = Math.max(
   0,
   Number(process.env.CHAT_MAX_WAITING) || 120,
 );
 
-/** Макс. ожидание в очереди, мс (клиентский abort ~55с) */
 export const CHAT_QUEUE_WAIT_MS = Math.max(
   5_000,
   Number(process.env.CHAT_QUEUE_WAIT_MS) || 40_000,
 );
 
-type Waiter = {
-  resolve: (ok: boolean) => void;
-  timer: ReturnType<typeof setTimeout>;
-};
+/** Макс. жизнь слота без release (защита от зависших стримов) */
+const LEASE_TTL_MS = Math.max(
+  60_000,
+  Number(process.env.CHAT_LEASE_TTL_MS) || 180_000,
+);
 
-let active = 0;
-const waiters: Waiter[] = [];
+const POLL_MS = 180;
+
+function sleep(ms: number) {
+  return new Promise<void>((r) => setTimeout(r, ms));
+}
+
+function newId() {
+  return `${Date.now().toString(36)}-${randomBytes(6).toString("hex")}`;
+}
+
+function cleanup(db: ReturnType<typeof getDb>, now = Date.now()) {
+  db.prepare("DELETE FROM chat_leases WHERE expires_at < ?").run(now);
+  db.prepare("DELETE FROM chat_waiters WHERE created_at < ?").run(
+    now - CHAT_QUEUE_WAIT_MS - 10_000,
+  );
+}
 
 export function chatQueueSnapshot() {
+  const db = getDb();
+  const now = Date.now();
+  cleanup(db, now);
+  const active = (
+    db.prepare("SELECT COUNT(*) AS c FROM chat_leases").get() as { c: number }
+  ).c;
+  const waiting = (
+    db.prepare("SELECT COUNT(*) AS c FROM chat_waiters").get() as { c: number }
+  ).c;
   return {
     active,
-    waiting: waiters.length,
+    waiting,
     maxConcurrent: CHAT_MAX_CONCURRENT,
     maxWaiting: CHAT_MAX_WAITING,
   };
 }
 
-function pump() {
-  while (active < CHAT_MAX_CONCURRENT && waiters.length > 0) {
-    const next = waiters.shift()!;
-    clearTimeout(next.timer);
-    active += 1;
-    next.resolve(true);
+function tryInsertLease(id: string): boolean {
+  const db = getDb();
+  const now = Date.now();
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    cleanup(db, now);
+    const active = (
+      db.prepare("SELECT COUNT(*) AS c FROM chat_leases").get() as { c: number }
+    ).c;
+    if (active >= CHAT_MAX_CONCURRENT) {
+      db.exec("COMMIT");
+      return false;
+    }
+    db.prepare(
+      "INSERT INTO chat_leases (id, acquired_at, expires_at) VALUES (?, ?, ?)",
+    ).run(id, now, now + LEASE_TTL_MS);
+    db.exec("COMMIT");
+    return true;
+  } catch (e) {
+    try {
+      db.exec("ROLLBACK");
+    } catch {
+      /* ignore */
+    }
+    throw e;
+  }
+}
+
+function tryRegisterWaiter(id: string): boolean {
+  const db = getDb();
+  const now = Date.now();
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    cleanup(db, now);
+    const waiting = (
+      db.prepare("SELECT COUNT(*) AS c FROM chat_waiters").get() as {
+        c: number;
+      }
+    ).c;
+    if (waiting >= CHAT_MAX_WAITING) {
+      db.exec("COMMIT");
+      return false;
+    }
+    db.prepare("INSERT INTO chat_waiters (id, created_at) VALUES (?, ?)").run(
+      id,
+      now,
+    );
+    db.exec("COMMIT");
+    return true;
+  } catch (e) {
+    try {
+      db.exec("ROLLBACK");
+    } catch {
+      /* ignore */
+    }
+    throw e;
+  }
+}
+
+function dropWaiter(id: string) {
+  try {
+    getDb().prepare("DELETE FROM chat_waiters WHERE id = ?").run(id);
+  } catch {
+    /* ignore */
+  }
+}
+
+function dropLease(id: string) {
+  try {
+    getDb().prepare("DELETE FROM chat_leases WHERE id = ?").run(id);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Продлить TTL, пока стрим жив */
+export function touchChatLease(leaseId: string) {
+  const now = Date.now();
+  try {
+    getDb()
+      .prepare("UPDATE chat_leases SET expires_at = ? WHERE id = ?")
+      .run(now + LEASE_TTL_MS, leaseId);
+  } catch {
+    /* ignore */
   }
 }
 
 export type ChatSlotLease = {
+  id: string;
   release: () => void;
+  touch: () => void;
   waitedMs: number;
   fromQueue: boolean;
 };
@@ -61,74 +165,64 @@ export type AcquireChatSlotResult =
       snapshot: ReturnType<typeof chatQueueSnapshot>;
     };
 
-/**
- * Берёт слот: сразу или после ожидания в очереди.
- * release() вызывать когда стрим закончился / оборвался / ошибка до стрима.
- */
-export function acquireChatSlot(
+function makeLease(
+  id: string,
+  waitedMs: number,
+  fromQueue: boolean,
+): ChatSlotLease {
+  let released = false;
+  return {
+    id,
+    waitedMs,
+    fromQueue,
+    touch: () => touchChatLease(id),
+    release: () => {
+      if (released) return;
+      released = true;
+      dropLease(id);
+    },
+  };
+}
+
+export async function acquireChatSlot(
   waitMs = CHAT_QUEUE_WAIT_MS,
 ): Promise<AcquireChatSlotResult> {
-  if (active < CHAT_MAX_CONCURRENT) {
-    active += 1;
-    let released = false;
-    return Promise.resolve({
-      ok: true,
-      lease: {
-        waitedMs: 0,
-        fromQueue: false,
-        release: () => {
-          if (released) return;
-          released = true;
-          active = Math.max(0, active - 1);
-          pump();
-        },
-      },
-    });
+  const leaseId = newId();
+  if (tryInsertLease(leaseId)) {
+    return { ok: true, lease: makeLease(leaseId, 0, false) };
   }
 
-  if (waiters.length >= CHAT_MAX_WAITING) {
-    return Promise.resolve({
+  const waiterId = newId();
+  if (!tryRegisterWaiter(waiterId)) {
+    return {
       ok: false,
       reason: "queue_full",
       snapshot: chatQueueSnapshot(),
-    });
+    };
   }
 
   const started = Date.now();
-  return new Promise((resolve) => {
-    const waiter: Waiter = {
-      resolve: (got) => {
-        if (!got) {
-          resolve({
-            ok: false,
-            reason: "wait_timeout",
-            snapshot: chatQueueSnapshot(),
-          });
-          return;
-        }
-        let released = false;
-        resolve({
+  const deadline = started + waitMs;
+  try {
+    while (Date.now() < deadline) {
+      await sleep(POLL_MS);
+      if (tryInsertLease(leaseId)) {
+        dropWaiter(waiterId);
+        return {
           ok: true,
-          lease: {
-            waitedMs: Date.now() - started,
-            fromQueue: true,
-            release: () => {
-              if (released) return;
-              released = true;
-              active = Math.max(0, active - 1);
-              pump();
-            },
-          },
-        });
-      },
-      timer: setTimeout(() => {
-        const idx = waiters.indexOf(waiter);
-        if (idx >= 0) waiters.splice(idx, 1);
-        waiter.resolve(false);
-      }, waitMs),
-    };
-    waiters.push(waiter);
-  });
+          lease: makeLease(leaseId, Date.now() - started, true),
+        };
+      }
+    }
+  } finally {
+    dropWaiter(waiterId);
+  }
+
+  return {
+    ok: false,
+    reason: "wait_timeout",
+    snapshot: chatQueueSnapshot(),
+  };
 }
 
 export function chatBusyMessage(reason: "queue_full" | "wait_timeout") {
