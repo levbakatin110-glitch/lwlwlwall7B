@@ -967,11 +967,11 @@ export function ChatView() {
 
   return (
     <div className="relative flex h-full min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain">
-      <div className="relative z-10 mx-auto flex w-full max-w-3xl min-h-0 flex-1 flex-col px-3 pt-2 md:px-4 md:pt-3">
-        {/* Окно чата на высоту экрана — скролл только у ленты сообщений */}
+      <div className="relative z-10 mx-auto flex w-full max-w-3xl min-h-full flex-1 flex-col px-2 md:px-4">
+        {/* На всю высоту main — кухня и лента ниже по скроллу */}
         <div
           ref={chatPanelRef}
-          className="maya-sketch-frame maya-chat-paper flex h-[calc(100dvh-4.25rem)] min-h-[28rem] max-h-[calc(100dvh-4.25rem)] flex-col overflow-hidden rounded-[var(--radius-panel)] border border-line shadow-sm backdrop-blur-xl md:h-[calc(100dvh-2.25rem)] md:min-h-[32rem] md:max-h-[calc(100dvh-2.25rem)]"
+          className="maya-sketch-frame maya-chat-paper flex min-h-full flex-1 flex-col overflow-hidden rounded-[var(--radius-panel)] border border-line shadow-sm backdrop-blur-xl"
         >
           <div
             ref={listRef}
@@ -1363,7 +1363,7 @@ export function ChatView() {
           </form>
         </div>
 
-        <div className="mt-2 space-y-5 pb-4">
+        <div className="mt-1 space-y-4 pb-2">
           {/* Кухня — отдельно по цвету от ленты малыша */}
           <section
             id="noise"
