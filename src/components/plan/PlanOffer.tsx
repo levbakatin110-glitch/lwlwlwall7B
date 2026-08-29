@@ -15,8 +15,6 @@ import {
   ACCOMPANIMENT_INCLUDES,
   ACCOMPANIMENT_RUB,
   PLAN_BREAKDOWN_RUB,
-  PLAN_CHAT_DAYS,
-  PLAN_OFFER_HOOK,
   PLAN_OFFER_TITLE,
   PLAN_TOPIC_LABEL,
   type PlanTopic,
@@ -75,7 +73,7 @@ export function SpecialistChat({ orderId }: { orderId: string }) {
         credentials: "include",
       });
       if (res.status === 404) {
-        router.replace("/modules");
+        router.replace("/");
         return;
       }
       if (!res.ok) return;
@@ -435,9 +433,6 @@ export function PlanOfferBanner({ moduleId }: { moduleId: string }) {
     return (
       <div className="mb-4 rounded-2xl border border-accent/30 bg-accent-soft/50 p-4">
         <p className="text-sm font-semibold">Ваш разбор · {label}</p>
-        <p className="mt-1 text-xs text-muted">
-          Консультант готовит план по дневнику
-        </p>
         <Link
           href={`/plan/${activeId}`}
           className="mt-3 inline-flex rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-[var(--on-accent,#fff)]"
@@ -452,28 +447,12 @@ export function PlanOfferBanner({ moduleId }: { moduleId: string }) {
     return (
       <div className="mb-4 rounded-2xl border border-line bg-card/70 p-4">
         <p className="text-sm font-semibold">Разбор завершён</p>
-        <p className="mt-1 text-xs text-muted">
-          План в чате · сопровождение неделю — {ACCOMPANIMENT_RUB} ₽
-        </p>
         <Link
           href={`/plan/${closedId}`}
           className="mt-3 inline-flex rounded-xl border border-accent/40 bg-accent-soft px-4 py-2 text-sm font-semibold text-accent"
         >
           Открыть чат
         </Link>
-      </div>
-    );
-  }
-
-  if (eligibility.showTeaser) {
-    const left = 3 - eligibility.diaryDay;
-    return (
-      <div className="mb-4 rounded-2xl border border-line bg-card/60 p-4">
-        <p className="text-sm text-muted">
-          Ведите дневник {label} ещё{" "}
-          {left === 1 ? "день" : "1–2 дня"} — смотрим первые дни; если были
-          отклонения, с 3-го предложим план, иначе — только в дни с отклонениями.
-        </p>
       </div>
     );
   }
@@ -485,15 +464,6 @@ export function PlanOfferBanner({ moduleId }: { moduleId: string }) {
   return (
     <div className="mb-4 rounded-2xl border border-accent/25 bg-gradient-to-br from-accent-soft/80 to-card p-4">
       <p className="font-display text-base font-semibold">{PLAN_OFFER_TITLE}</p>
-      <p className="mt-1 text-xs leading-relaxed text-muted">{PLAN_OFFER_HOOK}</p>
-      <ul className="mt-2 space-y-1 text-[11px] text-muted">
-        <li>· PDF-план за 24 часа</li>
-        <li>
-          · {PLAN_CHAT_DAYS} дня в чате — вопросы и уточнения, как при
-          сопровождении
-        </li>
-        <li>· {PLAN_BREAKDOWN_RUB} ₽ · не врач, поддержка по режиму</li>
-      </ul>
       <Link
         href={`/plan/order?topic=${topic}`}
         className="mt-3 inline-flex rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-[var(--on-accent,#fff)]"

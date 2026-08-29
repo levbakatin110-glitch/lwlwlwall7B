@@ -4,9 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { MayaIcon } from "@/components/icons/MayaIcon";
 import { PlanConsultantAvatar } from "@/components/plan/PlanConsultantAvatar";
-import {
-  PLAN_CONSULTANT_IDS,
-} from "@/lib/plan-consultants";
+import { PLAN_CONSULTANT_IDS } from "@/lib/plan-consultants";
 import {
   PLAN_CONSULTANT_NAMES,
   PLAN_TEAM_ENTRY_HINT,
@@ -15,6 +13,7 @@ import {
   PLAN_TEAM_FAB_LINE1,
   PLAN_TEAM_FAB_LINE2,
 } from "@/lib/plan-products";
+import { useAppStore } from "@/lib/store";
 
 type PlanOrderBrief = {
   id: string;
@@ -22,35 +21,84 @@ type PlanOrderBrief = {
   status: string;
 };
 
-export function usePlanTeamHref(): string {
-  const [href, setHref] = useState("/modules");
+export type PlanTeamEntryState = {
+  ready: boolean;
+  visible: boolean;
+  href: string | null;
+};
+
+function isPaidOrder(o: PlanOrderBrief): boolean {
+  return o.status !== "awaiting_payment";
+}
+
+function isOpenPlanChat(o: PlanOrderBrief): boolean {
+  if (!isPaidOrder(o)) return false;
+  if (o.status === "closed" || o.status === "completed") return false;
+  if (o.status === "accompaniment_active") return true;
+  return !o.chatClosedAt;
+}
+
+/** Куда вести «План + чат» — только если есть оплаченный заказ */
+export function pickPlanTeamTarget(
+  orders: PlanOrderBrief[],
+): Pick<PlanTeamEntryState, "visible" | "href"> {
+  const paid = orders.filter(isPaidOrder);
+  if (!paid.length) return { visible: false, href: null };
+  const open = paid.find(isOpenPlanChat);
+  const target = open ?? paid[0]!;
+  return { visible: true, href: `/plan/${target.id}` };
+}
+
+export function usePlanTeamEntry(): PlanTeamEntryState {
+  const emailVerified = useAppStore((s) => s.emailVerified);
+  const [state, setState] = useState<PlanTeamEntryState>({
+    ready: false,
+    visible: false,
+    href: null,
+  });
 
   useEffect(() => {
+    if (!emailVerified) {
+      setState({ ready: true, visible: false, href: null });
+      return;
+    }
+
+    let cancelled = false;
     void fetch("/api/plan-orders", { credentials: "include" })
       .then((r) => (r.ok ? r.json() : null))
       .then((d: { orders?: PlanOrderBrief[] } | null) => {
-        const orders = d?.orders ?? [];
-        const open = orders.find(
-          (o) =>
-            o.status !== "awaiting_payment" &&
-            o.status !== "closed" &&
-            o.status !== "completed" &&
-            (!o.chatClosedAt || o.status === "accompaniment_active"),
-        );
-        if (open?.id) setHref(`/plan/${open.id}`);
+        if (cancelled) return;
+        const picked = pickPlanTeamTarget(d?.orders ?? []);
+        setState({ ready: true, ...picked });
       })
-      .catch(() => {});
-  }, []);
+      .catch(() => {
+        if (!cancelled) {
+          setState({ ready: true, visible: false, href: null });
+        }
+      });
 
-  return href;
+    return () => {
+      cancelled = true;
+    };
+  }, [emailVerified]);
+
+  return state;
+}
+
+/** @deprecated используйте usePlanTeamEntry */
+export function usePlanTeamHref(): string {
+  const { href } = usePlanTeamEntry();
+  return href ?? "/";
 }
 
 const graphiteFab =
   "pointer-events-auto flex h-[3.85rem] w-[3.85rem] flex-col items-center justify-center rounded-full border border-zinc-600/80 bg-gradient-to-b from-zinc-700 to-zinc-900 text-white shadow-[0_8px_28px_rgba(0,0,0,0.35)] ring-2 ring-zinc-500/35 transition hover:from-zinc-600 hover:to-zinc-800";
 
-/** Плавающая кнопка: план по дневнику + чат с консультантом */
+/** Плавающая кнопка — только у купивших план */
 export function PlanTeamFloatingButton() {
-  const href = usePlanTeamHref();
+  const { ready, visible, href } = usePlanTeamEntry();
+  if (!ready || !visible || !href) return null;
+
   return (
     <Link
       href={href}
@@ -74,13 +122,11 @@ export function PlanTeamFloatingButton() {
 const graphiteCarouselIcon =
   "flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-b from-zinc-700 to-zinc-900 text-white shadow-md ring-2 ring-zinc-500/30";
 
-/** Ярлык в карусели шапки */
-export function PlanTeamCarouselLink({
-  active,
-}: {
-  active: boolean;
-}) {
-  const href = usePlanTeamHref();
+/** Ярлык в карусели шапки — только у купивших план */
+export function PlanTeamCarouselLink({ active }: { active: boolean }) {
+  const { ready, visible, href } = usePlanTeamEntry();
+  if (!ready || !visible || !href) return null;
+
   return (
     <Link
       href={href}
@@ -105,9 +151,11 @@ export function PlanTeamCarouselLink({
   );
 }
 
-/** Баннер на пустом чате с Маей */
+/** Баннер на пустом чате — только у купивших план */
 export function PlanTeamChatBanner() {
-  const href = usePlanTeamHref();
+  const { ready, visible, href } = usePlanTeamEntry();
+  if (!ready || !visible || !href) return null;
+
   return (
     <Link
       href={href}
@@ -126,7 +174,7 @@ export function PlanTeamChatBanner() {
       <span>
         <span className="block text-sm font-semibold">{PLAN_TEAM_ENTRY_LABEL}</span>
         <span className="mt-0.5 block text-xs leading-snug text-zinc-300">
-          Сон или кормление · {PLAN_CONSULTANT_NAMES} · не врач
+          Чат с консультантом · {PLAN_CONSULTANT_NAMES}
         </span>
       </span>
     </Link>
