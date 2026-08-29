@@ -2,6 +2,10 @@ import { buildSystemPrompt, type ClientChatPayload } from "@/lib/ai-context";
 import { trackAnalyticsEvent } from "@/lib/analytics-store";
 import { CHAT_INCLUDED_MSGS, CHAT_TOPUP_RUB } from "@/lib/chat-quota";
 import { tryConsumeChatQuota } from "@/lib/chat-quota-store";
+import {
+  acquireChatSlot,
+  chatBusyMessage,
+} from "@/lib/chat-queue";
 import { withTimeout } from "@/lib/fetch-timeout";
 import { clientIpFromRequest, lookupIpGeo } from "@/lib/ip-geo";
 import {
@@ -68,8 +72,9 @@ export async function POST(req: Request) {
   const lastUser = [...body.messages].reverse().find((m) => m.role === "user");
 
   let quotaHeaders: Record<string, string> = {};
+  let quotaKey: string | null = null;
   if (premium) {
-    const quotaKey = session?.email || `guest:${ip || "unknown"}`;
+    quotaKey = session?.email || `guest:${ip || "unknown"}`;
     if (!session?.email && !TEMP_UNLOCK_ALL) {
       return Response.json(
         {
@@ -80,21 +85,6 @@ export async function POST(req: Request) {
         { status: 401 },
       );
     }
-    const consumed = tryConsumeChatQuota(quotaKey);
-    if (!consumed.ok) {
-      return Response.json(
-        {
-          error: `Пакет чата на месяц закончился (~${CHAT_INCLUDED_MSGS} сообщений). Доплата ${CHAT_TOPUP_RUB} ₽ — ещё столько же.`,
-          code: "chat_quota",
-          quota: consumed.view,
-        },
-        { status: 402 },
-      );
-    }
-    quotaHeaders = {
-      "X-Maya-Chat-Remaining": String(consumed.view.remaining),
-      "X-Maya-Chat-Allowance": String(consumed.view.allowance),
-    };
   }
 
   trackAnalyticsEvent({
@@ -102,7 +92,48 @@ export async function POST(req: Request) {
     meta: lastUser?.content?.slice(0, 40),
   });
 
+  /** Слот берём до квоты и до ProxyAPI — ожидание в очереди сообщение не списывает */
+  const slot = await acquireChatSlot();
+  if (!slot.ok) {
+    const error = chatBusyMessage(slot.reason);
+    pushServerOpsError({
+      source: "chat",
+      message: `chat_busy:${slot.reason}`,
+      status: 503,
+      detail: `a${slot.snapshot.active}/w${slot.snapshot.waiting}`,
+    });
+    return Response.json(
+      {
+        error,
+        code: "chat_busy",
+        reason: slot.reason,
+        queue: slot.snapshot,
+      },
+      { status: 503 },
+    );
+  }
+  const { lease } = slot;
+
   try {
+    if (premium && quotaKey) {
+      const consumed = tryConsumeChatQuota(quotaKey);
+      if (!consumed.ok) {
+        lease.release();
+        return Response.json(
+          {
+            error: `Пакет чата на месяц закончился (~${CHAT_INCLUDED_MSGS} сообщений). Доплата ${CHAT_TOPUP_RUB} ₽ — ещё столько же.`,
+            code: "chat_quota",
+            quota: consumed.view,
+          },
+          { status: 402 },
+        );
+      }
+      quotaHeaders = {
+        "X-Maya-Chat-Remaining": String(consumed.view.remaining),
+        "X-Maya-Chat-Allowance": String(consumed.view.allowance),
+      };
+    }
+
     let coords = body.coords ?? null;
     const hasCoords =
       coords &&
@@ -167,6 +198,13 @@ export async function POST(req: Request) {
     if (!premium) consumeIpChatLimit(ip);
 
     const encoder = new TextEncoder();
+    let released = false;
+    const releaseOnce = () => {
+      if (released) return;
+      released = true;
+      lease.release();
+    };
+
     const readable = new ReadableStream({
       async start(controller) {
         try {
@@ -185,7 +223,12 @@ export async function POST(req: Request) {
             detail: "stream",
           });
           controller.error(err);
+        } finally {
+          releaseOnce();
         }
+      },
+      cancel() {
+        releaseOnce();
       },
     });
 
@@ -194,11 +237,15 @@ export async function POST(req: Request) {
       "Cache-Control": "no-cache",
       ...quotaHeaders,
     };
+    if (lease.fromQueue) {
+      headers["X-Maya-Queue-Wait-Ms"] = String(lease.waitedMs);
+    }
     const expose = [
       "X-Maya-Weather",
       "X-Maya-Vpn-Suspect",
       "X-Maya-Chat-Remaining",
       "X-Maya-Chat-Allowance",
+      "X-Maya-Queue-Wait-Ms",
     ];
     if (weather) {
       headers["X-Maya-Weather"] = encodeWeatherHeader(weather);
@@ -210,6 +257,7 @@ export async function POST(req: Request) {
 
     return new Response(readable, { headers });
   } catch (e) {
+    lease.release();
     const message = e instanceof Error ? e.message : "Ошибка OpenAI";
     pushServerOpsError({
       source: "chat",

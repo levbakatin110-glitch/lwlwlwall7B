@@ -1069,6 +1069,7 @@ export function ChatView() {
                     <span />
                     <span />
                     <span />
+                    <span className="ml-2 text-xs">Мая отвечает…</span>
                   </p>
                 ) : m.role === "assistant" ? (
                   <MayaChatText
