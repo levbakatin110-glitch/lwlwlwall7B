@@ -1052,12 +1052,22 @@ export function ChatView() {
                 )}
 
                 {m.role === "assistant" && !m.content && !streamShown && pending ? (
-                  <p className="maya-typing text-muted" aria-label="Печатает">
-                    <span />
-                    <span />
-                    <span />
-                    <span className="ml-2 text-xs">Мая отвечает…</span>
-                  </p>
+                  <div
+                    className="maya-typing"
+                    role="status"
+                    aria-live="polite"
+                    aria-label="Мая отвечает"
+                  >
+                    <span className="maya-typing-orb" aria-hidden />
+                    <span className="maya-typing-body">
+                      <span className="maya-typing-dots" aria-hidden>
+                        <span className="maya-typing-dot" />
+                        <span className="maya-typing-dot" />
+                        <span className="maya-typing-dot" />
+                      </span>
+                      <span className="maya-typing-label">Мая отвечает…</span>
+                    </span>
+                  </div>
                 ) : m.role === "assistant" ? (
                   <MayaChatText
                     text={

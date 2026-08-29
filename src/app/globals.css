@@ -230,15 +230,108 @@ body::before {
 
 @keyframes maya-typing {
   0%,
-  80%,
+  70%,
   100% {
-    opacity: 0.25;
-    transform: translateY(0);
+    opacity: 0.35;
+    transform: translateY(0) scale(0.92);
   }
-  40% {
+  35% {
     opacity: 1;
-    transform: translateY(-2px);
+    transform: translateY(-3px) scale(1);
   }
+}
+
+@keyframes maya-typing-glow {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 0 color-mix(in oklab, var(--accent) 0%, transparent),
+      inset 0 1px 0 color-mix(in oklab, #fff 55%, transparent);
+  }
+  50% {
+    box-shadow:
+      0 6px 22px -6px color-mix(in oklab, var(--accent) 28%, transparent),
+      inset 0 1px 0 color-mix(in oklab, #fff 55%, transparent);
+  }
+}
+
+@keyframes maya-typing-orb {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+}
+
+.maya-typing {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  gap: 0.65rem;
+  border-radius: 1.25rem;
+  border: 1px solid color-mix(in oklab, var(--accent) 22%, var(--line));
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--accent-soft) 88%, var(--card)) 0%,
+    color-mix(in oklab, var(--card) 92%, var(--accent-soft)) 100%
+  );
+  padding: 0.7rem 0.95rem 0.7rem 0.75rem;
+  animation: maya-typing-glow 2.2s ease-in-out infinite;
+}
+
+.maya-typing-orb {
+  flex-shrink: 0;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: linear-gradient(
+    145deg,
+    var(--accent),
+    color-mix(in oklab, var(--accent) 55%, #fb7185)
+  );
+  box-shadow: 0 0 12px color-mix(in oklab, var(--accent) 45%, transparent);
+  animation: maya-typing-orb 1.4s ease-in-out infinite;
+}
+
+.maya-typing-body {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.maya-typing-dots {
+  display: flex;
+  align-items: center;
+  gap: 0.28rem;
+}
+
+.maya-typing-dot {
+  display: block;
+  width: 0.38rem;
+  height: 0.38rem;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--accent) 75%, var(--foreground));
+  animation: maya-typing 1.15s ease-in-out infinite;
+}
+
+.maya-typing-dot:nth-child(2) {
+  animation-delay: 0.16s;
+}
+
+.maya-typing-dot:nth-child(3) {
+  animation-delay: 0.32s;
+}
+
+.maya-typing-label {
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: color-mix(in oklab, var(--muted) 88%, var(--foreground));
 }
 
 .maya-rise {
@@ -484,24 +577,6 @@ body::before {
   transform-box: fill-box;
   transform-origin: center;
   animation: maya-chart-pulse 1.4s ease-out infinite;
-}
-
-.maya-typing span {
-  display: inline-block;
-  width: 5px;
-  height: 5px;
-  margin: 0 2px;
-  border-radius: 999px;
-  background: currentColor;
-  animation: maya-typing 1.1s ease-in-out infinite;
-}
-
-.maya-typing span:nth-child(2) {
-  animation-delay: 0.15s;
-}
-
-.maya-typing span:nth-child(3) {
-  animation-delay: 0.3s;
 }
 
 .maya-chat-text p {
