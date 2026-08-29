@@ -1,6 +1,6 @@
 import { buildSystemPrompt, type ClientChatPayload } from "@/lib/ai-context";
 import { trackAnalyticsEvent } from "@/lib/analytics-store";
-import { CHAT_INCLUDED_MSGS, CHAT_TOPUP_RUB } from "@/lib/chat-quota";
+import { CHAT_TOPUP_RUB } from "@/lib/chat-quota";
 import {
   getChatQuotaView,
   refundChatQuota,
@@ -92,9 +92,9 @@ export async function POST(req: Request) {
     if (peek.remaining <= 0) {
       return Response.json(
         {
-          error: `Пакет чата на месяц закончился (~${CHAT_INCLUDED_MSGS} сообщений). Доплата ${CHAT_TOPUP_RUB} ₽ — ещё столько же.`,
-          code: "chat_quota",
-          quota: peek,
+            error: `Пакет чата на месяц закончился. Доплата ${CHAT_TOPUP_RUB} ₽ — можно писать дальше.`,
+            code: "chat_quota",
+            quota: peek,
         },
         { status: 402 },
       );
@@ -195,7 +195,7 @@ export async function POST(req: Request) {
           lease.release();
           return Response.json(
             {
-              error: `Пакет чата на месяц закончился (~${CHAT_INCLUDED_MSGS} сообщений). Доплата ${CHAT_TOPUP_RUB} ₽ — ещё столько же.`,
+              error: `Пакет чата на месяц закончился. Доплата ${CHAT_TOPUP_RUB} ₽ — можно писать дальше.`,
               code: "chat_quota",
               quota: consumed.view,
             },

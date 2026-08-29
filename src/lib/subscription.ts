@@ -1,11 +1,6 @@
 /** Тарифы Маи. Оплата (ЮKassa и т.п.) подключим отдельно — пока активация локальная. */
 
-import {
-  CHAT_INCLUDED_BUDGET_RUB,
-  CHAT_INCLUDED_MSGS,
-  CHAT_TOPUP_MSGS,
-  CHAT_TOPUP_RUB,
-} from "@/lib/chat-quota";
+import { CHAT_TOPUP_RUB } from "@/lib/chat-quota";
 
 /**
  * ВРЕМЕННО было: полный Premium всем.
@@ -215,8 +210,8 @@ export const FREE_PERKS = [
 ];
 
 export const PAID_PERKS = [
-  `Чат с Маей · ~${CHAT_INCLUDED_BUDGET_RUB} ₽ API в месяц (~${CHAT_INCLUDED_MSGS} сообщений)`,
-  `Если пакет кончился — доплата ${CHAT_TOPUP_RUB} ₽ · ещё ~${CHAT_TOPUP_MSGS} сообщений`,
+  "Чат с Маей без дневного лимита",
+  `Если пакет кончился — доплата ${CHAT_TOPUP_RUB} ₽ и можно писать дальше`,
   "Все дневники: сон малыша, смеси, подгузник, прогулка, диета…",
   "Свои дневники и доработка разделов через ИИ",
   "Итог дня, графики ВОЗ, PDF для педиатра",

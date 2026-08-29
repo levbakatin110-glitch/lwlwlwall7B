@@ -15,6 +15,7 @@ import {
   planById,
   type PaidPlanId,
 } from "@/lib/subscription";
+import { CHAT_TOPUP_RUB } from "@/lib/chat-quota";
 import { trackEvent } from "@/lib/analytics-client";
 import { useAppStore } from "@/lib/store";
 
@@ -100,8 +101,8 @@ export default function PricingInner() {
       </h1>
       <p className="mt-1 text-sm text-muted">
         Не «ещё один трекер за копейки» — персональная ИИ-помощница, которая
-        помнит вашего малыша. Бесплатно можно заглянуть; в Premium — пакет чата
-        ~150 сообщений/мес, дальше доплата 99 ₽.
+        помнит вашего малыша. Бесплатно можно заглянуть; в Premium — полноценный
+        чат, а если пакет кончится — доплата {CHAT_TOPUP_RUB} ₽.
       </p>
 
       {paidHint && (

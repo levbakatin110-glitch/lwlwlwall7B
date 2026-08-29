@@ -31,7 +31,6 @@ import {
 } from "@/lib/subscription";
 import {
   CHAT_INCLUDED_MSGS,
-  CHAT_TOPUP_MSGS,
   CHAT_TOPUP_RUB,
 } from "@/lib/chat-quota";
 import { useAppStore } from "@/lib/store";
@@ -481,7 +480,7 @@ export function ChatView() {
     }
     if (premium && needTopup) {
       setError(
-        `Пакет чата на месяц закончился (~${CHAT_INCLUDED_MSGS} сообщ.). Доплата ${CHAT_TOPUP_RUB} ₽ — ещё ${CHAT_TOPUP_MSGS}.`,
+        `Пакет чата на месяц закончился. Доплата ${CHAT_TOPUP_RUB} ₽ — можно писать дальше.`,
       );
       return;
     }
@@ -1271,7 +1270,7 @@ export function ChatView() {
                 >
                   {topupBusy
                     ? "Открываем оплату…"
-                    : `Доплатить ${CHAT_TOPUP_RUB} ₽ · +${CHAT_TOPUP_MSGS} сообщений`}
+                    : `Доплатить ${CHAT_TOPUP_RUB} ₽`}
                 </button>
               ) : null}
             </div>
@@ -1290,25 +1289,20 @@ export function ChatView() {
             </p>
           )}
 
-          {premium && premiumQuota ? (
-            <p className="mx-4 mb-1.5 shrink-0 text-[11px] text-muted">
-              Пакет чата в этом месяце:{" "}
-              <span className="font-medium text-foreground">
-                {premiumQuota.remaining} из {premiumQuota.allowance}
-              </span>
-              {premiumQuota.remaining <= 20 ? (
-                <>
-                  {" · "}
-                  <button
-                    type="button"
-                    className="text-accent underline"
-                    onClick={() => void buyChatTopup()}
-                  >
-                    +{CHAT_TOPUP_MSGS} за {CHAT_TOPUP_RUB} ₽
-                  </button>
-                </>
-              ) : null}
-            </p>
+          {premium && needTopup ? (
+            <div className="mx-4 mb-1.5 shrink-0 rounded-xl border border-accent/25 bg-accent-soft/50 px-3 py-2 text-[12px] text-foreground">
+              <p>Пакет чата на этот месяц закончился.</p>
+              <button
+                type="button"
+                disabled={topupBusy}
+                onClick={() => void buyChatTopup()}
+                className="mt-1.5 w-full rounded-xl bg-accent py-2 text-sm font-semibold text-[var(--on-accent,#fff)] disabled:opacity-60"
+              >
+                {topupBusy
+                  ? "Открываем оплату…"
+                  : `Докупить за ${CHAT_TOPUP_RUB} ₽`}
+              </button>
+            </div>
           ) : null}
 
           <form
