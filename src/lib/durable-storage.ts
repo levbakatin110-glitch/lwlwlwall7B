@@ -343,8 +343,7 @@ export const durableStateStorage: StateStorage = {
       return fromLs;
     }
 
-    // LS пуст — hydrate сразу с нуля. Огромный IDB больше не возвращаем в LS
-    // (иначе на следующий заход JSON.parse в layout убивает вкладку везде).
+    // LS пуст — hydrate сразу с нуля. Если в IDB есть стор — вернём и перечитаем.
     void idbGet(name).then((fromIdb) => {
       if (!looksLikeStore(fromIdb)) return;
       if (name === "maya-mom-ai") {
@@ -354,6 +353,11 @@ export const durableStateStorage: StateStorage = {
         }
       }
       lsSet(name, fromIdb!);
+      try {
+        window.dispatchEvent(new Event("maya-idb-restored"));
+      } catch {
+        /* ignore */
+      }
     });
 
     return null;

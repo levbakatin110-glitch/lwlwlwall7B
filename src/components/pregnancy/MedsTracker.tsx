@@ -1,13 +1,35 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import {
+  DiaryChip,
+  DiaryEmpty,
+  DiaryPage,
+  DiaryPrimaryButton,
+  DiarySectionTitle,
+  DiaryStats,
+  DiaryStickyCta,
+  DiaryTimeline,
+  DiaryTimelineRow,
+} from "@/components/diary/DiaryShell";
+import { formatClock, todayYmd } from "@/lib/diary-day";
 import { toLocalDateIso } from "@/lib/local-date";
-import { useAppStore } from "@/lib/store";
+import { getJournalEntries, useAppStore } from "@/lib/store";
+
+const QUICK = [
+  "Фолиевая кислота",
+  "Витамин D",
+  "Железо",
+  "Магний",
+  "Йод",
+  "Омега-3",
+] as const;
 
 export function MedsTracker() {
   const addJournalEntry = useAppStore((s) => s.addJournalEntry);
   const updateJournalEntry = useAppStore((s) => s.updateJournalEntry);
-  const entries = useAppStore((s) => s.journals.preg_meds ?? []);
+  const removeJournalEntry = useAppStore((s) => s.removeJournalEntry);
+  const entries = useAppStore((s) => getJournalEntries(s, "preg_meds"));
   const [name, setName] = useState("");
   const [dose, setDose] = useState("");
   const [time, setTime] = useState("09:00");
@@ -25,34 +47,37 @@ export function MedsTracker() {
       }))
       .filter((e) => Number.isFinite(e.t) && e.t >= now - 60_000)
       .sort((a, b) => a.t - b.t)
-      .slice(0, 8);
+      .slice(0, 12);
   }, [entries]);
+
+  const takenToday = entries.filter(
+    (e) => e.date === todayYmd() && e.fields?.taken,
+  ).length;
 
   function save() {
     const n = name.trim();
     if (!n) return;
     const today = new Date();
     const [hh, mm] = time.split(":").map(Number);
-    const created: string[] = [];
+    let created = 0;
     for (let i = 0; i < Math.max(1, Math.min(30, days)); i++) {
       const d = new Date(today);
       d.setDate(d.getDate() + i);
       d.setHours(hh || 9, mm || 0, 0, 0);
       if (d.getTime() < Date.now() - 60_000) continue;
-      const iso = d.toISOString();
-      const date = toLocalDateIso(d);
       addJournalEntry("preg_meds", {
-        date,
+        date: toLocalDateIso(d),
         value: dose.trim() ? `${n} · ${dose.trim()}` : n,
-        note: `напоминание ${time}`,
+        note: "",
         fields: {
           name: n,
           dose: dose.trim(),
-          remindAt: iso,
+          remindAt: d.toISOString(),
           text: dose.trim() ? `${n} · ${dose.trim()}` : n,
+          startMs: d.getTime(),
         },
       });
-      created.push(date);
+      created += 1;
     }
     setName("");
     setDose("");
@@ -62,107 +87,138 @@ export function MedsTracker() {
     ) {
       void Notification.requestPermission();
     }
-    if (!created.length) {
-      alert("Выберите время в будущем");
+    if (!created) {
+      /* silently skip past times */
     }
   }
 
-  function tookNow(id: string, label: string) {
-    updateJournalEntry("preg_meds", id, {
-      value: `Приняла · ${label}`,
-      fields: { taken: 1, remindAt: "" },
-    });
-  }
-
   return (
-    <div className="space-y-4">
-      <div className="rounded-2xl border border-line bg-card/60 p-4">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
-          Курс с напоминаниями
-        </p>
-        <div className="mt-3 space-y-2">
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Фолиевая / витамин D / железо…"
-            className="w-full rounded-xl border border-line bg-background/50 px-3 py-2.5 text-sm"
-          />
-          <input
-            value={dose}
-            onChange={(e) => setDose(e.target.value)}
-            placeholder="Доза (необязательно)"
-            className="w-full rounded-xl border border-line bg-background/50 px-3 py-2.5 text-sm"
-          />
-          <div className="grid grid-cols-2 gap-2">
-            <label className="text-xs text-muted">
-              Время
-              <input
-                type="time"
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-line px-3 py-2 text-sm text-foreground"
-              />
-            </label>
-            <label className="text-xs text-muted">
-              Дней курса
-              <input
-                type="number"
-                min={1}
-                max={30}
-                value={days}
-                onChange={(e) => setDays(Number(e.target.value) || 1)}
-                className="mt-1 w-full rounded-xl border border-line px-3 py-2 text-sm text-foreground"
-              />
-            </label>
-          </div>
-          <button
-            type="button"
-            onClick={save}
-            className="w-full rounded-xl bg-accent py-2.5 text-sm font-semibold text-white"
-          >
-            Поставить напоминания
-          </button>
+    <DiaryPage stickyPad>
+      <DiaryStats
+        items={[
+          { label: "В очереди", value: upcoming.length },
+          { label: "Принято сегодня", value: takenToday },
+          { label: "Всего", value: entries.length },
+        ]}
+      />
+
+      <div className="mt-4 rounded-2xl border border-line bg-card p-3">
+        <div className="mb-2 flex flex-wrap gap-1.5">
+          {QUICK.map((q) => (
+            <DiaryChip key={q} active={name === q} onClick={() => setName(q)}>
+              {q}
+            </DiaryChip>
+          ))}
         </div>
-        <p className="mt-2 text-[11px] text-muted">
-          Мая напомнит, пока вкладка открыта, и через уведомление браузера (если
-          разрешите).
-        </p>
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Препарат"
+          className="w-full rounded-xl border border-line bg-background px-3 py-2.5 text-sm"
+        />
+        <input
+          value={dose}
+          onChange={(e) => setDose(e.target.value)}
+          placeholder="Доза"
+          className="mt-2 w-full rounded-xl border border-line bg-background px-3 py-2.5 text-sm"
+        />
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <label className="text-xs text-muted">
+            Время
+            <input
+              type="time"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              className="mt-1 w-full rounded-xl border border-line bg-background px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="text-xs text-muted">
+            Дней
+            <input
+              type="number"
+              min={1}
+              max={30}
+              value={days}
+              onChange={(e) => setDays(Number(e.target.value) || 1)}
+              className="mt-1 w-full rounded-xl border border-line bg-background px-3 py-2 text-sm"
+            />
+          </label>
+        </div>
       </div>
 
-      {upcoming.length > 0 && (
-        <div className="rounded-2xl border border-line bg-card/60 p-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-            Ближайшие
-          </p>
-          <ul className="mt-2 space-y-2">
-            {upcoming.map((u) => (
-              <li
-                key={u.id}
-                className="flex items-center justify-between gap-2 text-sm"
-              >
-                <span className="min-w-0 truncate">
-                  {u.label}
-                  <span className="block text-[11px] text-muted">
-                    {new Date(u.at).toLocaleString("ru-RU", {
-                      day: "numeric",
-                      month: "short",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </span>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => tookNow(u.id, u.label)}
-                  className="shrink-0 rounded-lg border border-line px-2 py-1 text-xs"
-                >
-                  Приняла
-                </button>
+      {upcoming.length > 0 ? (
+        <div className="mt-5">
+          <DiarySectionTitle left="Ближайшие" right="тап = приняла" />
+          <DiaryTimeline>
+            {upcoming.map((e, i) => (
+              <li key={e.id}>
+                <DiaryTimelineRow
+                  accent={i === 0}
+                  mark={i + 1}
+                  left={
+                    <div>
+                      <p className="text-sm font-medium">{e.label}</p>
+                      <p className="text-[11px] tabular-nums text-muted">
+                        {formatClock(e.t)} ·{" "}
+                        {new Date(e.t).toLocaleDateString("ru-RU", {
+                          day: "numeric",
+                          month: "short",
+                        })}
+                      </p>
+                    </div>
+                  }
+                  right={
+                    <span className="text-xs font-semibold text-accent">✓</span>
+                  }
+                  onClick={() => {
+                    updateJournalEntry("preg_meds", e.id, {
+                      value: `Приняла · ${e.label}`,
+                      fields: { taken: 1, remindAt: "" },
+                    });
+                  }}
+                />
               </li>
             ))}
-          </ul>
+          </DiaryTimeline>
         </div>
+      ) : (
+        <DiaryEmpty>Нет активных напоминаний</DiaryEmpty>
       )}
-    </div>
+
+      {entries.filter((e) => e.fields?.taken).length > 0 ? (
+        <div className="mt-4">
+          <DiarySectionTitle left="История" />
+          <DiaryTimeline>
+            {entries
+              .filter((e) => e.fields?.taken)
+              .slice(0, 8)
+              .map((e, i) => (
+                <li key={e.id}>
+                  <DiaryTimelineRow
+                    mark={i + 1}
+                    left={
+                      <span className="text-sm text-muted">{e.value}</span>
+                    }
+                    right={
+                      <span className="text-[11px] text-muted">{e.date}</span>
+                    }
+                    onClick={() => {
+                      if (window.confirm("Удалить запись?")) {
+                        removeJournalEntry("preg_meds", e.id);
+                      }
+                    }}
+                  />
+                </li>
+              ))}
+          </DiaryTimeline>
+        </div>
+      ) : null}
+
+      <DiaryStickyCta>
+        <DiaryPrimaryButton disabled={!name.trim()} onClick={save}>
+          Добавить курс
+        </DiaryPrimaryButton>
+      </DiaryStickyCta>
+    </DiaryPage>
   );
 }

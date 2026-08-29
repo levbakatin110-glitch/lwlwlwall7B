@@ -12,6 +12,8 @@ import { SleepTracker } from "@/components/feeding/SleepTracker";
 import { SolidsTracker } from "@/components/feeding/SolidsTracker";
 import { DietTracker } from "@/components/diet/DietTracker";
 import { DiaperTracker } from "@/components/trackers/DiaperTracker";
+import { GrowthTracker } from "@/components/trackers/GrowthTracker";
+import { HealthTracker } from "@/components/trackers/HealthTracker";
 import { NotesTracker } from "@/components/trackers/NotesTracker";
 import { VaccinesTracker } from "@/components/trackers/VaccinesTracker";
 import { WalkTracker } from "@/components/trackers/WalkTracker";
@@ -20,6 +22,12 @@ import { PregnancyWeekPanel } from "@/components/pregnancy/PregnancyWeekPanel";
 import { ContractionsTracker } from "@/components/pregnancy/ContractionsTracker";
 import { KicksTracker } from "@/components/pregnancy/KicksTracker";
 import { MedsTracker } from "@/components/pregnancy/MedsTracker";
+import { PressureTracker } from "@/components/pregnancy/PressureTracker";
+import { PregWeightTracker } from "@/components/pregnancy/PregWeightTracker";
+import { SymptomsTracker } from "@/components/pregnancy/SymptomsTracker";
+import { VisitsTracker } from "@/components/pregnancy/VisitsTracker";
+import { BellyTracker } from "@/components/pregnancy/BellyTracker";
+import { BirthPlanTracker } from "@/components/pregnancy/BirthPlanTracker";
 import { MedicalPhotoTracker } from "@/components/pregnancy/MedicalPhotoTracker";
 import { MomSleepCalendar } from "@/components/pregnancy/MomSleepCalendar";
 import { CycleTracker } from "@/components/cycle/CycleTracker";
@@ -42,7 +50,7 @@ import {
   isFreeModuleId,
   isSubscriptionActive,
 } from "@/lib/subscription";
-import { useAppStore } from "@/lib/store";
+import { getJournalEntries, useAppStore } from "@/lib/store";
 import type { ModuleField, ModuleId } from "@/lib/types";
 
 function formatEntryWhen(date: string, createdAt?: string) {
@@ -276,7 +284,7 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
     Boolean(mod) &&
     !premiumLocked &&
     (mod?.custom ? premium : enabledBuiltin);
-  const entries = useAppStore((s) => s.journals[moduleId] ?? []);
+  const entries = useAppStore((s) => getJournalEntries(s, moduleId));
   const addJournalEntry = useAppStore((s) => s.addJournalEntry);
   const removeJournalEntry = useAppStore((s) => s.removeJournalEntry);
   const enableModule = useAppStore((s) => s.enableModule);
@@ -308,6 +316,8 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
       "diaper",
       "notes",
       "vaccines",
+      "health",
+      "growth",
       "sleep",
       "breastfeeding",
       "formula",
@@ -320,6 +330,12 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
       "preg_meds",
       "preg_labs",
       "preg_docs",
+      "preg_pressure",
+      "preg_weight",
+      "preg_symptoms",
+      "preg_belly",
+      "birth_plan",
+      "preg_visits",
     ].includes(moduleId);
 
   const growthPoints: GrowthPoint[] = useMemo(() => {
@@ -509,6 +525,8 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
           "walk",
           "diaper",
           "notes",
+          "health",
+          "growth",
           "pregnancy",
           "contractions",
           "kicks",
@@ -517,6 +535,12 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
           "preg_meds",
           "preg_labs",
           "preg_docs",
+          "preg_pressure",
+          "preg_weight",
+          "preg_symptoms",
+          "preg_belly",
+          "birth_plan",
+          "preg_visits",
         ].includes(moduleId) && (
         <DiaryHowTo
           hintId={moduleId}
@@ -569,6 +593,16 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
           <NotesTracker />
         </div>
       )}
+      {moduleId === "health" && (
+        <div className="mt-4">
+          <HealthTracker />
+        </div>
+      )}
+      {moduleId === "growth" && (
+        <div className="mt-4">
+          <GrowthTracker />
+        </div>
+      )}
       {moduleId === "pregnancy" && (
         <div className="mt-4">
           <PregnancyWeekPanel />
@@ -604,15 +638,34 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
           <MedicalPhotoTracker moduleId={moduleId} />
         </div>
       )}
+      {moduleId === "preg_pressure" && (
+        <div className="mt-4">
+          <PressureTracker />
+        </div>
+      )}
+      {moduleId === "preg_weight" && (
+        <div className="mt-4">
+          <PregWeightTracker />
+        </div>
+      )}
+      {moduleId === "preg_symptoms" && (
+        <div className="mt-4">
+          <SymptomsTracker />
+        </div>
+      )}
+      {moduleId === "preg_belly" && (
+        <div className="mt-4">
+          <BellyTracker />
+        </div>
+      )}
+      {moduleId === "preg_visits" && (
+        <div className="mt-4">
+          <VisitsTracker />
+        </div>
+      )}
       {moduleId === "birth_plan" && (
-        <div className="mt-4 rounded-2xl border border-line bg-card/60 p-4 text-sm">
-          <p className="text-muted">
-            Полный план родов и PDF — в{" "}
-            <Link href="/med" className="text-accent underline">
-              Мед. карте
-            </Link>
-            . Здесь можно коротко фиксировать пункты.
-          </p>
+        <div className="mt-4">
+          <BirthPlanTracker />
         </div>
       )}
 
@@ -646,6 +699,8 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
           "walk",
           "notes",
           "vaccines",
+          "health",
+          "growth",
           "sleep",
           "breastfeeding",
           "formula",
@@ -659,6 +714,12 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
           "preg_meds",
           "preg_labs",
           "preg_docs",
+          "preg_pressure",
+          "preg_weight",
+          "preg_symptoms",
+          "preg_belly",
+          "birth_plan",
+          "preg_visits",
         ].includes(moduleId) && (
         <DiaryQuickActions moduleId={moduleId} onPrefill={focusAdd} />
       )}
@@ -798,7 +859,34 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
       </form>
       )}
 
-      {moduleId !== "vaccines" && (
+      {/* У трекеров свой таймлайн — общий список не дублируем */}
+      {moduleId !== "vaccines" &&
+        !isDietPage &&
+        ![
+          "contractions",
+          "sleep",
+          "breastfeeding",
+          "formula",
+          "solids",
+          "diaper",
+          "water",
+          "walk",
+          "kicks",
+          "preg_sleep",
+          "notes",
+          "health",
+          "growth",
+          "preg_pressure",
+          "preg_weight",
+          "preg_symptoms",
+          "preg_belly",
+          "birth_plan",
+          "preg_visits",
+          "preg_meds",
+          "preg_labs",
+          "preg_docs",
+          "cycle",
+        ].includes(moduleId) && (
       <ul className="mt-6 space-y-2">
         {entries.length === 0 && (
           <li className="rounded-2xl border border-dashed border-line bg-card/40 px-4 py-5 text-center text-sm text-muted">

@@ -7,7 +7,7 @@ import {
   pickBestChatMessages,
   saveChatMessages,
 } from "@/lib/chat-persist";
-import { useAppStore } from "@/lib/store";
+import { remirrorJournalsFromSpaces, useAppStore } from "@/lib/store";
 
 function buildBackupPayload() {
   const s = useAppStore.getState();
@@ -162,6 +162,7 @@ export function CloudBackupSync() {
             ),
           };
         });
+        remirrorJournalsFromSpaces();
         restored.current = true;
         return true;
       } catch {

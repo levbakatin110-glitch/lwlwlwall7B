@@ -139,7 +139,6 @@ type AppState = {
   /** Списать 1 бесплатный запрос. false = лимит исчерпан */
   consumeAiChatQuota: () => boolean;
   refundAiChatQuota: () => void;
-  setMemoryStory: (story: MemoryStory | null) => void;
   toggleModule: (id: ModuleId) => void;
   enableModule: (id: ModuleId) => void;
   addCustomModule: (data: Omit<CustomModule, "id">) => string;
@@ -162,8 +161,6 @@ type AppState = {
   addWardrobeItem: (item: Omit<WardrobeItem, "id">) => void;
   updateWardrobeItem: (id: string, patch: Partial<Omit<WardrobeItem, "id">>) => void;
   removeWardrobeItem: (id: string) => void;
-  addMemory: (item: Omit<MemoryItem, "id">) => void;
-  removeMemory: (id: string) => void;
   addJournalEntry: (moduleId: string, entry: Omit<JournalEntry, "id">) => void;
   updateJournalEntry: (
     moduleId: string,
@@ -214,6 +211,28 @@ function overlayMomJournals(
   momJournals: Record<string, JournalEntry[]> | undefined,
 ): Record<string, JournalEntry[]> {
   return { ...(childJournals ?? {}), ...(momJournals ?? {}) };
+}
+
+/** Источник правды для дневника: беременность/цикл — momJournals */
+export function getJournalEntries(
+  state: Pick<AppState, "journals" | "momJournals">,
+  moduleId: string,
+): JournalEntry[] {
+  if (isMomJournalId(moduleId)) {
+    return (
+      state.momJournals?.[moduleId] ?? state.journals?.[moduleId] ?? []
+    );
+  }
+  return state.journals?.[moduleId] ?? [];
+}
+
+/** После hydrate / бэкапа — зеркало journals снова с momJournals */
+export function remirrorJournalsFromSpaces() {
+  const s = useAppStore.getState();
+  const space = ensureChildSpace(s.childSpaces[s.activeChildId]);
+  useAppStore.setState({
+    journals: overlayMomJournals(space.journals, s.momJournals ?? {}),
+  });
 }
 
 function withActiveSpace(
@@ -457,8 +476,6 @@ export const useAppStore = create<AppState>()(
         });
       },
 
-      setMemoryStory: (story) => withActiveSpace(get, set, { memoryStory: story }),
-
       toggleModule: (id) => {
         const enabled = get().enabledModules;
         const premium = isSubscriptionActive(get().subscription);
@@ -639,24 +656,6 @@ export const useAppStore = create<AppState>()(
         withActiveSpace(get, set, {
           wardrobe: get().wardrobe.filter((x) => x.id !== id),
         }),
-
-      addMemory: (item) =>
-        withActiveSpace(get, set, {
-          memories: [{ ...item, id: uid() }, ...get().memories],
-        }),
-
-      removeMemory: (id) => {
-        const story = get().memoryStory;
-        withActiveSpace(get, set, {
-          memories: get().memories.filter((x) => x.id !== id),
-          memoryStory: story
-            ? {
-                ...story,
-                scenes: story.scenes.filter((s) => s.memoryId !== id),
-              }
-            : null,
-        });
-      },
 
       addJournalEntry: (moduleId, entry) => {
         const row: JournalEntry = {
@@ -1330,3 +1329,17 @@ export const useAppStore = create<AppState>()(
     },
   ),
 );
+
+if (typeof window !== "undefined") {
+  useAppStore.persist.onFinishHydration(() => {
+    remirrorJournalsFromSpaces();
+  });
+  if (useAppStore.persist.hasHydrated()) {
+    remirrorJournalsFromSpaces();
+  }
+  window.addEventListener("maya-idb-restored", () => {
+    void useAppStore.persist.rehydrate().then(() => {
+      remirrorJournalsFromSpaces();
+    });
+  });
+}

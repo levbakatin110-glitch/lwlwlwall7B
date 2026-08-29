@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { SleepTracker } from "@/components/feeding/SleepTracker";
 import { toLocalDateIso } from "@/lib/local-date";
-import { useAppStore } from "@/lib/store";
+import { getJournalEntries, useAppStore } from "@/lib/store";
 
 function fmtSec(sec: number) {
   const h = Math.floor(sec / 3600);
@@ -13,7 +13,7 @@ function fmtSec(sec: number) {
 }
 
 export function MomSleepCalendar() {
-  const entries = useAppStore((s) => s.journals.preg_sleep ?? []);
+  const entries = useAppStore((s) => getJournalEntries(s, "preg_sleep"));
   const [offset, setOffset] = useState(0); // weeks back
 
   const days = useMemo(() => {

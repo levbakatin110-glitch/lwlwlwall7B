@@ -12,12 +12,12 @@ import {
   type CycleSettings,
 } from "@/lib/cycle";
 import { localToday } from "@/lib/local-date";
-import { useAppStore } from "@/lib/store";
+import { getJournalEntries, useAppStore } from "@/lib/store";
 
 const WEEK = ["пн", "вт", "ср", "чт", "пт", "сб", "вс"];
 
 export function CycleTracker() {
-  const entries = useAppStore((s) => s.journals.cycle ?? []);
+  const entries = useAppStore((s) => getJournalEntries(s, "cycle"));
   const pregnancy = useAppStore((s) => s.pregnancy);
   const setPregnancy = useAppStore((s) => s.setPregnancy);
   const addJournalEntry = useAppStore((s) => s.addJournalEntry);
