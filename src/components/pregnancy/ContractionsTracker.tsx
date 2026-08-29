@@ -15,7 +15,6 @@ type TimelineItem = {
   startMs: number;
   endMs: number;
   durationSec: number;
-  /** Интервал от начала этой схватки до начала предыдущей (старше) */
   intervalSec: number | null;
   number: number;
 };
@@ -148,7 +147,6 @@ export function ContractionsTracker() {
     const endMs = Date.now();
     const startMs = live.startMs;
     const dur = Math.max(1, Math.floor((endMs - startMs) / 1000));
-    // предыдущая по времени = самая свежая в timeline (первая в списке)
     const prevStart = timeline[0]?.startMs ?? null;
     const interval =
       prevStart != null
@@ -176,11 +174,8 @@ export function ContractionsTracker() {
     setLive(null);
   }
 
-  const hasData = timeline.length > 0 || live;
-
   return (
-    <div className="relative pb-24">
-      {/* Статистика */}
+    <div className="space-y-4">
       <div className="rounded-2xl border border-line bg-card px-3 py-4 shadow-sm">
         <div className="grid grid-cols-3 gap-2 text-center">
           <div>
@@ -204,115 +199,21 @@ export function ContractionsTracker() {
         </div>
       </div>
 
-      {/* Таймлайн */}
-      {hasData ? (
-        <div className="mt-5">
-          <div className="mb-3 flex items-center justify-between px-1 text-[11px] font-medium text-muted">
-            <span>Продолжительность</span>
-            <span>Интервал</span>
-          </div>
-
-          <ul className="relative">
-            {/* вертикальная линия */}
-            <div
-              className="pointer-events-none absolute left-1/2 top-3 bottom-3 w-px -translate-x-1/2 bg-accent/25"
-              aria-hidden
-            />
-
-            {live ? (
-              <li className="relative grid grid-cols-[1fr_2.5rem_1fr] items-center gap-2 py-3">
-                <div className="flex items-baseline justify-end gap-2 pr-1">
-                  <span className="text-[11px] tabular-nums text-muted">
-                    {formatClock(live.startMs)}
-                  </span>
-                  <span className="font-display text-xl font-semibold tabular-nums text-accent">
-                    {formatSec(liveDurationSec)}
-                  </span>
-                </div>
-                <div className="relative z-[1] flex justify-center">
-                  <span className="flex h-9 w-9 animate-pulse items-center justify-center rounded-full bg-gradient-to-br from-accent to-[color-mix(in_oklab,var(--accent)_70%,#f97316)] text-sm font-bold text-[var(--on-accent,#fff)] shadow-md ring-4 ring-accent/20">
-                    {timeline.length + 1}
-                  </span>
-                </div>
-                <div className="pl-1 text-sm tabular-nums text-muted">
-                  {timeline[0]
-                    ? formatSec(
-                        Math.max(
-                          0,
-                          Math.floor((live.startMs - timeline[0].startMs) / 1000),
-                        ),
-                      )
-                    : "—"}
-                </div>
-              </li>
-            ) : null}
-
-            {timeline.map((item, i) => {
-              const isNewest = i === 0 && !live;
-              return (
-                <li
-                  key={item.id}
-                  className="relative grid grid-cols-[1fr_2.5rem_1fr] items-center gap-2 py-2.5"
-                >
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (
-                        window.confirm("Удалить эту схватку из дневника?")
-                      ) {
-                        removeJournalEntry("contractions", item.id);
-                      }
-                    }}
-                    className="flex items-baseline justify-end gap-2 pr-1 text-right"
-                    title="Удалить"
-                  >
-                    <span className="text-[11px] tabular-nums text-muted">
-                      {formatClock(item.startMs)}
-                    </span>
-                    <span
-                      className={`font-display text-xl font-semibold tabular-nums ${
-                        isNewest ? "text-accent" : "text-foreground"
-                      }`}
-                    >
-                      {formatSec(item.durationSec)}
-                    </span>
-                  </button>
-
-                  <div className="relative z-[1] flex justify-center">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-accent to-[color-mix(in_oklab,var(--accent)_65%,#fb7185)] text-sm font-bold text-[var(--on-accent,#fff)] shadow-sm">
-                      {item.number}
-                    </span>
-                  </div>
-
-                  <div className="pl-1">
-                    {item.intervalSec != null ? (
-                      <span className="text-sm tabular-nums text-muted">
-                        {formatSec(item.intervalSec)}
-                      </span>
-                    ) : (
-                      <span className="text-sm text-muted/40">—</span>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      ) : (
-        <p className="mt-8 text-center text-sm text-muted">
-          Нажмите кнопку, когда начнётся схватка
-        </p>
-      )}
-
-      {/* Кнопка */}
-      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 flex justify-center px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2">
-        <div className="pointer-events-auto flex w-full max-w-md flex-col gap-2">
-          {live ? (
+      {/* Кнопка в потоке — не fixed (у .maya-page transform ломает fixed) */}
+      <div className="rounded-2xl border border-line bg-card p-3 shadow-sm">
+        {live ? (
+          <div className="space-y-3">
+            <p className="text-center text-sm text-muted">
+              Идёт схватка ·{" "}
+              <span className="font-display text-lg font-semibold tabular-nums text-accent">
+                {formatSec(liveDurationSec)}
+              </span>
+            </p>
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={stopAndSave}
-                className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-accent to-[color-mix(in_oklab,var(--accent)_70%,#f97316)] px-5 py-4 text-base font-semibold text-[var(--on-accent,#fff)] shadow-[0_8px_28px_color-mix(in_oklab,var(--accent)_45%,transparent)]"
+                className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-accent px-5 py-3.5 text-base font-semibold text-[var(--on-accent,#fff)]"
               >
                 <span className="tabular-nums">{formatSec(liveDurationSec)}</span>
                 <span>· закончилась</span>
@@ -320,31 +221,85 @@ export function ContractionsTracker() {
               <button
                 type="button"
                 onClick={cancel}
-                className="shrink-0 rounded-2xl border border-line bg-card px-4 py-4 text-sm font-medium text-muted"
+                className="shrink-0 rounded-2xl border border-line bg-background px-4 py-3.5 text-sm font-medium text-muted"
               >
-                ×
+                Отмена
               </button>
             </div>
-          ) : (
-            <button
-              type="button"
-              onClick={start}
-              className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-accent via-[color-mix(in_oklab,var(--accent)_85%,#fb7185)] to-[color-mix(in_oklab,var(--accent)_75%,#f97316)] px-5 py-4 text-base font-semibold text-[var(--on-accent,#fff)] shadow-[0_8px_28px_color-mix(in_oklab,var(--accent)_45%,transparent)] transition active:scale-[0.98]"
-            >
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                aria-hidden
-              >
-                <path d="M13 2 4.8 12.6c-.4.5-.1 1.2.5 1.4H11l-1 8 8.2-10.6c.4-.5.1-1.2-.5-1.4H13l1-8Z" />
-              </svg>
-              Схватка началась
-            </button>
-          )}
-        </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={start}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-accent px-5 py-3.5 text-base font-semibold text-[var(--on-accent,#fff)] transition active:scale-[0.99]"
+          >
+            Схватка началась
+          </button>
+        )}
+        <p className="mt-2 text-center text-[11px] text-muted">
+          Это не замена врачу. При тревоге — в роддом / скорую.
+        </p>
       </div>
+
+      {timeline.length === 0 && !live ? (
+        <p className="rounded-2xl border border-dashed border-line bg-card/50 px-4 py-8 text-center text-sm text-muted">
+          Пока пусто — нажмите кнопку, когда начнётся схватка
+        </p>
+      ) : (
+        <ul className="space-y-2">
+          {live ? (
+            <li className="flex items-center gap-3 rounded-2xl border border-accent/35 bg-accent-soft/60 px-3 py-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-sm font-bold text-[var(--on-accent,#fff)]">
+                {timeline.length + 1}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] tabular-nums text-muted">
+                  сейчас · с {formatClock(live.startMs)}
+                </p>
+                <p className="font-display text-lg font-semibold tabular-nums text-accent">
+                  {formatSec(liveDurationSec)}
+                </p>
+              </div>
+              <p className="shrink-0 text-right text-[11px] text-muted">
+                идёт…
+              </p>
+            </li>
+          ) : null}
+
+          {timeline.map((item) => (
+            <li
+              key={item.id}
+              className="flex items-center gap-3 rounded-2xl border border-line bg-card px-3 py-3 shadow-sm"
+            >
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent to-[color-mix(in_oklab,var(--accent)_65%,#fb7185)] text-sm font-bold text-[var(--on-accent,#fff)]">
+                {item.number}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] tabular-nums text-muted">
+                  {formatClock(item.startMs)}
+                  {item.intervalSec != null
+                    ? ` · интервал ${formatSec(item.intervalSec)}`
+                    : ""}
+                </p>
+                <p className="font-display text-lg font-semibold tabular-nums">
+                  {formatSec(item.durationSec)}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm("Удалить эту схватку из дневника?")) {
+                    removeJournalEntry("contractions", item.id);
+                  }
+                }}
+                className="shrink-0 rounded-xl px-2 py-1.5 text-xs text-muted hover:bg-background hover:text-foreground"
+              >
+                Удалить
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
