@@ -174,7 +174,7 @@ export function PlanTeamChatBanner() {
       <span>
         <span className="block text-sm font-semibold">{PLAN_TEAM_ENTRY_LABEL}</span>
         <span className="mt-0.5 block text-xs leading-snug text-zinc-300">
-          Чат с консультантом · {PLAN_CONSULTANT_NAMES}
+          Живой чат · {PLAN_CONSULTANT_NAMES}
         </span>
       </span>
     </Link>

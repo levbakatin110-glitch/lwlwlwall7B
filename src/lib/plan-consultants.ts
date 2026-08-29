@@ -37,15 +37,17 @@ export function getPlanConsultant(id?: string | null): PlanConsultant {
   return CONSULTANTS.marina;
 }
 
-/** Роль по теме дневника */
-export function consultantRoleForTopic(topic: PlanTopic): string {
-  if (topic === "sleep") return "Консультант по сну";
-  return "Консультант по кормлению";
+/** Роль в чате — не «только сон», а живая поддержка мамы */
+export function consultantRoleForTopic(_topic: PlanTopic): string {
+  return "Консультант для мам";
 }
 
-export function consultantRoleShort(topic: PlanTopic): string {
-  if (topic === "sleep") return "консультант по сну";
-  return "консультант по кормлению";
+export function consultantRoleShort(_topic: PlanTopic): string {
+  return "консультант для мам";
+}
+
+export function planFocusLabel(topic: PlanTopic): string {
+  return topic === "sleep" ? "план по сну" : "план по кормлению";
 }
 
 export function pickConsultantForNewOrder(orderIndex: number): PlanConsultantId {
@@ -69,7 +71,7 @@ export function orderStatusHint(
 }
 
 export function systemIntroMessage(consultantName: string): string {
-  return `${consultantName} разберёт записи в дневнике и составит персональный план. Ожидание — до 24 часов. Это не врач.`;
+  return `${consultantName} разберёт дневник, составит план и будет на связи в чате. Спрашивайте не только про план — про малыша, режим, кормление, сон, ваш день. Ожидание плана — до 24 часов. Это не врач.`;
 }
 
 export function accompanimentIntroMessage(consultantName: string): string {

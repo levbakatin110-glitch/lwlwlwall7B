@@ -13,7 +13,7 @@ import {
   readPlanOfferInstant,
 } from "@/lib/plan-offer-instant";
 import { useAppStore } from "@/lib/store";
-import { orderStatusHint } from "@/lib/plan-consultants";
+import { orderStatusHint, planFocusLabel } from "@/lib/plan-consultants";
 import {
   ACCOMPANIMENT_INCLUDES,
   ACCOMPANIMENT_RUB,
@@ -203,12 +203,20 @@ export function SpecialistChat({ orderId }: { orderId: string }) {
               {consultant?.name ?? "Консультант"}
             </h1>
             <p className="text-[11px] text-muted">
-              {consultant?.role ?? "Консультант по режиму"} · не врач
+              {consultant?.role ?? "Консультант для мам"}
+              {topic ? ` · ${planFocusLabel(order.topic)}` : ""} · не врач
             </p>
           </div>
         </div>
         {statusHint ? (
           <p className="mt-2 text-xs text-accent">{statusHint}</p>
+        ) : null}
+        {!closed && order?.status !== "awaiting_payment" ? (
+          <p className="mt-2 text-[11px] leading-relaxed text-muted">
+            {order?.status === "plan_sent" || order?.status === "clarifying"
+              ? "Спрашивайте про план и про всё, что волнует — смотрим дневники и отвечаем по делу."
+              : "После плана — 3 дня чата: можно писать про малыша, режим и ваш день."}
+          </p>
         ) : null}
       </div>
 
@@ -352,7 +360,11 @@ export function SpecialistChat({ orderId }: { orderId: string }) {
               value={text}
               onChange={(e) => setText(e.target.value)}
               rows={2}
-              placeholder={consultant ? `Ваш вопрос ${consultant.name}…` : "Ваш вопрос…"}
+              placeholder={
+                consultant
+                  ? "Сон, кормление, режим, ваш день — спросите что угодно…"
+                  : "Ваш вопрос…"
+              }
               className="min-h-[44px] flex-1 resize-none rounded-2xl border border-line bg-background px-3 py-2 text-sm"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
@@ -552,8 +564,7 @@ export function PlanServicesCard() {
         Персональный план по дневнику
       </p>
       <p className="mt-1 text-xs leading-relaxed text-muted">
-        Разбор сна или кормления с консультантом · {PLAN_BREAKDOWN_RUB} ₽ · не
-        врач
+        Разбор с консультантом для мам · {PLAN_BREAKDOWN_RUB} ₽ · не врач
       </p>
       <div className="mt-2.5 flex flex-wrap gap-2">
         <Link
