@@ -972,7 +972,7 @@ export function ChatView() {
         {/* Окно чата на высоту экрана — скролл только у ленты сообщений */}
         <div
           ref={chatPanelRef}
-          className="maya-sketch-frame maya-chat-paper flex h-[calc(100dvh-7.5rem)] min-h-[22rem] max-h-[calc(100dvh-7.5rem)] flex-col overflow-hidden rounded-[var(--radius-panel)] border border-line shadow-sm backdrop-blur-xl md:h-[calc(100dvh-3.75rem)] md:max-h-[calc(100dvh-3.75rem)]"
+          className="maya-sketch-frame maya-chat-paper flex h-[calc(100dvh-4.25rem)] min-h-[28rem] max-h-[calc(100dvh-4.25rem)] flex-col overflow-hidden rounded-[var(--radius-panel)] border border-line shadow-sm backdrop-blur-xl md:h-[calc(100dvh-2.25rem)] md:min-h-[32rem] md:max-h-[calc(100dvh-2.25rem)]"
         >
           <div
             ref={listRef}

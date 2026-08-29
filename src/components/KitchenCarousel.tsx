@@ -60,16 +60,12 @@ export function KitchenCarousel() {
           go(index + (dx < 0 ? 1 : -1));
         }}
       >
+        {/* Только активный слайд в потоке — иначе высота = макс. из двух и пустота под рецептом */}
         <div
-          className="flex transition-transform duration-300 ease-out"
-          style={{ transform: `translateX(-${index * 100}%)` }}
+          key={index}
+          className="maya-item px-0.5"
         >
-          <div className="w-full shrink-0 px-0.5">
-            <RecipeOfDayCard />
-          </div>
-          <div className="w-full shrink-0 px-0.5">
-            <WhiteNoiseWidget compact />
-          </div>
+          {index === 0 ? <RecipeOfDayCard /> : <WhiteNoiseWidget compact />}
         </div>
       </div>
 
