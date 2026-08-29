@@ -1338,7 +1338,7 @@ if (typeof window !== "undefined") {
     remirrorJournalsFromSpaces();
   }
   window.addEventListener("maya-idb-restored", () => {
-    void useAppStore.persist.rehydrate().then(() => {
+    void Promise.resolve(useAppStore.persist.rehydrate()).then(() => {
       remirrorJournalsFromSpaces();
     });
   });
