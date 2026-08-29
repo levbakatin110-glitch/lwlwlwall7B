@@ -8,7 +8,7 @@ import {
   checkIpChatLimit,
   consumeIpChatLimit,
 } from "@/lib/ip-rate-limit";
-import { chatModel, createOpenAI } from "@/lib/openai";
+import { chatModel, createChatOpenAI } from "@/lib/openai";
 import { pushServerOpsError } from "@/lib/ops-log";
 import { getServerSubscription } from "@/lib/paid-store";
 import { readSessionFromRequest } from "@/lib/session";
@@ -20,7 +20,7 @@ export const runtime = "nodejs";
 const WEATHER_BUDGET_MS = 2800;
 
 export async function POST(req: Request) {
-  const openai = createOpenAI();
+  const openai = createChatOpenAI();
   if (!openai) {
     const error =
       "Не настроен ключ ИИ. В .env.local нужен OPENAI_API_KEY (ключ ProxyAPI или OpenAI).";

@@ -1,17 +1,17 @@
 /**
- * Квота чата Premium: в подписку заложено ~150 ₽ на ProxyAPI.
+ * Квота чата Premium.
  *
- * Оценка gpt-4.1-mini через ProxyAPI при контексте Маи:
- * ~0.8–1.2 ₽ / ответ → считаем 1 ₽ ≈ 1 сообщение.
+ * DeepSeek (ProxyAPI OpenRouter) при контексте Маи ≈ 0.1–0.25 ₽ / ответ.
+ * Пакет по-прежнему ~150 сообщений/мес (продуктовый лимит), API выходит
+ * сильно дешевле старого gpt-4.1-mini (~1 ₽).
  */
-export const CHAT_COST_PER_MSG_RUB = 1;
+export const CHAT_COST_PER_MSG_RUB = 0.2;
 
-/** Сколько рублей API заложено в Premium на календарный месяц */
+/** Ориентир по рублёвому бюджету API (для текстов / аналитики) */
 export const CHAT_INCLUDED_BUDGET_RUB = 150;
 
-/** Сообщений в базовой квоте месяца (= бюджет / цена ответа) */
-export const CHAT_INCLUDED_MSGS =
-  Math.round(CHAT_INCLUDED_BUDGET_RUB / CHAT_COST_PER_MSG_RUB) || 150;
+/** Сообщений в базовой квоте месяца */
+export const CHAT_INCLUDED_MSGS = 150;
 
 /** Доплата, когда базовый пакет исчерпан */
 export const CHAT_TOPUP_RUB = 99;
