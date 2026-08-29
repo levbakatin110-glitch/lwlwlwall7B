@@ -1,17 +1,15 @@
 import { parseHeightCm, parseWeightKg } from "@/lib/growth-norms";
 import { MODULE_BY_ID } from "@/lib/modules";
-import { findOnThisDay } from "@/lib/on-this-day";
 import type {
   ChildProfile,
   CustomModule,
   JournalEntry,
-  MemoryItem,
   WardrobeItem,
 } from "@/lib/types";
 
 export type FeedItem = {
   id: string;
-  kind: "entry" | "insight" | "chat" | "stat" | "memory" | "empty";
+  kind: "entry" | "insight" | "chat" | "stat" | "empty";
   eyebrow: string;
   title: string;
   subtitle?: string;
@@ -352,11 +350,9 @@ export function buildChatFeed(input: {
   customModules: CustomModule[];
   wardrobe: WardrobeItem[];
   enabledModules: string[];
-  memories: MemoryItem[];
-  messages?: unknown;
   dietPlanKcal?: number | null;
 }): FeedItem[] {
-  const { journals, enabledModules, memories, dietPlanKcal } = input;
+  const { journals, enabledModules, dietPlanKcal } = input;
   const seed = daySeed();
   const list: FeedItem[] = [];
 
@@ -389,18 +385,6 @@ export function buildChatFeed(input: {
       ]),
       href: anyEnabled ? `/m/${anyEnabled}` : "/modules",
       tone: "notice",
-    });
-  }
-
-  if (findOnThisDay(memories) && list.length < 3) {
-    list.push({
-      id: "on-this-day",
-      kind: "memory",
-      eyebrow: "Моменты",
-      title: pick(seed + 5, ["В этот день", "Кадр из прошлого"]),
-      body: "Есть момент с этой же датой — можно заглянуть в воспоминания.",
-      href: "/memories",
-      tone: "care",
     });
   }
 

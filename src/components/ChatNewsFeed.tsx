@@ -22,7 +22,6 @@ export function ChatNewsFeed({
   const journals = useAppStore((s) => s.journals);
   const customModules = useAppStore((s) => s.customModules);
   const enabledModules = useAppStore((s) => s.enabledModules);
-  const memories = useAppStore((s) => s.memories);
   const dietPlan = useAppStore((s) => s.dietPlan);
 
   const dietPlanKcal = useMemo(() => {
@@ -38,7 +37,6 @@ export function ChatNewsFeed({
         customModules,
         wardrobe,
         enabledModules,
-        memories,
         dietPlanKcal,
       }),
     [
@@ -47,7 +45,6 @@ export function ChatNewsFeed({
       customModules,
       wardrobe,
       enabledModules,
-      memories,
       dietPlanKcal,
     ],
   );

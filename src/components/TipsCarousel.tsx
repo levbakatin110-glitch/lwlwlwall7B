@@ -10,11 +10,9 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import { OnThisDayCard } from "@/components/OnThisDayCard";
 import { MayaIcon } from "@/components/icons/MayaIcon";
 import { buildInsights } from "@/lib/insights";
 import { MODULE_BY_ID } from "@/lib/modules";
-import { findOnThisDay } from "@/lib/on-this-day";
 import { useAppStore } from "@/lib/store";
 import type { ModuleId } from "@/lib/types";
 
@@ -38,7 +36,7 @@ export const CHAT_PROMPTS = [
 
 type FeedCard = {
   id: string;
-  kind: "entry" | "insight" | "memory" | "empty" | "setup";
+  kind: "entry" | "insight" | "empty" | "setup";
   title: string;
   subtitle?: string;
   body: string;
@@ -67,7 +65,6 @@ export function TipsCarousel({
   const journals = useAppStore((s) => s.journals);
   const customModules = useAppStore((s) => s.customModules);
   const enabledModules = useAppStore((s) => s.enabledModules);
-  const memories = useAppStore((s) => s.memories);
   const messages = useAppStore((s) => s.messages);
 
   const insights = useMemo(
@@ -81,8 +78,6 @@ export function TipsCarousel({
       }),
     [profile, journals, customModules, wardrobe, enabledModules],
   );
-
-  const onThisDay = useMemo(() => findOnThisDay(memories), [memories]);
 
   const cards = useMemo(() => {
     const list: FeedCard[] = [];
@@ -169,18 +164,6 @@ export function TipsCarousel({
       }
     }
 
-    if (onThisDay) {
-      list.push({
-        id: "on-this-day",
-        kind: "memory",
-        title: "В этот день",
-        subtitle: "из моментов",
-        body: "Мая нашла кадр из прошлого — тот же день календаря.",
-        href: "/memories",
-        tone: "care",
-      });
-    }
-
     for (const i of insights) {
       list.push({
         id: i.id,
@@ -228,7 +211,6 @@ export function TipsCarousel({
     journals,
     customModules,
     messages,
-    onThisDay,
     insights,
     profile.city,
     wardrobe,
@@ -371,13 +353,7 @@ export function TipsCarousel({
                 onOpenChat ? "cursor-pointer" : ""
               }`}
             >
-              {c.kind === "memory" ? (
-                <div>
-                  <OnThisDayCard compact />
-                  <p className="mt-3 text-xs text-muted">{c.body}</p>
-                </div>
-              ) : (
-                <div>
+              <div>
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-accent">
@@ -437,7 +413,6 @@ export function TipsCarousel({
                     </Link>
                   )}
                 </div>
-              )}
             </article>
           ))}
         </div>
