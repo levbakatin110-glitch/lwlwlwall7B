@@ -5,8 +5,6 @@ import type {
   ChildProfile,
   CustomModule,
   JournalEntry,
-  MemoryItem,
-  MemoryStory,
   ModuleId,
   WardrobeItem,
   WeatherSnapshot,
@@ -93,8 +91,6 @@ export function buildSystemPrompt(input: {
   enabledModules: ModuleId[];
   customModules: CustomModule[];
   wardrobe: WardrobeItem[];
-  memories: MemoryItem[];
-  memoryStory?: MemoryStory | null;
   journals: Record<string, JournalEntry[]>;
   weather?: WeatherSnapshot | null;
   pregnancy?: PregnancyProfile | null;
@@ -104,8 +100,6 @@ export function buildSystemPrompt(input: {
     enabledModules,
     customModules,
     wardrobe,
-    memories,
-    memoryStory,
     journals,
     weather,
     pregnancy,
@@ -354,28 +348,6 @@ export function buildSystemPrompt(input: {
     }
   }
 
-  lines.push("", "=== Воспоминания / моменты ===");
-  if (!memories.length) lines.push("пока нет");
-  else {
-    const chronological = [...memories].sort((a, b) => a.date.localeCompare(b.date));
-    for (const m of chronological.slice(-12)) {
-      lines.push(`- ${m.date}: ${m.text || "(фото без подписи)"}`);
-    }
-  }
-
-  if (memoryStory?.scenes?.length) {
-    lines.push("", "=== Фильм-воспоминание (монтаж Маи) ===");
-    lines.push(`«${memoryStory.title}» — ${memoryStory.subtitle}`);
-    lines.push(memoryStory.intro);
-    for (const s of memoryStory.scenes) {
-      lines.push(`- ${s.whenLabel}: ${s.headline}. ${s.line}`);
-    }
-    lines.push(memoryStory.outro);
-    lines.push(
-      "Если мама просит рассказать историю малыша / вспомнить путь — опирайся на этот монтаж.",
-    );
-  }
-
   const disabled = (Object.keys(MODULE_BY_ID) as ModuleId[]).filter(
     (id) => !enabledModules.includes(id),
   );
@@ -582,8 +554,6 @@ export type ClientChatPayload = {
   enabledModules: ModuleId[];
   customModules: CustomModule[];
   wardrobe: WardrobeItem[];
-  memories: MemoryItem[];
-  memoryStory?: MemoryStory | null;
   journals: Record<string, JournalEntry[]>;
   /** Геолокация браузера — точнее города, если без VPN и рядом с профилем */
   coords?: { latitude: number; longitude: number } | null;
