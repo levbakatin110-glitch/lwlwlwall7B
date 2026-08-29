@@ -1,5 +1,9 @@
 import { planOfferContextFromBackup } from "@/lib/backup-read";
-import { evaluatePlanOfferEligibility } from "@/lib/plan-offer-eligibility";
+import {
+  evaluatePlanOfferEligibility,
+  evaluatePlanSelfServeEligibility,
+  PLAN_SELF_SERVE_MIN_DAYS,
+} from "@/lib/plan-offer-eligibility";
 import type { PlanTopic } from "@/lib/plan-products";
 import type { JournalEntry } from "@/lib/types";
 
@@ -15,6 +19,8 @@ export function assertPlanOfferEligible(input: {
   clientEntries?: JournalEntry[];
   /** Только если PLAN_OFFER_INSTANT=true на сервере */
   requestInstant?: boolean;
+  /** Самостоятельный заказ со страницы /plan/order — без триггера «плохо» */
+  voluntary?: boolean;
 }): PlanOfferGuardResult {
   const serverInstant = process.env.PLAN_OFFER_INSTANT === "true";
   const instant = serverInstant && Boolean(input.requestInstant);
@@ -34,6 +40,18 @@ export function assertPlanOfferEligible(input: {
     };
   }
 
+  if (input.voluntary) {
+    const self = evaluatePlanSelfServeEligibility({ entries: ctx.entries });
+    if (!self.canOrder) {
+      return {
+        ok: false,
+        code: "not_enough_days",
+        error: `Нужно хотя бы ${PLAN_SELF_SERVE_MIN_DAYS} разных дня с записями в дневнике.`,
+      };
+    }
+    return { ok: true };
+  }
+
   const eligibility = evaluatePlanOfferEligibility({
     topic: input.topic,
     entries: ctx.entries,
@@ -43,19 +61,11 @@ export function assertPlanOfferEligible(input: {
   });
 
   if (!eligibility.showOffer) {
-    if (eligibility.showTeaser) {
-      return {
-        ok: false,
-        code: "teaser_only",
-        error:
-          "Разбор по дневнику станет доступен позже — продолжайте вести записи.",
-      };
-    }
     return {
       ok: false,
       code: "not_eligible",
       error:
-        "Сейчас разбор не предлагается — ведите дневник, и Мая подскажет, когда он будет уместен.",
+        "Разбор по дневнику сейчас недоступен. Если хотите заказать сами — откройте ссылку в профиле или внизу дневника.",
     };
   }
 

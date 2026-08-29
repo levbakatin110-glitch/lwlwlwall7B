@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { InstallAppCard } from "@/components/InstallAppCard";
+import { PlanServicesCard } from "@/components/plan/PlanOffer";
 import { OnboardingFlow } from "@/components/OnboardingFlow";
 import { childDisplayName } from "@/lib/children";
 import { compressImageFile } from "@/lib/image";
@@ -164,6 +165,7 @@ export default function ProfilePage() {
 
       <div className="mt-4">
         <InstallAppCard />
+        <PlanServicesCard />
       </div>
 
       <div className="mt-6 rounded-2xl border border-line bg-card/70 p-4">

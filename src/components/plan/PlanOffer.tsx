@@ -4,7 +4,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { clientEntriesForTopic } from "@/lib/backup-read-client";
-import { evaluatePlanOfferEligibility } from "@/lib/plan-offer-eligibility";
+import {
+  evaluatePlanOfferEligibility,
+  evaluatePlanSelfServeEligibility,
+} from "@/lib/plan-offer-eligibility";
 import {
   enablePlanOfferInstantFromUrl,
   readPlanOfferInstant,
@@ -15,8 +18,10 @@ import {
   ACCOMPANIMENT_INCLUDES,
   ACCOMPANIMENT_RUB,
   PLAN_BREAKDOWN_RUB,
+  PLAN_OFFER_HOOK,
   PLAN_OFFER_TITLE,
   PLAN_TOPIC_LABEL,
+  PLAN_TOPIC_LABEL_NOM,
   type PlanTopic,
 } from "@/lib/plan-products";
 import { PlanConsultantAvatar } from "@/components/plan/PlanConsultantAvatar";
@@ -464,12 +469,106 @@ export function PlanOfferBanner({ moduleId }: { moduleId: string }) {
   return (
     <div className="mb-4 rounded-2xl border border-accent/25 bg-gradient-to-br from-accent-soft/80 to-card p-4">
       <p className="font-display text-base font-semibold">{PLAN_OFFER_TITLE}</p>
+      <p className="mt-1 text-xs leading-relaxed text-muted">{PLAN_OFFER_HOOK}</p>
       <Link
         href={`/plan/order?topic=${topic}`}
         className="mt-3 inline-flex rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-[var(--on-accent,#fff)]"
       >
         Разобрать дневник · {PLAN_BREAKDOWN_RUB} ₽
       </Link>
+    </div>
+  );
+}
+
+function topicFromModuleId(moduleId: string): PlanTopic | null {
+  if (moduleId === "sleep") return "sleep";
+  if (
+    moduleId === "breastfeeding" ||
+    moduleId === "formula" ||
+    moduleId === "solids"
+  ) {
+    return "feed";
+  }
+  return null;
+}
+
+/** Тихая ссылка внизу дневника — для тех, кто хочет план сам */
+export function PlanSelfServeHint({ moduleId }: { moduleId: string }) {
+  const topic = topicFromModuleId(moduleId);
+  const journals = useAppStore((s) => s.journals);
+  const birthDate = useAppStore((s) => s.profile?.birthDate);
+  const [instant, setInstant] = useState(false);
+  const [hasOrder, setHasOrder] = useState(false);
+
+  useEffect(() => {
+    setInstant(enablePlanOfferInstantFromUrl() || readPlanOfferInstant());
+  }, []);
+
+  useEffect(() => {
+    if (!topic) return;
+    void fetch("/api/plan-orders", { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { orders?: { topic: string }[] } | null) => {
+        const mine = (d?.orders ?? []).filter((o) => o.topic === topic);
+        setHasOrder(mine.length > 0);
+      })
+      .catch(() => {});
+  }, [topic]);
+
+  if (!topic || hasOrder) return null;
+
+  const entries = clientEntriesForTopic(journals, topic);
+  const concern = evaluatePlanOfferEligibility({
+    topic,
+    entries,
+    journals,
+    birthDate,
+    instant,
+  });
+  const selfServe = evaluatePlanSelfServeEligibility({ entries });
+
+  if (concern.showOffer || !selfServe.canOrder) return null;
+
+  const label = PLAN_TOPIC_LABEL[topic];
+
+  return (
+    <p className="mt-5 text-center text-[11px] leading-relaxed text-muted">
+      Хотите разбор по {label}, даже если всё спокойно?{" "}
+      <Link
+        href={`/plan/order?topic=${topic}&self=1`}
+        className="font-medium text-accent underline decoration-accent/30 underline-offset-2"
+      >
+        Заказать · {PLAN_BREAKDOWN_RUB} ₽
+      </Link>
+    </p>
+  );
+}
+
+/** Профиль — ненавязчивые ссылки на заказ разбора */
+export function PlanServicesCard() {
+  return (
+    <div className="mt-4 rounded-2xl border border-line bg-card/50 px-4 py-3.5">
+      <p className="text-sm font-medium text-foreground">
+        Персональный план по дневнику
+      </p>
+      <p className="mt-1 text-xs leading-relaxed text-muted">
+        Разбор сна или кормления с консультантом · {PLAN_BREAKDOWN_RUB} ₽ · не
+        врач
+      </p>
+      <div className="mt-2.5 flex flex-wrap gap-2">
+        <Link
+          href="/plan/order?topic=sleep&self=1"
+          className="rounded-full border border-line bg-background px-3 py-1.5 text-xs font-medium text-foreground transition hover:border-accent/30"
+        >
+          {PLAN_TOPIC_LABEL_NOM.sleep}
+        </Link>
+        <Link
+          href="/plan/order?topic=feed&self=1"
+          className="rounded-full border border-line bg-background px-3 py-1.5 text-xs font-medium text-foreground transition hover:border-accent/30"
+        >
+          {PLAN_TOPIC_LABEL_NOM.feed}
+        </Link>
+      </div>
     </div>
   );
 }

@@ -7,11 +7,8 @@ import {
   ACCOMPANIMENT_INCLUDES,
   ACCOMPANIMENT_RUB,
   PLAN_BREAKDOWN_RUB,
-  PLAN_CHAT_DAYS,
   PLAN_INCLUDES,
   PLAN_OFFER_TITLE,
-  PLAN_OFFER_HOOK,
-  PLAN_TOPIC_LABEL,
   PLAN_TOPIC_LABEL_NOM,
   type PlanTopic,
 } from "@/lib/plan-products";
@@ -24,6 +21,7 @@ function CheckoutInner() {
   const router = useRouter();
   const params = useSearchParams();
   const topic = params.get("topic") === "feed" ? "feed" : params.get("topic") === "sleep" ? "sleep" : null;
+  const selfServe = params.get("self") === "1";
 
   const activeChildId = useAppStore((s) => s.activeChildId);
   const child = useAppStore((s) =>
@@ -59,7 +57,6 @@ function CheckoutInner() {
     );
   }
 
-  const label = PLAN_TOPIC_LABEL[topic];
   const title = PLAN_TOPIC_LABEL_NOM[topic];
 
   const pay = async () => {
@@ -85,6 +82,7 @@ function CheckoutInner() {
           childName: child?.name,
           entries: entries.slice(0, 120),
           instant: readPlanOfferInstant(),
+          voluntary: selfServe,
         }),
       });
       const data = (await res.json()) as {
@@ -119,17 +117,10 @@ function CheckoutInner() {
       <h1 className="font-display mt-4 text-2xl font-semibold tracking-tight">
         {PLAN_OFFER_TITLE} · {title.toLowerCase()}
       </h1>
-      <p className="mt-2 text-sm leading-relaxed text-muted">{PLAN_OFFER_HOOK}</p>
-      <p className="mt-1 text-xs text-muted">
-        PDF-план и {PLAN_CHAT_DAYS} дня в чате с Марией. Не врач — поддержка по режиму.
-      </p>
 
       <div className="mt-6 rounded-2xl border border-accent/30 bg-gradient-to-br from-accent-soft/60 to-card p-5 shadow-sm">
         <p className="font-display text-3xl font-semibold">
           {PLAN_BREAKDOWN_RUB} ₽
-        </p>
-        <p className="mt-1 text-xs text-muted">
-          {payBypass ? "сейчас без списания — тест до подключения оплаты" : "разовая оплата"}
         </p>
         <ul className="mt-4 space-y-2 text-sm leading-relaxed">
           {PLAN_INCLUDES.map((line) => (
@@ -139,10 +130,6 @@ function CheckoutInner() {
             </li>
           ))}
         </ul>
-        <p className="mt-4 text-xs text-muted">
-          Записей в дневнике: {entries.length}
-          {child?.name ? ` · ${child.name}` : ""}
-        </p>
       </div>
 
       <div className="mt-4 rounded-2xl border border-dashed border-line bg-accent-soft/30 p-4 text-xs leading-relaxed text-muted">
@@ -175,9 +162,7 @@ function CheckoutInner() {
       </button>
 
       <p className="mt-4 text-center text-[11px] leading-relaxed text-muted">
-        {payBypass ? (
-          <>Сейчас оплата не списывается — сразу откроется чат с Марией.</>
-        ) : (
+        {!payBypass ? (
           <>
             Нажимая «Оплатить», вы соглашаетесь с{" "}
             <Link href="/legal/offer" className="text-accent underline">
@@ -185,7 +170,7 @@ function CheckoutInner() {
             </Link>
             .
           </>
-        )}{" "}
+        ) : null}{" "}
         Поддержка:{" "}
         <a href={`mailto:${LEGAL_OPERATOR.supportEmail}`} className="text-accent">
           {LEGAL_OPERATOR.supportEmail}

@@ -2,13 +2,10 @@ import { buildDaySummary, dayNormHints } from "@/lib/day-summary";
 import type { PlanTopic } from "@/lib/plan-products";
 import type { JournalEntry } from "@/lib/types";
 
-/** С какого дня показываем оффер (если сработал триггер на 1–2 день) */
+/** С какого дня дневника можно предлагать разбор */
 export const PLAN_OFFER_DAY_MIN = 3;
-/** До этого дня держим оффер после триггера; с 8-го — только при свежих отклонениях */
-export const PLAN_OFFER_DAY_MAX = 7;
-/** Дни, по которым решаем, показывать ли оффер на 3–7 */
-export const PLAN_OFFER_TRIGGER_FROM = 1;
-export const PLAN_OFFER_TRIGGER_TO = 2;
+/** Самостоятельный заказ — минимум дней с записями */
+export const PLAN_SELF_SERVE_MIN_DAYS = 2;
 
 export type PlanOfferEligibility = {
   uniqueDays: number;
@@ -16,7 +13,11 @@ export type PlanOfferEligibility = {
   diaryDay: number;
   hasConcerns: boolean;
   showOffer: boolean;
-  showTeaser: boolean;
+};
+
+export type PlanSelfServeEligibility = {
+  uniqueDays: number;
+  canOrder: boolean;
 };
 
 function uniqueDates(entries: JournalEntry[]): string[] {
@@ -84,50 +85,59 @@ function dateHasTopicConcern(input: {
   return feeds < 4 || feeds > 10;
 }
 
-/** Было ли отклонение хотя бы в один из календарных дней [fromDay…toDay] дневника */
-function anyConcernInDiaryDayRange(input: {
-  firstDate: string;
-  fromDay: number;
-  toDay: number;
-  topic: PlanTopic;
-  journals: Record<string, JournalEntry[]>;
-  birthDate?: string | null;
-}): boolean {
-  const { firstDate, fromDay, toDay, topic, journals, birthDate } = input;
-  for (let d = fromDay; d <= toDay; d++) {
-    const date = addDaysToYmd(firstDate, d - 1);
-    if (
-      dateHasTopicConcern({ date, topic, journals, birthDate })
-    ) {
-      return true;
-    }
-  }
-  return false;
-}
-
-/** Отклонение именно сегодня (нужна запись за сегодня) */
-function todayHasTopicConcern(input: {
+/** Отклонение сегодня или вчера — только если в тот день есть записи */
+function recentTopicConcern(input: {
   entries: JournalEntry[];
   topic: PlanTopic;
   journals: Record<string, JournalEntry[]>;
   birthDate?: string | null;
 }): boolean {
   const today = todayYmd();
-  if (!input.entries.some((e) => e.date === today)) return false;
-  return dateHasTopicConcern({
-    date: today,
-    topic: input.topic,
-    journals: input.journals,
-    birthDate: input.birthDate,
-  });
+  const yesterday = addDaysToYmd(today, -1);
+  const datesWithEntries = new Set(input.entries.map((e) => e.date));
+
+  if (datesWithEntries.has(today)) {
+    if (
+      dateHasTopicConcern({
+        date: today,
+        topic: input.topic,
+        journals: input.journals,
+        birthDate: input.birthDate,
+      })
+    ) {
+      return true;
+    }
+  }
+
+  if (datesWithEntries.has(yesterday)) {
+    return dateHasTopicConcern({
+      date: yesterday,
+      topic: input.topic,
+      journals: input.journals,
+      birthDate: input.birthDate,
+    });
+  }
+
+  return false;
 }
 
+export function evaluatePlanSelfServeEligibility(input: {
+  entries: JournalEntry[];
+}): PlanSelfServeEligibility {
+  const uniqueDays = uniqueDates(input.entries).length;
+  return {
+    uniqueDays,
+    canOrder: uniqueDays >= PLAN_SELF_SERVE_MIN_DAYS,
+  };
+}
+
+/** Яркий оффер в дневнике — только при реальных отклонениях */
 export function evaluatePlanOfferEligibility(input: {
   topic: PlanTopic;
   entries: JournalEntry[];
   journals: Record<string, JournalEntry[]>;
   birthDate?: string | null;
-  /** Тест: без тизера 2 дней, оффер при любой записи в дневнике */
+  /** Тест: оффер при любой записи */
   instant?: boolean;
 }): PlanOfferEligibility {
   const dates = uniqueDates(input.entries);
@@ -140,50 +150,29 @@ export function evaluatePlanOfferEligibility(input: {
       diaryDay,
       hasConcerns: uniqueDays > 0,
       showOffer: uniqueDays > 0,
-      showTeaser: false,
     };
   }
 
-  if (diaryDay < PLAN_OFFER_DAY_MIN) {
+  if (diaryDay < PLAN_OFFER_DAY_MIN || uniqueDays < PLAN_SELF_SERVE_MIN_DAYS) {
     return {
       uniqueDays,
       diaryDay,
       hasConcerns: false,
       showOffer: false,
-      showTeaser: uniqueDays > 0,
     };
   }
 
-  const firstDate = dates[0]!;
-  const triggeredByDays12 = anyConcernInDiaryDayRange({
-    firstDate,
-    fromDay: PLAN_OFFER_TRIGGER_FROM,
-    toDay: PLAN_OFFER_TRIGGER_TO,
+  const hasConcerns = recentTopicConcern({
+    entries: input.entries,
     topic: input.topic,
     journals: input.journals,
     birthDate: input.birthDate,
   });
-
-  let hasConcerns: boolean;
-
-  if (diaryDay <= PLAN_OFFER_DAY_MAX && triggeredByDays12) {
-    // Дни 3–7 после отклонения на 1–2: оффер держим, даже если сейчас норма
-    hasConcerns = true;
-  } else {
-    // Дни 1–2 без отклонений → с 3-го дня и дальше: только при отклонении сегодня
-    hasConcerns = todayHasTopicConcern({
-      entries: input.entries,
-      topic: input.topic,
-      journals: input.journals,
-      birthDate: input.birthDate,
-    });
-  }
 
   return {
     uniqueDays,
     diaryDay,
     hasConcerns,
     showOffer: hasConcerns,
-    showTeaser: false,
   };
 }

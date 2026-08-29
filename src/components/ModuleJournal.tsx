@@ -32,7 +32,7 @@ import { MedicalPhotoTracker } from "@/components/pregnancy/MedicalPhotoTracker"
 import { MomSleepCalendar } from "@/components/pregnancy/MomSleepCalendar";
 import { CycleTracker } from "@/components/cycle/CycleTracker";
 import { IconBadge } from "@/components/icons/MayaIcon";
-import { PlanOfferBanner } from "@/components/plan/PlanOffer";
+import { PlanOfferBanner, PlanSelfServeHint } from "@/components/plan/PlanOffer";
 import { hintForDiary } from "@/lib/diary-hints";
 import { isDietLikeModule } from "@/lib/diet";
 import { fallbackSmartForTopic } from "@/lib/module-schema";
@@ -510,6 +510,7 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
         moduleId === "solids") && (
         <div className="mt-4">
           <PlanOfferBanner moduleId={moduleId} />
+          <PlanSelfServeHint moduleId={moduleId} />
         </div>
       )}
 

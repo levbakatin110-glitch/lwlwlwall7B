@@ -41,6 +41,7 @@ export async function POST(req: Request) {
     childName?: string;
     entries?: JournalEntry[];
     instant?: boolean;
+    voluntary?: boolean;
   };
   try {
     body = (await req.json()) as typeof body;
@@ -129,6 +130,7 @@ export async function POST(req: Request) {
       childId: body.childId,
       clientEntries: entries,
       requestInstant: body.instant,
+      voluntary: body.voluntary,
     });
     if (!guard.ok) {
       return Response.json({ error: guard.error, code: guard.code }, { status: 403 });
