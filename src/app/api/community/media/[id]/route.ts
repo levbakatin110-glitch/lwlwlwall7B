@@ -21,6 +21,11 @@ function byteRange(
   return { start, end };
 }
 
+/** Node Buffer ≠ DOM BodyInit в типах Next/TS — отдаём Uint8Array. */
+function asBody(buf: Uint8Array): Uint8Array {
+  return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
+}
+
 export async function GET(req: Request, ctx: Ctx) {
   const { id } = await ctx.params;
   const safe = String(id || "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 64);
@@ -44,7 +49,7 @@ export async function GET(req: Request, ctx: Ctx) {
 
     if (range) {
       const chunk = buffer.subarray(range.start, range.end + 1);
-      return new Response(chunk, {
+      return new Response(asBody(chunk), {
         status: 206,
         headers: {
           ...baseHeaders,
@@ -54,7 +59,7 @@ export async function GET(req: Request, ctx: Ctx) {
       });
     }
 
-    return new Response(buffer, {
+    return new Response(asBody(buffer), {
       headers: {
         ...baseHeaders,
         "Content-Length": String(size),
