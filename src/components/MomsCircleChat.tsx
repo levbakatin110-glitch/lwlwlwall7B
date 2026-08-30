@@ -712,9 +712,7 @@ export function MomsCircleChat() {
             <h2 className="font-display text-2xl font-semibold tracking-tight">
               Как вас зовут?
             </h2>
-            <p className="text-sm text-muted">
-              Имя обязательно. Фото и про малыша — по желанию.
-            </p>
+            <p className="text-sm text-muted">Фото и малыш — по желанию</p>
 
             <div className="flex items-center gap-3">
               <button

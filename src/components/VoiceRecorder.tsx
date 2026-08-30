@@ -317,7 +317,7 @@ export function VoiceRecorder({ onCancel, onReady }: Props) {
         ) : (
           <p className="mb-4 text-center text-sm text-muted">
             {phase === "recording"
-              ? "Идёт запись — нажмите, чтобы отправить"
+              ? "Идёт запись"
               : "Открываем микрофон…"}
           </p>
         )}

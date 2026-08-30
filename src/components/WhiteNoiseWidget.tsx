@@ -147,26 +147,13 @@ export function WhiteNoiseWidget({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-md bg-accent-soft px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-accent">
-              Виджет
-            </span>
-            <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
-              Не дневник
-            </span>
-          </div>
           <h3
-            className={`font-display mt-1 font-semibold tracking-tight text-foreground ${
+            className={`font-display font-semibold tracking-tight text-foreground ${
               compact ? "text-base" : "text-lg"
             }`}
           >
             Шум для сна
           </h3>
-          {!compact && (
-            <p className="mt-0.5 text-xs text-muted">
-              Фоновый звук — включили и можно свернуть
-            </p>
-          )}
         </div>
         <span
           className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${
@@ -195,11 +182,6 @@ export function WhiteNoiseWidget({
               }`}
             >
               <p className="text-sm font-semibold text-foreground">{p.label}</p>
-              {!compact && (
-                <p className="mt-0.5 text-[11px] leading-snug text-muted">
-                  {p.hint}
-                </p>
-              )}
             </button>
           );
         })}

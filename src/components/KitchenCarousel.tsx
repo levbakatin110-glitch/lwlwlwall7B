@@ -20,7 +20,7 @@ export function KitchenCarousel() {
     <div className="relative">
       <div className="mb-2.5 flex items-center justify-between gap-2 px-0.5">
         <p className="text-[11px] text-muted">
-          {index === 0 ? "Рецепт дня" : "Рекомендуем · виджет"}
+          {index === 0 ? "Рецепт дня" : "Шум для сна"}
         </p>
         <div className="flex items-center gap-1.5">
           <button
@@ -87,9 +87,8 @@ export function KitchenCarousel() {
 
       {index === 0 && (
         <p className="mt-2 text-center text-[11px] text-muted">
-          Листайте → ещё шум для сна ·{" "}
           <Link href="/recipes" className="font-semibold text-amber-800 underline dark:text-amber-200">
-            все рецепты
+            Все рецепты
           </Link>
         </p>
       )}

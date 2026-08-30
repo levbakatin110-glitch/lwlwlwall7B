@@ -270,7 +270,7 @@ export default function WardrobePage() {
               />
               {!imageData && (
                 <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-foreground/55 to-transparent px-2 pb-2.5 pt-8 text-center text-[11px] font-semibold text-white sm:text-xs">
-                  {analyzing ? "ИИ смотрит…" : "Нажмите — загрузить одежду"}
+                  {analyzing ? "ИИ смотрит…" : "Загрузить"}
                 </span>
               )}
             </button>
@@ -302,9 +302,7 @@ export default function WardrobePage() {
               />
               {!labelImageData && (
                 <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-foreground/55 to-transparent px-2 pb-2.5 pt-8 text-center text-[11px] font-semibold text-white sm:text-xs">
-                  {imageData
-                    ? "Нажмите — загрузить бирку"
-                    : "Сначала загрузите одежду"}
+                  {imageData ? "Загрузить" : "Сначала одежда"}
                 </span>
               )}
             </button>

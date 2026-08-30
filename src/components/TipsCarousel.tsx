@@ -180,7 +180,7 @@ export function TipsCarousel({
         kind: "setup",
         title: "Чтобы советы были точнее",
         body: "Добавьте вещи в гардероб — Мая подскажет по погоде с вашего места.",
-        href: "/profile",
+        href: "/wardrobe",
         tone: "nudge",
       });
     }
@@ -396,7 +396,7 @@ export function TipsCarousel({
                   )}
                   {c.kind === "setup" && c.href ? (
                     <p className="mt-3 text-sm font-semibold text-accent">
-                      Открыть настройки →
+                      В гардероб →
                     </p>
                   ) : onOpenChat ? (
                     <p className="mt-3 text-sm font-semibold text-accent">

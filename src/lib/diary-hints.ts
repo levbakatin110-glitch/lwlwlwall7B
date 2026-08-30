@@ -34,7 +34,7 @@ export const DIARY_HINTS: Record<string, DiaryHint> = {
     examples: [],
   },
   formula: {
-    body: "Выберите мл на бутылочке.",
+    body: "мл на бутылочке",
     examples: [],
   },
   solids: {
@@ -46,7 +46,7 @@ export const DIARY_HINTS: Record<string, DiaryHint> = {
     examples: [],
   },
   vaccines: {
-    body: "Две таблицы: по календарю РФ и вне него. Клик — плюсы, минусы, побочки и дата визита.",
+    body: "",
     examples: [
       {
         label: "Записать прививку",

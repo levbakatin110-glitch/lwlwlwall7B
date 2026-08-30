@@ -243,7 +243,7 @@ export function ContractionsTracker() {
 
       {timeline.length === 0 && !live ? (
         <p className="rounded-2xl border border-dashed border-line bg-card/50 px-4 py-8 text-center text-sm text-muted">
-          Пока пусто — нажмите кнопку, когда начнётся схватка
+          Пока пусто
         </p>
       ) : (
         <ul className="space-y-2">

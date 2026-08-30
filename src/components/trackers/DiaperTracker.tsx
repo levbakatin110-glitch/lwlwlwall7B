@@ -187,7 +187,7 @@ export function DiaperTracker() {
             </DiaryTimeline>
           </div>
         ) : (
-          <DiaryEmpty>Нажмите тип — запись сохранится сразу</DiaryEmpty>
+          <DiaryEmpty>Пока пусто</DiaryEmpty>
         )}
       </div>
     </DiaryPage>

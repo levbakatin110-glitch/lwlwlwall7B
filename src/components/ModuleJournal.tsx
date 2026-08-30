@@ -781,9 +781,6 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
             <p className="font-display text-lg font-semibold tracking-tight">
               Своя запись
             </p>
-            <p className="mt-0.5 text-xs text-muted">
-              Как угодно — не только кнопки сверху
-            </p>
           </div>
           <Link
             href="/"

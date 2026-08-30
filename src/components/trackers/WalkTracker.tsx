@@ -248,7 +248,7 @@ export function WalkTracker() {
           </DiaryTimeline>
         </div>
       ) : (
-        <DiaryEmpty>Нажмите кнопку, когда выйдете гулять</DiaryEmpty>
+        <DiaryEmpty>Пока пусто</DiaryEmpty>
       )}
 
       <DiaryStickyCta>

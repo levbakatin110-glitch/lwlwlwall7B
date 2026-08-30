@@ -617,12 +617,10 @@ export function CircleRecorder({ onCancel, onReady }: Props) {
           {error
             ? error
             : flipping
-              ? "Переключаем камеру…"
-              : phase === "recording"
-                ? "Идёт запись · сверху можно сменить камеру"
-                : phase === "review"
-                  ? "Посмотрите и отправьте — или переснимите"
-                  : "Выберите камеру сверху · затем красная кнопка — запись"}
+              ? "Переключаем…"
+              : phase === "review"
+                ? "Отправить или переснять"
+                : null}
         </p>
       </div>
 

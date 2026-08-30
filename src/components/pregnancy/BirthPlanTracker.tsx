@@ -168,7 +168,7 @@ export function BirthPlanTracker() {
           </DiaryTimeline>
         </div>
       ) : (
-        <DiaryEmpty>Нажмите пункт — он попадёт в план</DiaryEmpty>
+        <DiaryEmpty>Пока пусто</DiaryEmpty>
       )}
     </DiaryPage>
   );

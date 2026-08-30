@@ -515,10 +515,6 @@ export function VaccinesTracker() {
         <h2 className="font-display mt-1 text-xl font-semibold tracking-tight sm:text-2xl">
           Календарь прививок
         </h2>
-        <p className="mt-1.5 text-sm leading-relaxed text-muted">
-          Нажмите ячейку (V1, RV…), чтобы отметить визит — описание откроется
-          сразу. Имя прививки слева — только справка.
-        </p>
         {flash && (
           <p className="maya-msg-in mt-3 text-sm font-medium text-accent">
             Визит записан

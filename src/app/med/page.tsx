@@ -184,9 +184,6 @@ export default function MedCardPage() {
         <h1 className="font-display mt-1 text-3xl font-semibold tracking-tight">
           Мед. карта
         </h1>
-        <p className="mt-1 text-sm text-muted">
-          Визиты, анализы, план родов и подготовка к приёму — в одном месте
-        </p>
       </div>
 
       {age ? (
@@ -204,9 +201,7 @@ export default function MedCardPage() {
               диагноз.
             </p>
           ) : (
-            <p className="mt-2 text-sm text-muted">
-              Можно отметить шевеления в счётчике — врачи часто просят динамику.
-            </p>
+            <p className="mt-2 text-sm text-muted">Шевеления — в счётчике</p>
           )}
         </div>
       ) : (
@@ -245,10 +240,7 @@ export default function MedCardPage() {
         <MayaIcon name="health" className="h-6 w-6 text-accent" />
         <div>
           <p className="font-semibold">Подготовиться к приёму</p>
-          <p className="text-xs text-muted">
-            Сводка, вопросы врачу и PDF — наша фишка: можно ещё спросить Маю в
-            чате
-          </p>
+          <p className="text-xs text-muted">Сводка и PDF к приёму</p>
         </div>
       </button>
 

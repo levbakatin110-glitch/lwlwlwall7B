@@ -64,7 +64,6 @@ export function ChatNewsFeed({
         <h2 className="font-display text-xl font-semibold tracking-tight text-foreground">
           Лента
         </h2>
-        <p className="mt-0.5 text-xs text-muted">Про малыша</p>
       </div>
 
       <ul className="flex flex-col gap-3">

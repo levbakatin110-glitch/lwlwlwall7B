@@ -166,10 +166,6 @@ export function DietTracker({ journalId = "diet" }: { journalId?: string }) {
           <h2 className="font-display text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
             Калории на день
           </h2>
-          <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted">
-            Введите свои данные — покажем ориентир по калориям на сутки. Без
-            лишних замеров и сложных меню.
-          </p>
         </div>
 
         <form onSubmit={onCalculate} className="mx-auto mt-6 max-w-lg space-y-5">

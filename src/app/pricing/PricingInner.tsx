@@ -150,12 +150,6 @@ export default function PricingInner() {
         доплата {CHAT_TOPUP_RUB} ₽, можно писать дальше.
       </p>
 
-      {FAKE_PAYMENTS && (
-        <p className="mt-3 rounded-xl border border-amber-500/35 bg-amber-500/10 px-3 py-2 text-xs text-foreground">
-          Тест: «Оплатить» сразу включает доступ, без реальных денег.
-        </p>
-      )}
-
       {paidHint && (
         <p className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm">
           Если оплата прошла — доступ включится автоматически (обновите страницу
@@ -178,15 +172,7 @@ export default function PricingInner() {
             до {formatExpiry(subscription.expiresAt) ?? "—"}
           </p>
         </div>
-      ) : (
-        <div className="mt-5 rounded-2xl border border-accent/30 bg-accent-soft/40 px-4 py-3 text-sm">
-          <p className="font-medium">Один шаг до Маи</p>
-          <p className="mt-1 text-xs text-muted">
-            Выберите период ниже — после оплаты откроются чат, дневники и
-            общение.
-          </p>
-        </div>
-      )}
+      ) : null}
 
       <div className="mt-8 grid gap-3">
         {PAID_PLANS.map((p) => {

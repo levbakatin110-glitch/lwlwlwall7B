@@ -548,7 +548,7 @@ export const VACCINES_CATALOG: VaccineInfo[] = [
 ];
 
 export const VACCINE_SOURCE_NOTE =
-  "Таблица как в национальном календаре РФ (приказ Минздрава № 1122н). Жёлтый — всем, сиреневый — группам риска. Нажмите ячейку, чтобы отметить визит. Не замена педиатру.";
+  "Таблица как в национальном календаре РФ (приказ Минздрава № 1122н). Жёлтый — всем, сиреневый — группам риска. Не замена педиатру.";
 
 export function vaccinesByGroup(group: VaccineGroup) {
   return VACCINES_CATALOG.filter((v) => v.group === group);

@@ -95,7 +95,7 @@ export default function ModulesPage() {
       </Link>
 
       <p className="mb-3 mt-8 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
-        Виджеты · рядом с дневниками
+        Виджеты
       </p>
       <Link
         href="/#noise"
@@ -108,7 +108,6 @@ export default function ModulesPage() {
           <p className="font-display text-base font-semibold leading-snug">
             Шум для сна
           </p>
-          <p className="text-xs text-muted">Виджет · не дневник · на главной в «На кухне»</p>
         </div>
         <span className="text-sm font-semibold text-accent">→</span>
       </Link>
@@ -135,9 +134,6 @@ export default function ModulesPage() {
         ) : (
           <div className="maya-panel space-y-3 rounded-2xl border border-line bg-card/70 p-4">
             <p className="font-medium">Что вести?</p>
-            <p className="text-xs text-muted">
-              Например «развитие малыша» — будет умный блок с вехами, не только поля.
-            </p>
             <form onSubmit={(e) => void design(e)} className="space-y-3">
               <textarea
                 value={prompt}

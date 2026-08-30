@@ -799,7 +799,7 @@ export function OnboardingFlow({
                     Добавьте фото
                   </p>
                   <p className="mt-1 text-xs leading-snug text-muted">
-                    Для профиля. Можно пропустить.
+                    Можно пропустить
                   </p>
                 </div>
                 <input

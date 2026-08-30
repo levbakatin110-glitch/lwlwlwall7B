@@ -1363,9 +1363,6 @@ export function ChatView() {
                 <h2 className="font-display text-xl font-semibold tracking-tight text-foreground">
                   На кухне
                 </h2>
-                <p className="mt-0.5 text-xs text-muted">
-                  Рецепт дня, потом — шум для сна
-                </p>
               </div>
               <Link
                 href="/recipes"

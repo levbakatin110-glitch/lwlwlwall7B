@@ -176,7 +176,7 @@ export function WaterTracker() {
           </DiaryTimeline>
         </div>
       ) : (
-        <DiaryEmpty>Нажмите +, чтобы отметить воду</DiaryEmpty>
+        <DiaryEmpty>Пока пусто</DiaryEmpty>
       )}
 
       <DiaryStickyCta>

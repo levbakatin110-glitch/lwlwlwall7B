@@ -276,9 +276,6 @@ export function Sidebar({
           <MayaIcon name="plus" size={15} />
         </span>
         <span className="min-w-0 flex-1">Разделы</span>
-        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-accent/80">
-          ещё
-        </span>
       </Link>
       {visiblePinned.map((item) => (
         <Link

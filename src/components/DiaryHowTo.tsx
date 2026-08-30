@@ -49,7 +49,9 @@ export function DiaryHowTo({
       >
         <MayaIcon name="close" size={16} />
       </button>
-      <p className="text-sm leading-snug text-foreground/90">{hint.body}</p>
+      {hint.body ? (
+        <p className="text-sm leading-snug text-foreground/90">{hint.body}</p>
+      ) : null}
       {hint.examples.length > 0 && (
         <div className="mt-2.5 flex flex-wrap gap-2">
           {hint.examples.map((ex) => (
