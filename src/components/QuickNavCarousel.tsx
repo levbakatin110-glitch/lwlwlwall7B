@@ -10,8 +10,8 @@ import { isSubscriptionActive, PAID_ONLY } from "@/lib/subscription";
 import { useAppStore } from "@/lib/store";
 import type { CustomModule, ModuleId } from "@/lib/types";
 
-/** Порядок «популярных» ярлыков в шапке — только включённые разделы */
-const POPULAR_ORDER: ModuleId[] = [
+/** Приоритет в шапке: сначала эти, потом остальные включённые */
+const PRIORITY_ORDER: ModuleId[] = [
   "growth",
   "vaccines",
   "sleep",
@@ -23,6 +23,21 @@ const POPULAR_ORDER: ModuleId[] = [
   "walk",
   "health",
   "notes",
+  "pregnancy",
+  "contractions",
+  "kicks",
+  "preg_weight",
+  "preg_pressure",
+  "preg_symptoms",
+  "preg_visits",
+  "preg_belly",
+  "preg_meds",
+  "preg_labs",
+  "preg_docs",
+  "preg_sleep",
+  "birth_plan",
+  "cycle",
+  "diet",
 ];
 
 /** Короткие подписи под иконкой в узкой шапке */
@@ -38,6 +53,21 @@ const NAV_LABEL: Partial<Record<ModuleId, string>> = {
   walk: "Прогулка",
   health: "Здоровье",
   notes: "Заметки",
+  pregnancy: "Неделя",
+  contractions: "Схватки",
+  kicks: "Шевел.",
+  preg_weight: "Вес",
+  preg_pressure: "Давлен.",
+  preg_symptoms: "Симптом",
+  preg_visits: "Визиты",
+  preg_belly: "Живот",
+  preg_meds: "Лекар.",
+  preg_labs: "Анализы",
+  preg_docs: "Доки",
+  preg_sleep: "Сон м.",
+  birth_plan: "Роды",
+  cycle: "Цикл",
+  diet: "Диета",
 };
 
 type QuickItem = {
@@ -52,6 +82,16 @@ function shortenLabel(raw: string, max = 9): string {
   return `${t.slice(0, max - 1)}…`;
 }
 
+function moduleItem(id: ModuleId): QuickItem | null {
+  const mod = MODULE_BY_ID[id];
+  if (!mod) return null;
+  return {
+    href: `/m/${id}`,
+    label: NAV_LABEL[id] ?? shortenLabel(mod.shortTitle),
+    icon: mod.icon as IconName,
+  };
+}
+
 function buildQuickItems(
   enabled: ModuleId[],
   customModules: CustomModule[],
@@ -61,18 +101,25 @@ function buildQuickItems(
     { href: "/community", label: "Общение", icon: "circle" },
   ];
 
-  for (const id of POPULAR_ORDER) {
-    if (!enabled.includes(id)) continue;
-    const mod = MODULE_BY_ID[id];
-    if (!mod) continue;
-    items.push({
-      href: `/m/${id}`,
-      label: NAV_LABEL[id] ?? shortenLabel(mod.shortTitle),
-      icon: mod.icon as IconName,
-    });
+  const placed = new Set<ModuleId>();
+
+  for (const id of PRIORITY_ORDER) {
+    if (!enabled.includes(id) || placed.has(id)) continue;
+    const item = moduleItem(id);
+    if (!item) continue;
+    items.push(item);
+    placed.add(id);
   }
 
-  for (const c of customModules.slice(0, 4)) {
+  for (const id of enabled) {
+    if (placed.has(id)) continue;
+    const item = moduleItem(id);
+    if (!item) continue;
+    items.push(item);
+    placed.add(id);
+  }
+
+  for (const c of customModules) {
     const def = customToDef(c);
     items.push({
       href: `/m/${def.id}`,
@@ -98,6 +145,7 @@ export function QuickNavCarousel({ className = "" }: { className?: string }) {
   const subscription = useAppStore((s) => s.subscription);
   const paywalled = PAID_ONLY && !isSubscriptionActive(subscription);
   const items = buildQuickItems(enabledModules, customModules);
+  const canScroll = items.length > 4;
 
   function onNavClick(e: MouseEvent<HTMLAnchorElement>, href: string) {
     if (!paywalled) return;
@@ -152,6 +200,12 @@ export function QuickNavCarousel({ className = "" }: { className?: string }) {
           );
         })}
       </div>
+      {canScroll ? (
+        <div
+          className="pointer-events-none absolute inset-y-0 right-0 w-7 bg-gradient-to-l from-card to-transparent"
+          aria-hidden
+        />
+      ) : null}
     </div>
   );
 }
