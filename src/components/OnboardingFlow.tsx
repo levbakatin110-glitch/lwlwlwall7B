@@ -30,12 +30,16 @@ import {
   loadOnboardingProgress,
   saveOnboardingProgress,
 } from "@/lib/onboarding-progress";
+import { PAID_ONLY } from "@/lib/subscription";
+import { getValuePitch } from "@/lib/value-pitch";
+import { useRouter } from "next/navigation";
 
 type FlowStep =
   | "who"
   | "preg"
   | "baby1"
   | "baby2"
+  | "value"
   | "email"
   | "finish";
 
@@ -74,7 +78,7 @@ function buildFlow(
   const steps: FlowStep[] = ["who"];
   if (pregnant) steps.push("preg");
   if (hasChild) steps.push("baby1", "baby2");
-  steps.push("email", "finish");
+  steps.push("value", "email", "finish");
   return steps;
 }
 
@@ -145,6 +149,7 @@ export function OnboardingFlow({
   const setAccountEmail = useAppStore((s) => s.setAccountEmail);
   const accountEmail = useAppStore((s) => s.accountEmail);
   const emailVerified = useAppStore((s) => s.emailVerified);
+  const router = useRouter();
 
   const setPregnancy = useAppStore((s) => s.setPregnancy);
   const enablePregnancyModules = useAppStore((s) => s.enablePregnancyModules);
@@ -560,6 +565,9 @@ export function OnboardingFlow({
         clearOnboardingProgress();
         completeOnboarding();
         onClose?.();
+        if (mode === "first" && PAID_ONLY) {
+          router.replace("/pricing");
+        }
       }
     } finally {
       setSaving(false);
@@ -568,6 +576,16 @@ export function OnboardingFlow({
 
   const titleName =
     draft.namePending || !draft.name.trim() ? "Малыш" : draft.name.trim();
+
+  const valuePitch = useMemo(
+    () =>
+      getValuePitch({
+        pregnant: isPregnant,
+        hasChild,
+        trackCycle,
+      }),
+    [isPregnant, hasChild, trackCycle],
+  );
 
   return (
     <div className="fixed inset-0 z-[200] flex flex-col bg-background text-foreground">
@@ -934,6 +952,31 @@ export function OnboardingFlow({
             </div>
           )}
 
+          {flowStep === "value" && (
+            <div className="maya-rise flex h-full flex-col justify-center py-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-accent">
+                {valuePitch.eyebrow}
+              </p>
+              <h1 className="font-display mt-3 text-3xl font-semibold tracking-tight">
+                {valuePitch.title}
+              </h1>
+              <p className="mt-3 text-sm leading-relaxed text-muted">
+                {valuePitch.intro}
+              </p>
+              <ul className="mt-5 space-y-2.5 text-sm text-foreground/90">
+                {valuePitch.bullets.map((t) => (
+                  <li key={t} className="flex gap-2">
+                    <span className="mt-0.5 shrink-0 text-accent">✓</span>
+                    <span>{t}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-5 text-sm leading-relaxed text-foreground/85">
+                {valuePitch.priceNote}
+              </p>
+            </div>
+          )}
+
           {flowStep === "email" && (
             <div className="maya-rise flex h-full flex-col justify-center py-6">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-accent">
@@ -1164,7 +1207,9 @@ export function OnboardingFlow({
               <p className="mt-3 text-sm leading-relaxed text-muted">
                 {mode === "add"
                   ? "Ребёнок сохранён. Можно сразу добавить ещё одного или вернуться в Маю."
-                  : isPregnant && !hasChild
+                  : PAID_ONLY
+                    ? "Анкета готова. Дальше — выбрать период доступа: после оплаты откроются Мая, дневники и общение."
+                    : isPregnant && !hasChild
                     ? "Открыли мед. карту, недели, схватки и сон мамы. После родов добавите малыша в профиле."
                     : trackCycle && !hasChild && !isPregnant
                       ? "Трекер цикла готов. Можно писать Мае про самочувствие."
@@ -1192,7 +1237,11 @@ export function OnboardingFlow({
               onClick={goNext}
               className="w-full rounded-2xl bg-accent py-3.5 text-sm font-semibold text-[#ffffff] hover:bg-accent-hot"
             >
-              {flowStep === "who" ? "Продолжить" : "Далее"}
+              {flowStep === "who"
+                ? "Продолжить"
+                : flowStep === "value"
+                  ? "Понятно, дальше"
+                  : "Далее"}
             </button>
           ) : null}
 
@@ -1218,7 +1267,11 @@ export function OnboardingFlow({
                 onClick={() => void finish(false)}
                 className="w-full rounded-2xl bg-accent py-3.5 text-sm font-semibold text-[#ffffff] hover:bg-accent-hot disabled:opacity-50"
               >
-                {mode === "add" ? "Сохранить ребёнка" : "Начать с Маей"}
+                {mode === "add"
+                  ? "Сохранить ребёнка"
+                  : PAID_ONLY
+                    ? "Выбрать тариф"
+                    : "Начать с Маей"}
               </button>
               {mode === "add" && (
                 <button

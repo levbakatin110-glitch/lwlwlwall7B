@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { IconBadge } from "@/components/icons/MayaIcon";
 import {
@@ -9,13 +9,13 @@ import {
   formatExpiry,
   formatRub,
   isSubscriptionActive,
-  PAID_PERKS,
   PAID_PLANS,
   planById,
   type PaidPlanId,
 } from "@/lib/subscription";
 import { CHAT_TOPUP_RUB } from "@/lib/chat-quota";
 import { trackEvent } from "@/lib/analytics-client";
+import { getValuePitch } from "@/lib/value-pitch";
 import { useAppStore } from "@/lib/store";
 
 export default function PricingInner() {
@@ -25,11 +25,24 @@ export default function PricingInner() {
   const emailVerified = useAppStore((s) => s.emailVerified);
   const activateSubscription = useAppStore((s) => s.activateSubscription);
   const clearSubscription = useAppStore((s) => s.clearSubscription);
+  const pregnancy = useAppStore((s) => s.pregnancy);
+  const children = useAppStore((s) => s.children);
+  const enabledModules = useAppStore((s) => s.enabledModules);
   const active = isSubscriptionActive(subscription);
   const current = active ? planById(subscription.planId) : null;
   const [busy, setBusy] = useState<PaidPlanId | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [paidHint, setPaidHint] = useState(false);
+
+  const pitch = useMemo(
+    () =>
+      getValuePitch({
+        pregnant: Boolean(pregnancy?.active),
+        hasChild: children.some((c) => !c.namePending && Boolean(c.birthDate)),
+        trackCycle: enabledModules.includes("cycle"),
+      }),
+    [pregnancy?.active, children, enabledModules],
+  );
 
   useEffect(() => {
     trackEvent("pricing_view");
@@ -96,17 +109,17 @@ export default function PricingInner() {
     <div className="maya-page mx-auto w-full max-w-2xl px-4 py-8 pb-28">
       <h1 className="font-display flex items-center gap-3 text-3xl font-semibold">
         <IconBadge name="spark" />
-        Maya Premium
+        Выберите тариф
       </h1>
-      <p className="mt-1 text-sm text-muted">
-        Бесплатной версии нет. Весь сервис — Мая, дневники и общение — после
-        оплаты от {formatRub(BASE_MONTH_RUB)} в месяц. Если пакет чата кончится —
-        доплата {CHAT_TOPUP_RUB} ₽.
+      <p className="mt-1 text-sm text-muted">{pitch.intro}</p>
+      <p className="mt-2 text-sm text-muted">
+        От {formatRub(BASE_MONTH_RUB)} в месяц. Если пакет чата кончится —
+        доплата {CHAT_TOPUP_RUB} ₽, можно писать дальше.
       </p>
 
       {paidHint && (
         <p className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm">
-          Если оплата прошла — Premium включится автоматически (обновите страницу
+          Если оплата прошла — доступ включится автоматически (обновите страницу
           через несколько секунд).
         </p>
       )}
@@ -135,9 +148,10 @@ export default function PricingInner() {
         </div>
       ) : (
         <div className="mt-5 rounded-2xl border border-accent/30 bg-accent-soft/40 px-4 py-3 text-sm">
-          <p className="font-medium">Подписка не активна</p>
+          <p className="font-medium">Один шаг до Маи</p>
           <p className="mt-1 text-xs text-muted">
-            Выберите тариф ниже — после оплаты откроется весь сервис.
+            Выберите период ниже — после оплаты откроются чат, дневники и
+            общение.
           </p>
         </div>
       )}
@@ -157,7 +171,7 @@ export default function PricingInner() {
             >
               {popular && (
                 <span className="absolute -top-2 right-4 rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
-                  Premium
+                  Выгодно
                 </span>
               )}
               <div className="flex flex-wrap items-end justify-between gap-3">
@@ -197,16 +211,13 @@ export default function PricingInner() {
       </div>
 
       <p className="mt-4 text-[11px] leading-relaxed text-muted">
-        Оплата через Prodamus. Premium привязывается к вашей почте в Мае
+        Оплата через Prodamus. Доступ привязывается к вашей почте в Мае
         {accountEmail ? ` (${accountEmail})` : ""}. Оплачивая, вы принимаете{" "}
         <Link href="/legal/offer" className="underline">
           публичную оферту
         </Link>{" "}
         и{" "}
-        <Link
-          href="/legal/privacy"
-          className="underline"
-        >
+        <Link href="/legal/privacy" className="underline">
           политику персональных данных
         </Link>
         .
@@ -221,24 +232,18 @@ export default function PricingInner() {
 
       <div className="mt-10">
         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
-          Что входит в Premium
+          Что входит
         </p>
         <ul className="mt-2 space-y-2 text-sm text-foreground/90">
-          {PAID_PERKS.map((t) => (
+          {pitch.bullets.map((t) => (
             <li key={t} className="flex gap-2">
               <span className="text-accent">✓</span>
               <span>{t}</span>
             </li>
           ))}
         </ul>
+        <p className="mt-3 text-xs text-muted">{pitch.priceNote}</p>
       </div>
-
-      <Link
-        href="/"
-        className="mt-10 inline-block text-sm text-accent underline"
-      >
-        ← На главную
-      </Link>
     </div>
   );
 }
