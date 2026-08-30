@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { IconBadge } from "@/components/icons/MayaIcon";
 import {
   BASE_MONTH_RUB,
+  FAKE_PAYMENTS,
   formatExpiry,
   formatRub,
   isSubscriptionActive,
@@ -17,9 +18,11 @@ import { CHAT_TOPUP_RUB } from "@/lib/chat-quota";
 import { trackEvent } from "@/lib/analytics-client";
 import { getValuePitch } from "@/lib/value-pitch";
 import { useAppStore } from "@/lib/store";
+import { useRouter } from "next/navigation";
 
 export default function PricingInner() {
   const search = useSearchParams();
+  const router = useRouter();
   const subscription = useAppStore((s) => s.subscription);
   const accountEmail = useAppStore((s) => s.accountEmail);
   const emailVerified = useAppStore((s) => s.emailVerified);
@@ -90,6 +93,35 @@ export default function PricingInner() {
 
     setBusy(id);
     try {
+      if (FAKE_PAYMENTS) {
+        const res = await fetch("/api/payments/fake-grant", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ planId: id, email: accountEmail }),
+        });
+        const data = (await res.json()) as {
+          error?: string;
+          expiresAt?: string | null;
+          planId?: string;
+        };
+        if (!res.ok) {
+          throw new Error(data.error || "Не удалось включить доступ");
+        }
+        activateSubscription(id);
+        if (data.expiresAt) {
+          useAppStore.setState({
+            subscription: {
+              planId: id,
+              expiresAt: data.expiresAt,
+            },
+          });
+        }
+        setPaidHint(true);
+        setBusy(null);
+        router.replace("/");
+        return;
+      }
+
       const res = await fetch("/api/payments/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -117,6 +149,12 @@ export default function PricingInner() {
         От {formatRub(BASE_MONTH_RUB)} в месяц. Если пакет чата кончится —
         доплата {CHAT_TOPUP_RUB} ₽, можно писать дальше.
       </p>
+
+      {FAKE_PAYMENTS && (
+        <p className="mt-3 rounded-xl border border-amber-500/35 bg-amber-500/10 px-3 py-2 text-xs text-foreground">
+          Тест: «Оплатить» сразу включает доступ, без реальных денег.
+        </p>
+      )}
 
       {paidHint && (
         <p className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm">
