@@ -17,7 +17,6 @@ import {
   SketchMaya,
 } from "@/components/illustrations/MayaSketch";
 import { MayaIcon } from "@/components/icons/MayaIcon";
-import { PlanTeamChatBanner } from "@/components/plan/PlanTeamEntry";
 import { stripSuggestMarker, wardrobeForChat, resolveDiaryId, wardrobeFitsWeather } from "@/lib/ai-context";
 import { inferDiaryOffer } from "@/lib/diary-offer";
 import { inferLogDraftsFromUserText, looksLikeDiaryFact, mergeDiaryDrafts } from "@/lib/log-fallback";
@@ -25,8 +24,6 @@ import { MODULE_BY_ID } from "@/lib/modules";
 import { summarizeEntryFields } from "@/lib/module-schema";
 import {
   canSendAiChat,
-  FREE_CHAT_LIMIT,
-  freeChatRemaining,
   isSubscriptionActive,
 } from "@/lib/subscription";
 import {
@@ -87,7 +84,6 @@ export function ChatView() {
   const consumeAiChatQuota = useAppStore((s) => s.consumeAiChatQuota);
   const refundAiChatQuota = useAppStore((s) => s.refundAiChatQuota);
   const premium = isSubscriptionActive(subscription);
-  const chatLeft = freeChatRemaining(subscription, aiChatUsage);
   const accountEmail = useAppStore((s) => s.accountEmail);
   const emailVerified = useAppStore((s) => s.emailVerified);
 
@@ -465,9 +461,7 @@ export function ChatView() {
 
     const gate = canSendAiChat(subscription, aiChatUsage);
     if (!gate.ok) {
-      setError(
-        `На сегодня лимит бесплатных сообщений (${FREE_CHAT_LIMIT}). Завтра снова или оформите подписку.`,
-      );
+      setError("Чат с Маей доступен только с Premium. Оформите подписку.");
       return;
     }
     if (premium && needTopup) {
@@ -477,9 +471,7 @@ export function ChatView() {
       return;
     }
     if (!premium && !consumeAiChatQuota()) {
-      setError(
-        `На сегодня лимит бесплатных сообщений (${FREE_CHAT_LIMIT}). Завтра снова или оформите подписку.`,
-      );
+      setError("Чат с Маей доступен только с Premium. Оформите подписку.");
       return;
     }
 
@@ -835,9 +827,7 @@ export function ChatView() {
     titleHint?: string,
   ) {
     if (!isSubscriptionActive(useAppStore.getState().subscription)) {
-      setError(
-        "Создание своих дневников — в подписке. Готовые разделы (сон, ГВ, смеси…) бесплатны.",
-      );
+      setError("Создание своих дневников — только в Premium.");
       router.push("/pricing");
       return;
     }
@@ -1000,7 +990,6 @@ export function ChatView() {
                     ))}
                   </div>
                   <div className="mx-auto mt-5 flex w-full max-w-sm flex-col items-stretch">
-                    <PlanTeamChatBanner />
                     <Link
                       href="/community"
                       className="mt-3 inline-flex items-center gap-2 rounded-2xl border border-accent/25 bg-accent-soft/70 px-4 py-2.5 text-sm font-semibold text-foreground transition hover:border-accent/40"
@@ -1257,10 +1246,10 @@ export function ChatView() {
           {error && (
             <div className="mx-4 mb-2 shrink-0 rounded-xl border border-blush/40 bg-blush-soft px-3 py-2 text-sm">
               <p>{error}</p>
-              {!premium && chatLeft === 0 && (
+              {!premium && (
                 <p className="mt-1">
                   <Link href="/pricing" className="font-semibold underline">
-                    Подписка
+                    Оформить Premium
                   </Link>
                 </p>
               )}
@@ -1279,13 +1268,9 @@ export function ChatView() {
             </div>
           )}
 
-          {!premium && chatLeft != null && (
+          {!premium && (
             <p className="mx-4 mb-1.5 shrink-0 text-[11px] text-muted">
-              Бесплатно сегодня:{" "}
-              <span className="font-medium text-foreground">
-                {chatLeft} из {FREE_CHAT_LIMIT}
-              </span>
-              {" · "}
+              Нужна подписка ·{" "}
               <Link href="/pricing" className="text-accent underline">
                 Premium
               </Link>
@@ -1309,7 +1294,7 @@ export function ChatView() {
           ) : null}
 
           <form
-            className="flex shrink-0 gap-2 border-t border-line p-3"
+            className="flex shrink-0 gap-2 border-t border-line p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
             onSubmit={(e) => {
               e.preventDefault();
               if (listening) recognitionRef.current?.stop();
@@ -1324,7 +1309,7 @@ export function ChatView() {
                 placeholder={
                   listening ? "Слушаю…" : "Напишите или скажите Мае…"
                 }
-                className="w-full rounded-2xl border border-line bg-background py-3.5 pl-4 pr-12 text-[15px] text-foreground outline-none transition placeholder:text-muted/80 focus:border-accent/50 focus:shadow-[0_0_0_3px_rgba(50,215,175,0.22)]"
+                className="w-full rounded-2xl border border-line bg-background py-3.5 pl-4 pr-12 text-base text-foreground outline-none transition placeholder:text-muted/80 focus:border-accent/50 focus:shadow-[0_0_0_3px_rgba(50,215,175,0.22)]"
               />
               {voiceSupported && (
                 <button

@@ -31,9 +31,14 @@ export default function LegalIndexPage() {
           </a>
         </p>
       </div>
-      <p className="rounded-xl border border-line bg-card/60 px-3 py-2 text-xs text-muted">
-        Услуги носят информационный характер и не являются медицинской помощью.
-        При любых вопросах о здоровье ребёнка обращайтесь к врачу.
+      <p className="rounded-xl border border-rose-500/25 bg-rose-500/5 px-3 py-2 text-xs leading-relaxed text-muted">
+        Мая — информационный сервис, не врач и не медицинская помощь. Ответы ИИ
+        могут быть неточными. Решения о здоровье — только ваши и лечащего
+        врача. Подробности — в{" "}
+        <Link href="/legal/offer" className="text-accent underline">
+          оферте
+        </Link>
+        .
       </p>
       <ul className="mt-6 space-y-3">
         {LEGAL_DOCS.map((d) => (

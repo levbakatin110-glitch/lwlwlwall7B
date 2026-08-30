@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { isAppleMobile, isWebmUnsupported } from "@/lib/media-mime";
 
 const CIRCLE_MAX_MS = 30_000;
 /** Жёсткий потолок под nginx/прокси (~1–3 МБ) */
@@ -8,15 +9,21 @@ export const CIRCLE_MAX_UPLOAD_BYTES = 2_800_000;
 
 function pickMime(): string {
   if (typeof MediaRecorder === "undefined") return "";
-  if (MediaRecorder.isTypeSupported("video/webm;codecs=vp8,opus")) {
-    return "video/webm;codecs=vp8,opus";
-  }
-  if (MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus")) {
-    return "video/webm;codecs=vp9,opus";
-  }
-  if (MediaRecorder.isTypeSupported("video/webm")) return "video/webm";
-  if (MediaRecorder.isTypeSupported("video/mp4")) return "video/mp4";
-  return "";
+  const apple = isAppleMobile();
+  const candidates = apple
+    ? [
+        "video/mp4",
+        "video/webm;codecs=vp8,opus",
+        "video/webm;codecs=vp9,opus",
+        "video/webm",
+      ]
+    : [
+        "video/webm;codecs=vp8,opus",
+        "video/webm;codecs=vp9,opus",
+        "video/webm",
+        "video/mp4",
+      ];
+  return candidates.find((t) => MediaRecorder.isTypeSupported(t)) || "";
 }
 
 function ProgressRing({
@@ -71,10 +78,22 @@ export function CircleNotePlayer({ url }: { url: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [broken, setBroken] = useState(false);
 
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
+    setBroken(false);
+    setPlaying(false);
+    setProgress(0);
+
+    const primeFrame = () => {
+      try {
+        if (v.readyState >= 1) v.currentTime = 0.01;
+      } catch {
+        /* ignore */
+      }
+    };
     const onTime = () => {
       if (v.duration && Number.isFinite(v.duration)) {
         setProgress(v.currentTime / v.duration);
@@ -85,11 +104,19 @@ export function CircleNotePlayer({ url }: { url: string }) {
       setProgress(0);
       v.currentTime = 0;
     };
+    const onError = () => setBroken(true);
+
+    v.addEventListener("loadedmetadata", primeFrame);
+    v.addEventListener("loadeddata", primeFrame);
     v.addEventListener("timeupdate", onTime);
     v.addEventListener("ended", onEnd);
+    v.addEventListener("error", onError);
     return () => {
+      v.removeEventListener("loadedmetadata", primeFrame);
+      v.removeEventListener("loadeddata", primeFrame);
       v.removeEventListener("timeupdate", onTime);
       v.removeEventListener("ended", onEnd);
+      v.removeEventListener("error", onError);
     };
   }, [url]);
 
@@ -132,10 +159,16 @@ export function CircleNotePlayer({ url }: { url: string }) {
           ref={videoRef}
           src={url}
           playsInline
-          preload="metadata"
+          preload="auto"
           className="h-full w-full object-cover"
         />
-        {!playing && (
+        {broken ? (
+          <span className="absolute inset-0 flex items-center justify-center bg-black/70 px-3 text-center text-[11px] leading-snug text-white/85">
+            {isWebmUnsupported()
+              ? "Кружок конвертируется — обновите через минуту"
+              : "Не удалось открыть видео"}
+          </span>
+        ) : !playing ? (
           <span className="absolute inset-0 flex items-center justify-center bg-black/25">
             <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-foreground shadow-lg">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
@@ -143,7 +176,7 @@ export function CircleNotePlayer({ url }: { url: string }) {
               </svg>
             </span>
           </span>
-        )}
+        ) : null}
       </span>
     </button>
   );
@@ -306,7 +339,8 @@ export function CircleRecorder({ onCancel, onReady }: Props) {
     };
     rec.onstop = () => {
       clearTick();
-      const rawType = rec.mimeType || mime || "video/webm";
+      const rawType =
+        rec.mimeType || mime || (isAppleMobile() ? "video/mp4" : "video/webm");
       const type = rawType.startsWith("video/")
         ? rawType.split(";")[0]
         : "video/webm";
@@ -423,7 +457,6 @@ export function CircleRecorder({ onCancel, onReady }: Props) {
 
   const progress = phase === "recording" ? elapsedMs / CIRCLE_MAX_MS : 0;
   const secs = Math.floor(elapsedMs / 1000);
-  const mirror = facing === "user";
 
   return (
     <div className="maya-circle-recorder fixed inset-0 z-[220] flex flex-col text-white">
@@ -487,7 +520,7 @@ export function CircleRecorder({ onCancel, onReady }: Props) {
                 muted
                 playsInline
                 autoPlay
-                className={`h-full w-full object-cover ${mirror ? "scale-x-[-1]" : ""}`}
+                className="h-full w-full object-cover"
               />
             ) : (
               <video

@@ -4,6 +4,7 @@ import {
   listCommunityMessages,
   type CommunityMediaKind,
 } from "@/lib/community-store";
+import { resolveUploadMime } from "@/lib/media-mime";
 import { readSessionFromRequest } from "@/lib/session";
 
 export const runtime = "nodejs";
@@ -56,16 +57,7 @@ export async function POST(req: Request) {
               : f.type.startsWith("audio/")
                 ? "voice"
                 : "image";
-        const mime =
-          f.type && f.type !== "application/octet-stream"
-            ? f.type
-            : kind === "image"
-              ? "image/jpeg"
-              : kind === "voice"
-                ? "audio/webm"
-                : kind === "circle" || kind === "video"
-                  ? "video/webm"
-                  : "application/octet-stream";
+        const mime = resolveUploadMime(buf, f.type || "", kind);
         media = { kind, buffer: buf, mime };
       }
 

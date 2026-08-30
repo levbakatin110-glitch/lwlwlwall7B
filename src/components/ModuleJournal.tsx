@@ -437,8 +437,7 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
         {premiumLocked ? (
           <>
             <p className="mt-4 text-sm text-muted">
-              Этот дневник — в Maya Premium. На бесплатном доступны рост и вес,
-              ГВ и вода.
+              Этот дневник доступен только в Maya Premium.
             </p>
             <div className="mt-4 flex gap-2">
               <Link

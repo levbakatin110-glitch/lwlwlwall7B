@@ -315,28 +315,12 @@ export default function AdminPage() {
         </Link>
       </p>
 
-      <Link
-        href="/admin/orders"
-        className="mt-6 block rounded-2xl border border-zinc-600/50 bg-gradient-to-br from-zinc-800 to-zinc-950 p-5 text-white shadow-lg ring-1 ring-zinc-500/25 transition hover:from-zinc-700 hover:to-zinc-900"
-      >
-        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400">
-          Разбор дневника
+      <div className="mt-6 rounded-2xl border border-line bg-card/60 p-5 text-sm text-muted">
+        <p className="font-medium text-foreground">Чаты консультанта</p>
+        <p className="mt-1.5 leading-relaxed">
+          Отключены. В продаже только Maya Premium.
         </p>
-        <h2 className="font-display mt-1 text-xl font-semibold">
-          Чаты с Марией
-        </h2>
-        <p className="mt-2 text-sm leading-relaxed text-zinc-300">
-          Переписка, снимок дневника, ИИ-черновик и отправка PDF. Отвечайте мамам
-          от лица Марии.
-        </p>
-        <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-zinc-100">
-          Открыть чаты →
-        </span>
-      </Link>
-
-      <p className="mt-3 text-xs text-muted">
-        Прямая ссылка: <code className="text-foreground">/admin/orders</code>
-      </p>
+      </div>
 
       {note && (
         <p className="mt-4 rounded-xl border border-line bg-accent-soft/50 px-3 py-2 text-sm text-foreground">

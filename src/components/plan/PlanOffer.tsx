@@ -17,6 +17,7 @@ import {
 } from "@/lib/plan-consultants";
 import {
   ACCOMPANIMENT_INCLUDES,
+  CONSULTANT_OFFERS_ENABLED,
   PLAN_CONSULTANT_NAMES,
   PLAN_OFFER_CTA,
   PLAN_OFFER_TITLE,
@@ -396,6 +397,11 @@ export function SpecialistChat({ orderId }: { orderId: string }) {
 }
 
 export function PlanOfferBanner({ moduleId }: { moduleId: string }) {
+  if (!CONSULTANT_OFFERS_ENABLED) return null;
+  return <PlanOfferBannerActive moduleId={moduleId} />;
+}
+
+function PlanOfferBannerActive({ moduleId }: { moduleId: string }) {
   const topic: PlanTopic | null =
     moduleId === "sleep"
       ? "sleep"

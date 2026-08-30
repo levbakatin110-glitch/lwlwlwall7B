@@ -1,36 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { use } from "react";
-import { SpecialistChat } from "@/components/plan/PlanOffer";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
-export default function PlanOrderPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = use(params);
+/** Чаты консультанта отключены — проект не запускался. */
+export default function PlanChatPage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace("/");
+  }, [router]);
 
   return (
-    <div className="flex h-dvh max-h-dvh flex-col overflow-hidden bg-background">
-      <header className="flex shrink-0 items-center justify-between gap-3 border-b border-line bg-card/70 px-4 py-2.5">
-        <Link
-          href="/"
-          className="text-sm font-semibold text-accent transition hover:underline"
-        >
-          ← К Мае
-        </Link>
-        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-zinc-500">
-          План
-        </span>
-        <Link
-          href="/modules"
-          className="text-sm text-muted transition hover:text-foreground"
-        >
-          Дневники
-        </Link>
-      </header>
-      <SpecialistChat orderId={id} />
+    <div className="flex min-h-dvh flex-col items-center justify-center gap-3 px-4 text-center text-sm text-muted">
+      <p>Чат с консультантом больше не доступен.</p>
+      <Link href="/" className="font-medium text-accent underline">
+        К Мае
+      </Link>
     </div>
   );
 }

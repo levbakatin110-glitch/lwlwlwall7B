@@ -1,11 +1,27 @@
-import { readFileSync } from "fs";
 import { resolveMediaPath } from "@/lib/community-store";
+import { resolvePlaybackBuffer } from "@/lib/transcode-media";
 
 export const runtime = "nodejs";
 
 type Ctx = { params: Promise<{ id: string }> };
 
-export async function GET(_req: Request, ctx: Ctx) {
+function byteRange(
+  size: number,
+  rangeHeader: string | null,
+): { start: number; end: number } | null {
+  if (!rangeHeader || !rangeHeader.startsWith("bytes=")) return null;
+  const [startStr, endStr] = rangeHeader.slice(6).split("-");
+  const start = Number(startStr);
+  if (!Number.isFinite(start) || start < 0) return null;
+  const end =
+    endStr && endStr.length > 0
+      ? Math.min(Number(endStr), size - 1)
+      : size - 1;
+  if (!Number.isFinite(end) || end < start) return null;
+  return { start, end };
+}
+
+export async function GET(req: Request, ctx: Ctx) {
   const { id } = await ctx.params;
   const safe = String(id || "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 64);
   if (!safe) {
@@ -16,11 +32,32 @@ export async function GET(_req: Request, ctx: Ctx) {
     return new Response("Not found", { status: 404 });
   }
   try {
-    const buf = readFileSync(media.path);
-    return new Response(buf, {
+    const { buffer, mime } = await resolvePlaybackBuffer(media.path, media.kind);
+    const size = buffer.length;
+    const range = byteRange(size, req.headers.get("range"));
+
+    const baseHeaders: Record<string, string> = {
+      "Content-Type": mime,
+      "Accept-Ranges": "bytes",
+      "Cache-Control": "public, max-age=86400",
+    };
+
+    if (range) {
+      const chunk = buffer.subarray(range.start, range.end + 1);
+      return new Response(chunk, {
+        status: 206,
+        headers: {
+          ...baseHeaders,
+          "Content-Length": String(chunk.length),
+          "Content-Range": `bytes ${range.start}-${range.end}/${size}`,
+        },
+      });
+    }
+
+    return new Response(buffer, {
       headers: {
-        "Content-Type": media.mime,
-        "Cache-Control": "public, max-age=86400",
+        ...baseHeaders,
+        "Content-Length": String(size),
       },
     });
   } catch {

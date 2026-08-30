@@ -13,9 +13,12 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import {
   CircleNotePlayer,
-  CircleRecorder,
 } from "@/components/CircleRecorder";
-import { VoiceNotePlayer, VoiceRecorder } from "@/components/VoiceRecorder";
+import {
+  HoldRecordOverlay,
+  useHoldMediaRecord,
+} from "@/components/community/HoldMediaRecord";
+import { VoiceNotePlayer } from "@/components/VoiceRecorder";
 import { MayaIcon } from "@/components/icons/MayaIcon";
 import {
   COMMUNITY_REACTIONS,
@@ -244,8 +247,6 @@ export function MomsCircleChat() {
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [pendingKind, setPendingKind] = useState<MediaKind | null>(null);
   const [pendingPreview, setPendingPreview] = useState<string | null>(null);
-  const [circleOpen, setCircleOpen] = useState(false);
-  const [voiceOpen, setVoiceOpen] = useState(false);
   const [replyTo, setReplyTo] = useState<CommunityMessage | null>(null);
   const [menu, setMenu] = useState<MenuState | null>(null);
   const [flashId, setFlashId] = useState<string | null>(null);
@@ -259,6 +260,13 @@ export function MomsCircleChat() {
   const pressStart = useRef({ x: 0, y: 0 });
   const suppressClick = useRef(false);
   const menuOpenedAt = useRef(0);
+
+  const holdRecord = useHoldMediaRecord({
+    onReady: (file, kind) => {
+      void send(undefined, { file, kind });
+    },
+    onError: (message) => setError(message),
+  });
 
   const canPost = Boolean(emailVerified && accountEmail);
 
@@ -585,24 +593,6 @@ export function MomsCircleChat() {
     } catch {
       setError("Не удалось прикрепить файл");
     }
-  }
-
-  function openCircle() {
-    setError(null);
-    setCircleOpen(true);
-  }
-
-  function onCircleReady(file: File, previewUrl: string) {
-    clearPendingMedia();
-    setPendingFile(file);
-    setPendingKind("circle");
-    setPendingPreview(previewUrl);
-    setCircleOpen(false);
-  }
-
-  function onVoiceReady(file: File) {
-    setVoiceOpen(false);
-    void send(undefined, { file, kind: "voice" });
   }
 
   async function send(
@@ -956,7 +946,7 @@ export function MomsCircleChat() {
             })}
           </div>
 
-          <div className="shrink-0 border-t border-line bg-card/95 px-3 py-2.5 pb-[max(0.65rem,env(safe-area-inset-bottom))]">
+          <div className="shrink-0 border-t border-line bg-card/95 px-3 pt-2.5 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
             {!canPost ? (
               <div className="rounded-xl bg-accent-soft/50 px-3 py-2.5 text-sm">
                 <Link
@@ -1062,22 +1052,21 @@ export function MomsCircleChat() {
                   </button>
                   <button
                     type="button"
-                    onClick={openCircle}
-                    className="flex h-11 w-10 shrink-0 items-center justify-center rounded-xl text-muted hover:bg-accent-soft hover:text-foreground"
-                    aria-label="Записать кружок"
-                    title="Кружок"
+                    {...holdRecord.bindHold("circle")}
+                    disabled={busy || !!holdRecord.active}
+                    className="flex h-11 w-10 shrink-0 touch-none select-none items-center justify-center rounded-xl text-muted hover:bg-accent-soft hover:text-foreground disabled:opacity-40"
+                    aria-label="Зажмите — записать кружок"
+                    title="Зажмите — кружок"
                   >
                     <MayaIcon name="videonote" size={18} />
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
-                      setError(null);
-                      setVoiceOpen(true);
-                    }}
-                    className="flex h-11 w-10 shrink-0 items-center justify-center rounded-xl text-muted hover:bg-accent-soft hover:text-foreground"
-                    aria-label="Записать голосовое"
-                    title="Голосовое"
+                    {...holdRecord.bindHold("voice")}
+                    disabled={busy || !!holdRecord.active}
+                    className="flex h-11 w-10 shrink-0 touch-none select-none items-center justify-center rounded-xl text-muted hover:bg-accent-soft hover:text-foreground disabled:opacity-40"
+                    aria-label="Зажмите — голосовое"
+                    title="Зажмите — голосовое"
                   >
                     <MayaIcon name="mic" size={18} />
                   </button>
@@ -1093,7 +1082,7 @@ export function MomsCircleChat() {
                     }}
                     rows={1}
                     placeholder={replyTo ? "Ответ" : "Сообщение"}
-                    className="max-h-28 min-h-[2.75rem] flex-1 resize-none rounded-2xl border border-line bg-background px-3.5 py-2.5 text-[15px] text-foreground outline-none focus:border-accent/40"
+                    className="max-h-28 min-h-[2.75rem] flex-1 resize-none rounded-2xl border border-line bg-background px-3.5 py-2.5 text-base text-foreground outline-none focus:border-accent/40"
                   />
                   <button
                     type="submit"
@@ -1192,18 +1181,17 @@ export function MomsCircleChat() {
         document.body,
       )}
 
-      {circleOpen && (
-        <CircleRecorder
-          onCancel={() => setCircleOpen(false)}
-          onReady={onCircleReady}
-        />
-      )}
-      {voiceOpen && (
-        <VoiceRecorder
-          onCancel={() => setVoiceOpen(false)}
-          onReady={onVoiceReady}
-        />
-      )}
+      <HoldRecordOverlay
+        active={holdRecord.active}
+        cancelHint={holdRecord.cancelHint}
+        secs={holdRecord.secs}
+        liveRef={holdRecord.liveRef}
+        onFlipCamera={
+          holdRecord.active === "circle"
+            ? () => void holdRecord.flipCamera()
+            : undefined
+        }
+      />
     </div>
   );
 }

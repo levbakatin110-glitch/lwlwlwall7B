@@ -7,6 +7,7 @@ import { AnalyticsVisitBeacon } from "./AnalyticsVisitBeacon";
 import { AuthSessionSync } from "./AuthSessionSync";
 import { CloudBackupSync } from "./CloudBackupSync";
 import { OnboardingGate } from "./OnboardingFlow";
+import { PremiumGate } from "./PremiumGate";
 import { QuickNavCarousel } from "./QuickNavCarousel";
 import { PushReminders } from "./PushReminders";
 import { RemindersHost } from "./RemindersHost";
@@ -71,6 +72,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <OnboardingGate>
+      <PremiumGate>
       <ThemeSync />
       <AnalyticsVisitBeacon />
       {globalSync}
@@ -100,7 +102,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <QuickNavCarousel />
             </header>
           )}
-          <main className={`relative flex min-h-0 flex-1 flex-col overflow-x-hidden overscroll-none pb-[env(safe-area-inset-bottom)] ${isPlanChat || isHome ? "overflow-hidden" : "overflow-y-auto"}`}>
+          <main
+            className={`relative flex min-h-0 flex-1 flex-col overflow-x-hidden overscroll-none ${
+              isPlanChat || isHome || isCommunity
+                ? "overflow-hidden"
+                : "overflow-y-auto"
+            } ${
+              isPlanChat || isHome || isCommunity
+                ? ""
+                : "pb-[env(safe-area-inset-bottom)]"
+            }`}
+          >
             {children}
           </main>
         </div>
@@ -112,6 +124,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
         <RemindersHost />
       </div>
+      </PremiumGate>
     </OnboardingGate>
   );
 }

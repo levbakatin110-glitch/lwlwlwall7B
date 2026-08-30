@@ -1,19 +1,29 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { isAppleMobile } from "@/lib/media-mime";
 
 const VOICE_MAX_MS = 60_000;
 export const VOICE_MAX_UPLOAD_BYTES = 2_000_000;
 
 function pickAudioMime(): string {
   if (typeof MediaRecorder === "undefined") return "";
-  const types = [
-    "audio/webm;codecs=opus",
-    "audio/webm",
-    "audio/mp4",
-    "audio/ogg;codecs=opus",
-    "audio/ogg",
-  ];
+  const apple = isAppleMobile();
+  const types = apple
+    ? [
+        "audio/mp4",
+        "audio/webm;codecs=opus",
+        "audio/webm",
+        "audio/ogg;codecs=opus",
+        "audio/ogg",
+      ]
+    : [
+        "audio/webm;codecs=opus",
+        "audio/webm",
+        "audio/mp4",
+        "audio/ogg;codecs=opus",
+        "audio/ogg",
+      ];
   return types.find((t) => MediaRecorder.isTypeSupported(t)) || "";
 }
 
@@ -27,10 +37,16 @@ export function VoiceNotePlayer({ url }: { url: string }) {
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [broken, setBroken] = useState(false);
 
   useEffect(() => {
     const a = audioRef.current;
     if (!a) return;
+    setBroken(false);
+    setPlaying(false);
+    setProgress(0);
+    setDuration(0);
+
     const onTime = () => {
       if (a.duration && Number.isFinite(a.duration) && a.duration > 0) {
         setProgress(a.currentTime / a.duration);
@@ -41,13 +57,17 @@ export function VoiceNotePlayer({ url }: { url: string }) {
       setPlaying(false);
       setProgress(0);
     };
+    const onError = () => setBroken(true);
+
     a.addEventListener("timeupdate", onTime);
     a.addEventListener("loadedmetadata", onTime);
     a.addEventListener("ended", onEnd);
+    a.addEventListener("error", onError);
     return () => {
       a.removeEventListener("timeupdate", onTime);
       a.removeEventListener("loadedmetadata", onTime);
       a.removeEventListener("ended", onEnd);
+      a.removeEventListener("error", onError);
     };
   }, [url]);
 
@@ -71,12 +91,15 @@ export function VoiceNotePlayer({ url }: { url: string }) {
     <button
       type="button"
       onClick={() => void toggle()}
-      className="mt-1.5 flex w-[min(100%,16rem)] items-center gap-2.5 rounded-full bg-accent-soft/80 px-2.5 py-2 text-left"
+      disabled={broken}
+      className="mt-1.5 flex w-[min(100%,16rem)] items-center gap-2.5 rounded-full bg-accent-soft/80 px-2.5 py-2 text-left disabled:opacity-60"
       aria-label={playing ? "Пауза" : "Слушать голосовое"}
     >
-      <audio ref={audioRef} src={url} preload="metadata" />
+      <audio ref={audioRef} src={url} preload="metadata" playsInline />
       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-[var(--on-accent,#fff)]">
-        {playing ? (
+        {broken ? (
+          <span className="text-[10px] font-bold">!</span>
+        ) : playing ? (
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
             <rect x="6" y="5" width="4.5" height="14" rx="1" />
             <rect x="13.5" y="5" width="4.5" height="14" rx="1" />
@@ -94,7 +117,7 @@ export function VoiceNotePlayer({ url }: { url: string }) {
         />
       </span>
       <span className="w-9 shrink-0 text-[11px] tabular-nums text-muted">
-        {fmtSec(duration || 0)}
+        {broken ? "—" : fmtSec(duration || 0)}
       </span>
     </button>
   );

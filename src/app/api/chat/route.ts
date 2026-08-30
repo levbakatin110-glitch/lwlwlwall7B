@@ -12,15 +12,11 @@ import {
 } from "@/lib/chat-queue";
 import { withTimeout } from "@/lib/fetch-timeout";
 import { clientIpFromRequest, lookupIpGeo } from "@/lib/ip-geo";
-import {
-  checkIpChatLimit,
-  consumeIpChatLimit,
-} from "@/lib/ip-rate-limit";
 import { chatModel, createChatOpenAI } from "@/lib/openai";
 import { pushServerOpsError } from "@/lib/ops-log";
 import { getServerSubscription } from "@/lib/paid-store";
 import { readSessionFromRequest } from "@/lib/session";
-import { TEMP_UNLOCK_ALL } from "@/lib/subscription";
+import { PAID_ONLY, TEMP_UNLOCK_ALL } from "@/lib/subscription";
 import { encodeWeatherHeader, resolveWeather } from "@/lib/weather";
 
 export const runtime = "nodejs";
@@ -36,24 +32,20 @@ export async function POST(req: Request) {
     return Response.json({ error }, { status: 500 });
   }
 
-  const ip = clientIpFromRequest(req);
   const session = readSessionFromRequest(req);
   const premium =
     TEMP_UNLOCK_ALL ||
     Boolean(session?.email && getServerSubscription(session.email));
 
   if (!premium) {
-    const ipGate = checkIpChatLimit(ip);
-    if (!ipGate.ok) {
-      const error =
-        "С этого адреса сегодня слишком много запросов к Мае. Завтра снова или оформите подписку.";
-      pushServerOpsError({
-        source: "chat",
-        message: "IP chat limit",
-        status: 429,
-        detail: ip.slice(0, 40),
-      });
-      return Response.json({ error }, { status: 429 });
+    if (PAID_ONLY) {
+      return Response.json(
+        {
+          error: "Чат с Маей доступен только с Premium. Оформите подписку.",
+          code: "premium_required",
+        },
+        { status: 402 },
+      );
     }
   }
 
@@ -201,9 +193,6 @@ export async function POST(req: Request) {
           "X-Maya-Chat-Remaining": String(consumed.view.remaining),
           "X-Maya-Chat-Allowance": String(consumed.view.allowance),
         };
-      } else if (!premium) {
-        consumeIpChatLimit(ip);
-        charged = true;
       }
 
       trackAnalyticsEvent({

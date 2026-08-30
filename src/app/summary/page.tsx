@@ -19,7 +19,6 @@ import {
 import { openDoctorReportPdf } from "@/lib/doctor-report";
 import {
   canSendAiChat,
-  FREE_CHAT_LIMIT,
 } from "@/lib/subscription";
 import { useAppStore } from "@/lib/store";
 import type { IconName } from "@/lib/icons";
@@ -115,15 +114,11 @@ export default function SummaryPage() {
 
     const gate = canSendAiChat(subscription, aiChatUsage);
     if (!gate.ok) {
-      setVerdictError(
-        `На сегодня лимит бесплатных сообщений (${FREE_CHAT_LIMIT}). Завтра снова или оформите подписку.`,
-      );
+      setVerdictError("Итог дня с Маей — только с Premium. Оформите подписку.");
       return;
     }
     if (!consumeAiChatQuota()) {
-      setVerdictError(
-        `На сегодня лимит бесплатных сообщений (${FREE_CHAT_LIMIT}). Завтра снова или оформите подписку.`,
-      );
+      setVerdictError("Итог дня с Маей — только с Premium. Оформите подписку.");
       return;
     }
 

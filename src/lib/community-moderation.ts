@@ -30,9 +30,20 @@ const FILE = join(DATA_DIR, "community-moderation.json");
 
 const MUTE_MS = [0, 60 * 60_000, 24 * 60 * 60_000]; // 1-й страйк → 1ч, 2-й → 24ч, 3-й → kick
 const SPAM_WINDOW_MS = 10 * 60_000;
-const SPAM_SAME_COUNT = 3;
+const SPAM_SAME_COUNT = 6;
 const FLOOD_WINDOW_MS = 60_000;
-const FLOOD_MAX = 8;
+/** Мягкое предупреждение — без страйка */
+const FLOOD_WARN = 28;
+/** Жёсткий стоп на минуту — без страйка */
+const FLOOD_HARD = 40;
+
+const MEDIA_PLACEHOLDERS = new Set([
+  "🎥 кружок",
+  "🎬 видео",
+  "📷 фото",
+  "🎤 голосовое",
+  "[media]",
+]);
 
 /** Маркетплейсы и «нормальные» магазины — ссылки можно */
 const ALLOWED_HOST_SUFFIXES = [
@@ -222,24 +233,61 @@ function noteRecent(store: ModStore, authorKey: string, text: string) {
     (x) => now - x.at < SPAM_WINDOW_MS,
   );
   list.push({ text: text.slice(0, 200).toLowerCase(), at: now });
-  store.recent[authorKey] = list.slice(-20);
+  store.recent[authorKey] = list.slice(-60);
 }
 
-function isSpam(store: ModStore, authorKey: string, text: string): boolean {
+function trackKey(text: string, hasMedia?: boolean): string {
+  const trimmed = text.trim();
+  if (isUserTextForSpam(trimmed)) {
+    return trimmed.slice(0, 200).toLowerCase();
+  }
+  if (hasMedia) {
+    return `[media:${Date.now()}:${Math.random().toString(36).slice(2, 7)}]`;
+  }
+  return trimmed.slice(0, 200).toLowerCase() || `[empty:${Date.now()}]`;
+}
+
+function isUserTextForSpam(text: string): boolean {
+  const norm = text.trim();
+  return norm.length > 0 && !MEDIA_PLACEHOLDERS.has(norm);
+}
+
+function floodCount(store: ModStore, authorKey: string): number {
+  const now = Date.now();
+  return (store.recent[authorKey] || []).filter(
+    (x) => now - x.at < FLOOD_WINDOW_MS,
+  ).length;
+}
+
+function checkFlood(
+  store: ModStore,
+  authorKey: string,
+): { ok: true } | { ok: false; error: string } {
+  const flood = floodCount(store, authorKey);
+  if (flood >= FLOOD_HARD) {
+    return {
+      ok: false,
+      error: "Очень много сообщений за минуту — подождите пару минут",
+    };
+  }
+  if (flood >= FLOOD_WARN) {
+    return {
+      ok: false,
+      error: "Вы пишете очень часто — чуть медленнее, без молчанки",
+    };
+  }
+  return { ok: true };
+}
+
+function isDuplicateSpam(store: ModStore, authorKey: string, text: string): boolean {
+  if (!isUserTextForSpam(text)) return false;
   const now = Date.now();
   const list = store.recent[authorKey] || [];
   const norm = text.slice(0, 200).toLowerCase().trim();
-  if (!norm) return false;
-
   const same = list.filter(
     (x) => x.text === norm && now - x.at < SPAM_WINDOW_MS,
   ).length;
-  if (same >= SPAM_SAME_COUNT - 1) return true;
-
-  const flood = list.filter((x) => now - x.at < FLOOD_WINDOW_MS).length;
-  if (flood >= FLOOD_MAX) return true;
-
-  return false;
+  return same >= SPAM_SAME_COUNT - 1;
 }
 
 /**
@@ -277,9 +325,13 @@ export function moderateCommunityPost(input: {
     }
   }
 
-  const trackText = text || babyTag || (input.hasMedia ? "[media]" : "");
+  const trackText = trackKey(text || babyTag || "", input.hasMedia);
+
+  const flood = checkFlood(store, authorKey);
+  if (!flood.ok) return flood;
+
   if (trackText) {
-    if (isSpam(store, authorKey, trackText)) {
+    if (isDuplicateSpam(store, authorKey, text || babyTag || "")) {
       return applyStrike(store, authorKey, "spam");
     }
     noteRecent(store, authorKey, trackText);

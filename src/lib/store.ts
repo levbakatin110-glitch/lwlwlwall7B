@@ -52,6 +52,7 @@ import {
   isFreeModuleId,
   isSubscriptionActive,
   normalizeAiUsage,
+  PAID_ONLY,
   type AiChatUsage,
   type PaidPlanId,
   type SubscriptionState,
@@ -435,6 +436,7 @@ export const useAppStore = create<AppState>()(
       },
       consumeAiChatQuota: () => {
         if (isSubscriptionActive(get().subscription)) return true;
+        if (PAID_ONLY) return false;
         const today = localToday();
         const usage = normalizeAiUsage(get().aiChatUsage, today);
         if (usage.count >= FREE_CHAT_LIMIT) return false;

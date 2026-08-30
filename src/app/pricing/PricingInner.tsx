@@ -5,8 +5,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { IconBadge } from "@/components/icons/MayaIcon";
 import {
-  FREE_CHAT_LIMIT,
-  FREE_PERKS,
+  BASE_MONTH_RUB,
   formatExpiry,
   formatRub,
   isSubscriptionActive,
@@ -100,9 +99,9 @@ export default function PricingInner() {
         Maya Premium
       </h1>
       <p className="mt-1 text-sm text-muted">
-        Не «ещё один трекер за копейки» — персональная ИИ-помощница, которая
-        помнит вашего малыша. Бесплатно можно заглянуть; в Premium — полноценный
-        чат, а если пакет кончится — доплата {CHAT_TOPUP_RUB} ₽.
+        Бесплатной версии нет. Весь сервис — Мая, дневники и общение — после
+        оплаты от {formatRub(BASE_MONTH_RUB)} в месяц. Если пакет чата кончится —
+        доплата {CHAT_TOPUP_RUB} ₽.
       </p>
 
       {paidHint && (
@@ -131,15 +130,14 @@ export default function PricingInner() {
             onClick={() => clearSubscription()}
             className="mt-2 text-xs text-muted underline hover:text-foreground"
           >
-            Сбросить на бесплатный (тест на этом устройстве)
+            Сбросить подписку (тест на этом устройстве)
           </button>
         </div>
       ) : (
-        <div className="mt-5 rounded-2xl border border-line bg-card/60 px-4 py-3 text-sm">
-          <p className="font-medium">Сейчас: бесплатный тариф</p>
+        <div className="mt-5 rounded-2xl border border-accent/30 bg-accent-soft/40 px-4 py-3 text-sm">
+          <p className="font-medium">Подписка не активна</p>
           <p className="mt-1 text-xs text-muted">
-            {FREE_CHAT_LIMIT} запросов к ИИ в сутки · 3 дневника (рост/вес, ГВ,
-            вода)
+            Выберите тариф ниже — после оплаты откроется весь сервис.
           </p>
         </div>
       )}
@@ -221,40 +219,25 @@ export default function PricingInner() {
         . Услуги информационные, не заменяют консультацию врача.
       </p>
 
-      <div className="mt-10 grid gap-6 sm:grid-cols-2">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
-            Бесплатно
-          </p>
-          <ul className="mt-2 space-y-2 text-sm text-foreground/90">
-            {FREE_PERKS.map((t) => (
-              <li key={t} className="flex gap-2">
-                <span className="text-accent">✓</span>
-                <span>{t}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
-            Premium
-          </p>
-          <ul className="mt-2 space-y-2 text-sm text-foreground/90">
-            {PAID_PERKS.map((t) => (
-              <li key={t} className="flex gap-2">
-                <span className="text-accent">✓</span>
-                <span>{t}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
+      <div className="mt-10">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+          Что входит в Premium
+        </p>
+        <ul className="mt-2 space-y-2 text-sm text-foreground/90">
+          {PAID_PERKS.map((t) => (
+            <li key={t} className="flex gap-2">
+              <span className="text-accent">✓</span>
+              <span>{t}</span>
+            </li>
+          ))}
+        </ul>
       </div>
 
       <Link
         href="/"
         className="mt-10 inline-block text-sm text-accent underline"
       >
-        ← К чату
+        ← На главную
       </Link>
     </div>
   );

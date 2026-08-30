@@ -8,6 +8,8 @@ import {
 } from "fs";
 import { join } from "path";
 import { moderateCommunityPost } from "@/lib/community-moderation";
+import { resolveUploadMime } from "@/lib/media-mime";
+import { ensureSafariFriendlyBuffer } from "@/lib/transcode-media";
 import {
   isCommunityReaction,
   mediaPreviewText,
@@ -284,6 +286,7 @@ export function resolveAvatarPath(authorKey: string): string | null {
 export function resolveMediaPath(messageId: string): {
   path: string;
   mime: string;
+  kind?: CommunityMediaKind;
 } | null {
   const store = load();
   const msg = store.messages.find((m) => m.id === messageId);
@@ -291,7 +294,11 @@ export function resolveMediaPath(messageId: string): {
   const path = join(MEDIA_DIR, msg.mediaFile);
   if (!existsSync(path)) return null;
   const ext = msg.mediaFile.split(".").pop() || "";
-  return { path, mime: mimeFromExt(ext, msg.mediaKind) };
+  return {
+    path,
+    mime: mimeFromExt(ext, msg.mediaKind),
+    kind: msg.mediaKind,
+  };
 }
 
 function resolveReply(
@@ -444,8 +451,8 @@ export async function addCommunityMessage(input: {
   const last = [...store.messages]
     .reverse()
     .find((m) => m.authorKey === authorKey);
-  if (last && Date.now() - new Date(last.createdAt).getTime() < 2500) {
-    return { ok: false, error: "Подождите пару секунд" };
+  if (last && Date.now() - new Date(last.createdAt).getTime() < 800) {
+    return { ok: false, error: "Секунду — не так быстро" };
   }
 
   const id = `${Date.now().toString(36)}-${randomBytes(3).toString("hex")}`;
@@ -454,24 +461,20 @@ export async function addCommunityMessage(input: {
 
   if (input.media) {
     ensureDirs();
-    const mime =
-      input.media.kind === "image"
-        ? input.media.mime || "image/jpeg"
-        : input.media.kind === "voice"
-          ? input.media.mime?.startsWith("audio/")
-            ? input.media.mime
-            : input.media.mime?.includes("mp4")
-              ? "audio/mp4"
-              : "audio/webm"
-          : input.media.mime && input.media.mime.startsWith("video/")
-            ? input.media.mime
-            : input.media.mime?.includes("mp4")
-              ? "video/mp4"
-              : "video/webm";
+    const declared = resolveUploadMime(
+      input.media.buffer,
+      input.media.mime || "",
+      input.media.kind,
+    );
+    const { buffer, mime } = await ensureSafariFriendlyBuffer(
+      input.media.buffer,
+      input.media.kind,
+      declared,
+    );
     const ext = extFromMime(mime, input.media.kind);
     mediaFile = `${id}.${ext}`;
     mediaKind = input.media.kind;
-    writeFileSync(join(MEDIA_DIR, mediaFile), input.media.buffer);
+    writeFileSync(join(MEDIA_DIR, mediaFile), buffer);
   }
 
   const message: CommunityMessage = {

@@ -834,10 +834,20 @@ input,
 textarea,
 select {
   color-scheme: var(--scheme);
+  touch-action: manipulation;
   transition:
     border-color 0.2s ease,
     box-shadow 0.25s ease,
     background-color 0.2s ease;
+}
+
+/* iOS Safari зумит поле, если шрифт < 16px — после клавиатуры остаётся приближение */
+@media (hover: none) and (pointer: coarse) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

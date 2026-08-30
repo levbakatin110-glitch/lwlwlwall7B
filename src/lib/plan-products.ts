@@ -2,6 +2,12 @@
 
 import { prodamusConfig } from "@/lib/prodamus";
 
+/**
+ * Клиент отключил продажу и чаты консультантов.
+ * В продаже только Maya Premium (349 ₽ и пакеты).
+ */
+export const CONSULTANT_OFFERS_ENABLED = false;
+
 export type PlanTopic = "sleep" | "feed";
 
 export type PlanProductId =

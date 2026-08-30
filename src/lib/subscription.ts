@@ -1,12 +1,17 @@
-/** Тарифы Маи. Оплата (ЮKassa и т.п.) подключим отдельно — пока активация локальная. */
+/** Тарифы Маи. Оплата через Prodamus. */
 
 import { CHAT_TOPUP_RUB } from "@/lib/chat-quota";
 
 /**
  * ВРЕМЕННО было: полный Premium всем.
- * Выключено: снова работают подписка + IP-лимит бесплатных.
+ * Выключено: доступ только после оплаты.
  */
 export const TEMP_UNLOCK_ALL = false;
+
+/**
+ * Без бесплатной пробной: чат, дневники и функции — только с Premium.
+ */
+export const PAID_ONLY = true;
 
 export type PlanId = "free" | "m1" | "m3" | "m6";
 
@@ -24,39 +29,20 @@ export type AiChatUsage = {
   count: number;
 };
 
-/** Бесплатно: столько запросов к ИИ-чату в сутки (жёстко — защита от «потыкать») */
-export const FREE_CHAT_LIMIT = 3;
+/** Бесплатных сообщений нет (PAID_ONLY). Оставляем константу для совместимости. */
+export const FREE_CHAT_LIMIT = 0;
 
 /** Премиум-цена за 1 месяц */
 export const BASE_MONTH_RUB = 349;
 
-/** На бесплатном: базовые дневники малыша + беременность + цикл */
-export const FREE_MODULE_IDS = [
-  "growth",
-  "vaccines",
-  "sleep",
-  "breastfeeding",
-  "water",
-  "pregnancy",
-  "contractions",
-  "kicks",
-  "preg_weight",
-  "preg_pressure",
-  "preg_symptoms",
-  "preg_visits",
-  "preg_belly",
-  "preg_meds",
-  "preg_labs",
-  "preg_docs",
-  "preg_sleep",
-  "birth_plan",
-  "cycle",
-] as const;
+/** При PAID_ONLY бесплатных дневников нет */
+export const FREE_MODULE_IDS = [] as const;
 
 export type FreeModuleId = (typeof FREE_MODULE_IDS)[number];
 
 export function isFreeModuleId(id: string): boolean {
   if (TEMP_UNLOCK_ALL) return true;
+  if (PAID_ONLY) return false;
   return (FREE_MODULE_IDS as readonly string[]).includes(id);
 }
 
@@ -65,8 +51,8 @@ export function clampModulesForPlan(
   premium: boolean,
 ): string[] {
   const list = [...(modules ?? [])];
-  // Premium / демо: не навязываем все дневники обратно при «Отключить»
   if (TEMP_UNLOCK_ALL || premium) return list;
+  if (PAID_ONLY) return [];
   const allowed = FREE_MODULE_IDS as readonly string[];
   return list.filter((id) => allowed.includes(id));
 }
@@ -187,7 +173,8 @@ export function freeChatRemaining(
   sub: SubscriptionState | null | undefined,
   usage: AiChatUsage | null | undefined,
 ): number | null {
-  if (isSubscriptionActive(sub)) return null; // без лимита
+  if (isSubscriptionActive(sub)) return null; // без дневного лимита
+  if (PAID_ONLY) return 0;
   const u = normalizeAiUsage(usage);
   return Math.max(0, FREE_CHAT_LIMIT - u.count);
 }
@@ -197,22 +184,26 @@ export function canSendAiChat(
   usage: AiChatUsage | null | undefined,
 ): { ok: true; remaining: number | null } | { ok: false; remaining: 0 } {
   if (isSubscriptionActive(sub)) return { ok: true, remaining: null };
+  if (PAID_ONLY) return { ok: false, remaining: 0 };
   const left = freeChatRemaining(sub, usage) ?? 0;
   if (left <= 0) return { ok: false, remaining: 0 };
   return { ok: true, remaining: left };
 }
 
-/** Что даёт бесплатный / платный */
-export const FREE_PERKS = [
-  "Дневники беременности, цикла, ГВ, рост и вес, вода",
-  `${FREE_CHAT_LIMIT} сообщений Мае в сутки`,
-  "Гардероб, профиль малышей",
-];
+/** Что даёт доступ без оплаты — при PAID_ONLY ничего */
+export const FREE_PERKS: readonly string[] = PAID_ONLY
+  ? []
+  : [
+      "Дневники беременности, цикла, ГВ, рост и вес, вода",
+      `${FREE_CHAT_LIMIT} сообщений Мае в сутки`,
+      "Гардероб, профиль малышей",
+    ];
 
 export const PAID_PERKS = [
-  "Чат с Маей без дневного лимита",
-  `Если пакет кончился — доплата ${CHAT_TOPUP_RUB} ₽ и можно писать дальше`,
-  "Все дневники: сон малыша, смеси, подгузник, прогулка, диета…",
+  "Чат с Маей и все дневники",
+  "Сон, кормление, беременность, цикл, гардероб",
   "Свои дневники и доработка разделов через ИИ",
   "Итог дня, графики ВОЗ, PDF для педиатра",
+  "Общение с другими мамами",
+  `Если пакет чата кончился — доплата ${CHAT_TOPUP_RUB} ₽`,
 ] as const;

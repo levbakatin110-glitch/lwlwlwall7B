@@ -328,7 +328,7 @@ export default function ModulesPage() {
                   <p className="mt-1 text-sm text-muted">{mod.description}</p>
                   {locked ? (
                     <p className="mt-2 text-xs text-muted">
-                      На бесплатном доступны только рост/вес, ГВ и вода
+                      Доступно после оплаты Premium
                     </p>
                   ) : on ? (
                     <Link

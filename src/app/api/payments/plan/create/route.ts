@@ -2,6 +2,7 @@ import { readSessionFromRequest } from "@/lib/session";
 import { normalizeEmail } from "@/lib/email-codes";
 import {
   ACCOMPANIMENT_RUB,
+  CONSULTANT_OFFERS_ENABLED,
   accompanyProductForTopic,
   planPaymentsBypass,
   planPaymentsLive,
@@ -27,6 +28,16 @@ import type { JournalEntry } from "@/lib/types";
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
+  if (!CONSULTANT_OFFERS_ENABLED) {
+    return Response.json(
+      {
+        error:
+          "Услуга консультанта больше не продаётся. Оформите Maya Premium на странице тарифов.",
+      },
+      { status: 410 },
+    );
+  }
+
   const session = readSessionFromRequest(req);
   if (!session) {
     return Response.json({ error: "Войдите в аккаунт" }, { status: 401 });

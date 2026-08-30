@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { MayaIcon, type IconName } from "@/components/icons/MayaIcon";
-import { PlanTeamCarouselLink } from "@/components/plan/PlanTeamEntry";
 import { MODULE_BY_ID, customToDef } from "@/lib/modules";
 import { useAppStore } from "@/lib/store";
 import type { CustomModule, ModuleId } from "@/lib/types";
@@ -139,9 +138,6 @@ export function QuickNavCarousel({ className = "" }: { className?: string }) {
             </Link>
           );
         })}
-        <PlanTeamCarouselLink
-          active={pathname.startsWith("/plan/") && !pathname.startsWith("/plan/order")}
-        />
       </div>
     </div>
   );
