@@ -1,10 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Suspense, useEffect } from "react";
 
-/** Продажа консультантов отключена — редирект на Premium. */
+/** Продажа консультантов отключена — тихо на тарифы. */
 function CheckoutInner() {
   const router = useRouter();
 
@@ -13,12 +12,8 @@ function CheckoutInner() {
   }, [router]);
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-16 text-center text-sm text-muted">
-      Услуга консультанта больше не продаётся. Доступен только{" "}
-      <Link href="/pricing" className="font-medium text-accent underline">
-        Maya Premium
-      </Link>
-      .
+    <div className="flex min-h-dvh items-center justify-center bg-background text-sm text-muted">
+      Мая…
     </div>
   );
 }
@@ -27,7 +22,9 @@ export default function PlanOrderPage() {
   return (
     <Suspense
       fallback={
-        <div className="px-4 py-16 text-center text-sm text-muted">…</div>
+        <div className="flex min-h-dvh items-center justify-center bg-background text-sm text-muted">
+          Мая…
+        </div>
       }
     >
       <CheckoutInner />

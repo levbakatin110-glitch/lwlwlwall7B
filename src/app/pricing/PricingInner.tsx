@@ -24,7 +24,6 @@ export default function PricingInner() {
   const accountEmail = useAppStore((s) => s.accountEmail);
   const emailVerified = useAppStore((s) => s.emailVerified);
   const activateSubscription = useAppStore((s) => s.activateSubscription);
-  const clearSubscription = useAppStore((s) => s.clearSubscription);
   const pregnancy = useAppStore((s) => s.pregnancy);
   const childProfiles = useAppStore((s) => s.children);
   const enabledModules = useAppStore((s) => s.enabledModules);
@@ -140,13 +139,6 @@ export default function PricingInner() {
           <p className="mt-1 text-xs text-muted">
             до {formatExpiry(subscription.expiresAt) ?? "—"}
           </p>
-          <button
-            type="button"
-            onClick={() => clearSubscription()}
-            className="mt-2 text-xs text-muted underline hover:text-foreground"
-          >
-            Сбросить подписку (тест на этом устройстве)
-          </button>
         </div>
       ) : (
         <div className="mt-5 rounded-2xl border border-accent/30 bg-accent-soft/40 px-4 py-3 text-sm">
