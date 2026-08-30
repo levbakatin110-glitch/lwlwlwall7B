@@ -21,9 +21,12 @@ function byteRange(
   return { start, end };
 }
 
-/** Node Buffer ≠ DOM BodyInit в типах Next/TS — отдаём Uint8Array. */
-function asBody(buf: Uint8Array): Uint8Array {
-  return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
+/** Node/TS: Buffer/Uint8Array не совпадает с DOM BodyInit — отдаём ArrayBuffer. */
+function asBody(buf: Uint8Array): ArrayBuffer {
+  return buf.buffer.slice(
+    buf.byteOffset,
+    buf.byteOffset + buf.byteLength,
+  ) as ArrayBuffer;
 }
 
 export async function GET(req: Request, ctx: Ctx) {
