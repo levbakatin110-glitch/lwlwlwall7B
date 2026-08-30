@@ -13,12 +13,9 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import {
   CircleNotePlayer,
+  CircleRecorder,
 } from "@/components/CircleRecorder";
-import {
-  HoldRecordOverlay,
-  useHoldMediaRecord,
-} from "@/components/community/HoldMediaRecord";
-import { VoiceNotePlayer } from "@/components/VoiceRecorder";
+import { VoiceNotePlayer, VoiceRecorder } from "@/components/VoiceRecorder";
 import { MayaIcon } from "@/components/icons/MayaIcon";
 import {
   COMMUNITY_REACTIONS,
@@ -247,6 +244,8 @@ export function MomsCircleChat() {
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [pendingKind, setPendingKind] = useState<MediaKind | null>(null);
   const [pendingPreview, setPendingPreview] = useState<string | null>(null);
+  const [circleOpen, setCircleOpen] = useState(false);
+  const [voiceOpen, setVoiceOpen] = useState(false);
   const [replyTo, setReplyTo] = useState<CommunityMessage | null>(null);
   const [menu, setMenu] = useState<MenuState | null>(null);
   const [flashId, setFlashId] = useState<string | null>(null);
@@ -260,13 +259,6 @@ export function MomsCircleChat() {
   const pressStart = useRef({ x: 0, y: 0 });
   const suppressClick = useRef(false);
   const menuOpenedAt = useRef(0);
-
-  const holdRecord = useHoldMediaRecord({
-    onReady: (file, kind) => {
-      void send(undefined, { file, kind });
-    },
-    onError: (message) => setError(message),
-  });
 
   const canPost = Boolean(emailVerified && accountEmail);
 
@@ -1052,21 +1044,21 @@ export function MomsCircleChat() {
                   </button>
                   <button
                     type="button"
-                    {...holdRecord.bindHold("circle")}
-                    disabled={busy || !!holdRecord.active}
-                    className="flex h-11 w-10 shrink-0 touch-none select-none items-center justify-center rounded-xl text-muted hover:bg-accent-soft hover:text-foreground disabled:opacity-40"
-                    aria-label="Зажмите — записать кружок"
-                    title="Зажмите — кружок"
+                    onClick={() => setCircleOpen(true)}
+                    disabled={busy}
+                    className="flex h-11 w-10 shrink-0 items-center justify-center rounded-xl text-muted hover:bg-accent-soft hover:text-foreground disabled:opacity-40"
+                    aria-label="Записать кружок"
+                    title="Кружок"
                   >
                     <MayaIcon name="videonote" size={18} />
                   </button>
                   <button
                     type="button"
-                    {...holdRecord.bindHold("voice")}
-                    disabled={busy || !!holdRecord.active}
-                    className="flex h-11 w-10 shrink-0 touch-none select-none items-center justify-center rounded-xl text-muted hover:bg-accent-soft hover:text-foreground disabled:opacity-40"
-                    aria-label="Зажмите — голосовое"
-                    title="Зажмите — голосовое"
+                    onClick={() => setVoiceOpen(true)}
+                    disabled={busy}
+                    className="flex h-11 w-10 shrink-0 items-center justify-center rounded-xl text-muted hover:bg-accent-soft hover:text-foreground disabled:opacity-40"
+                    aria-label="Записать голосовое"
+                    title="Голосовое"
                   >
                     <MayaIcon name="mic" size={18} />
                   </button>
@@ -1181,17 +1173,32 @@ export function MomsCircleChat() {
         document.body,
       )}
 
-      <HoldRecordOverlay
-        active={holdRecord.active}
-        cancelHint={holdRecord.cancelHint}
-        secs={holdRecord.secs}
-        liveRef={holdRecord.liveRef}
-        onFlipCamera={
-          holdRecord.active === "circle"
-            ? () => void holdRecord.flipCamera()
-            : undefined
-        }
-      />
+      {circleOpen && (
+        <CircleRecorder
+          onCancel={() => setCircleOpen(false)}
+          onReady={(file, previewUrl) => {
+            setCircleOpen(false);
+            clearPendingMedia();
+            setPendingFile(file);
+            setPendingKind("circle");
+            setPendingPreview(previewUrl);
+            setError(null);
+          }}
+        />
+      )}
+      {voiceOpen && (
+        <VoiceRecorder
+          onCancel={() => setVoiceOpen(false)}
+          onReady={(file) => {
+            setVoiceOpen(false);
+            clearPendingMedia();
+            setPendingFile(file);
+            setPendingKind("voice");
+            setPendingPreview(null);
+            setError(null);
+          }}
+        />
+      )}
     </div>
   );
 }
