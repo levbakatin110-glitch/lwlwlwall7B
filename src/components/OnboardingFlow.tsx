@@ -78,7 +78,7 @@ function buildFlow(
   const steps: FlowStep[] = ["who"];
   if (pregnant) steps.push("preg");
   if (hasChild) steps.push("baby1", "baby2");
-  steps.push("value", "email", "finish");
+  steps.push("email", "value", "finish");
   return steps;
 }
 
@@ -1240,7 +1240,7 @@ export function OnboardingFlow({
               {flowStep === "who"
                 ? "Продолжить"
                 : flowStep === "value"
-                  ? "Понятно, дальше"
+                  ? "Дальше — выбрать тариф"
                   : "Далее"}
             </button>
           ) : null}
