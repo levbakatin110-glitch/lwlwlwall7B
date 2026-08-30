@@ -1,7 +1,8 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { showPaywallHint } from "@/components/PaywallHint";
 import { isSubscriptionActive, PAID_ONLY } from "@/lib/subscription";
 import { useAppStore } from "@/lib/store";
 
@@ -28,11 +29,11 @@ export function PremiumGate({ children }: { children: React.ReactNode }) {
   const subscription = useAppStore((s) => s.subscription);
   const onboardingDone = useAppStore((s) => s.onboardingDone);
   const active = isSubscriptionActive(subscription);
+  const hintedForPath = useRef<string | null>(null);
 
   useEffect(() => {
     if (!PAID_ONLY) return;
 
-    // Тарифы до конца анкеты — на главную, чтобы прошли шаги
     if (!onboardingDone && isPricingPath(pathname)) {
       router.replace("/");
       return;
@@ -42,6 +43,10 @@ export function PremiumGate({ children }: { children: React.ReactNode }) {
     if (active) return;
     if (isAllowedPath(pathname) || isPricingPath(pathname)) return;
 
+    if (hintedForPath.current !== pathname) {
+      hintedForPath.current = pathname;
+      showPaywallHint("Сначала оформите подписку");
+    }
     router.replace("/pricing");
   }, [onboardingDone, active, pathname, router]);
 

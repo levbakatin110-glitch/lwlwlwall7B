@@ -10,10 +10,23 @@ import { SketchCorner, SketchSprig } from "@/components/illustrations/MayaSketch
 import { childDisplayName } from "@/lib/children";
 import { LEGAL_OPERATOR } from "@/lib/legal";
 import { MODULE_BY_ID, customToDef } from "@/lib/modules";
+import { isSubscriptionActive, PAID_ONLY } from "@/lib/subscription";
 import { useAppStore } from "@/lib/store";
 import type { ModuleId } from "@/lib/types";
+import { showPaywallHint } from "@/components/PaywallHint";
+import type { MouseEvent } from "react";
 
 const SUPPORT_MAIL = `mailto:${LEGAL_OPERATOR.supportEmail}`;
+
+function isOpenWithoutPay(href: string): boolean {
+  return (
+    href === "/pricing" ||
+    href.startsWith("/pricing/") ||
+    href === "/legal" ||
+    href.startsWith("/legal/") ||
+    href.startsWith("mailto:")
+  );
+}
 
 const CORE: { href: string; label: string; icon: IconName }[] = [
   { href: "/", label: "Чат с Маей", icon: "chat" },
@@ -71,6 +84,8 @@ export function Sidebar({
   const activeChildId = useAppStore((s) => s.activeChildId);
   const profile = useAppStore((s) => s.profile);
   const switchChild = useAppStore((s) => s.switchChild);
+  const subscription = useAppStore((s) => s.subscription);
+  const paywalled = PAID_ONLY && !isSubscriptionActive(subscription);
   const [mounted, setMounted] = useState(false);
   const [canCloseBackdrop, setCanCloseBackdrop] = useState(false);
 
@@ -100,6 +115,13 @@ export function Sidebar({
   }, [mobileOpen, onMobileOpenChange]);
 
   const close = () => onMobileOpenChange?.(false);
+
+  function onNavClick(e: MouseEvent<HTMLAnchorElement>, href: string) {
+    close();
+    if (!paywalled || isOpenWithoutPay(href)) return;
+    e.preventDefault();
+    showPaywallHint("Сначала оформите подписку");
+  }
 
   const pinnedIds = new Set(
     PINNED_DIARIES.map((p) => p.moduleId).filter(Boolean) as ModuleId[],
@@ -199,7 +221,7 @@ export function Sidebar({
       </div>
       <Link
         href="/profile"
-        onClick={close}
+        onClick={(e) => onNavClick(e, "/profile")}
         className="mt-1.5 block px-2.5 text-[11px] font-semibold text-accent hover:underline"
       >
         + Ещё ребёнок / профиль
@@ -217,7 +239,7 @@ export function Sidebar({
         <Link
           key={item.href}
           href={item.href}
-          onClick={close}
+          onClick={(e) => onNavClick(e, item.href)}
           className={linkClass(
             item.href === "/"
               ? pathname === "/"
@@ -230,7 +252,7 @@ export function Sidebar({
       ))}
       <a
         href={SUPPORT_MAIL}
-        onClick={close}
+        onClick={(e) => onNavClick(e, SUPPORT_MAIL)}
         className={linkClass(false)}
         title={LEGAL_OPERATOR.supportEmail}
       >
@@ -243,7 +265,7 @@ export function Sidebar({
       </p>
       <Link
         href="/modules"
-        onClick={close}
+        onClick={(e) => onNavClick(e, "/modules")}
         className={`mb-1 flex items-center gap-2.5 rounded-xl border border-dashed border-accent/45 bg-accent-soft/50 px-2.5 py-2.5 text-[13px] font-semibold tracking-tight text-accent transition hover:border-accent/70 hover:bg-accent-soft ${
           pathname === "/modules" || pathname.startsWith("/modules/")
             ? "ring-1 ring-accent/35"
@@ -262,7 +284,7 @@ export function Sidebar({
         <Link
           key={item.href}
           href={item.href}
-          onClick={close}
+          onClick={(e) => onNavClick(e, item.href)}
           className={linkClass(
             pathname === item.href || pathname.startsWith(`${item.href}/`),
           )}
@@ -278,7 +300,7 @@ export function Sidebar({
           <Link
             key={mod.id}
             href={href}
-            onClick={close}
+            onClick={(e) => onNavClick(e, href)}
             className={linkClass(pathname === href)}
           >
             <MayaIcon name={mod.icon} size={17} />
@@ -289,7 +311,7 @@ export function Sidebar({
 
       <Link
         href="/legal"
-        onClick={close}
+        onClick={(e) => onNavClick(e, "/legal")}
         className="mt-4 px-2.5 text-[11px] text-muted underline underline-offset-2 hover:text-foreground"
       >
         Документы · оферта

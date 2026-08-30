@@ -2,8 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { MouseEvent } from "react";
 import { MayaIcon, type IconName } from "@/components/icons/MayaIcon";
+import { showPaywallHint } from "@/components/PaywallHint";
 import { MODULE_BY_ID, customToDef } from "@/lib/modules";
+import { isSubscriptionActive, PAID_ONLY } from "@/lib/subscription";
 import { useAppStore } from "@/lib/store";
 import type { CustomModule, ModuleId } from "@/lib/types";
 
@@ -92,7 +95,16 @@ export function QuickNavCarousel({ className = "" }: { className?: string }) {
   const pathname = usePathname() ?? "";
   const enabledModules = useAppStore((s) => s.enabledModules ?? []);
   const customModules = useAppStore((s) => s.customModules ?? []);
+  const subscription = useAppStore((s) => s.subscription);
+  const paywalled = PAID_ONLY && !isSubscriptionActive(subscription);
   const items = buildQuickItems(enabledModules, customModules);
+
+  function onNavClick(e: MouseEvent<HTMLAnchorElement>, href: string) {
+    if (!paywalled) return;
+    if (href === "/pricing" || href.startsWith("/pricing/")) return;
+    e.preventDefault();
+    showPaywallHint("Сначала оформите подписку");
+  }
 
   return (
     <div
@@ -115,6 +127,7 @@ export function QuickNavCarousel({ className = "" }: { className?: string }) {
               title={item.label}
               aria-label={item.label}
               aria-current={active ? "page" : undefined}
+              onClick={(e) => onNavClick(e, item.href)}
               className={`flex w-[3.35rem] shrink-0 snap-start flex-col items-center gap-0.5 rounded-xl px-0.5 py-0.5 transition ${
                 active ? "bg-accent/10" : "hover:bg-accent-soft/50"
               }`}

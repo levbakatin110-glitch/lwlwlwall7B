@@ -17,6 +17,7 @@ import { ThemeSync } from "./ThemeSync";
 import { WhiteNoisePlayer } from "./WhiteNoisePlayer";
 import { CookieBanner } from "./legal/CookieBanner";
 import { MayaIcon } from "@/components/icons/MayaIcon";
+import { PaywallHintHost } from "./PaywallHint";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? "";
@@ -73,6 +74,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <OnboardingGate>
       <PremiumGate>
+      <PaywallHintHost />
       <ThemeSync />
       <AnalyticsVisitBeacon />
       {globalSync}
