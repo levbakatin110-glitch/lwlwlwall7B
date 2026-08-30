@@ -235,11 +235,13 @@ export function CircleRecorder({ onCancel, onReady }: Props) {
   const startedAtRef = useRef(0);
   const tickRef = useRef<number | null>(null);
   const facingRef = useRef<"user" | "environment">("user");
+  const flippingRef = useRef(false);
 
   const [phase, setPhase] = useState<"booting" | "live" | "recording" | "review">(
     "booting",
   );
   const [facing, setFacing] = useState<"user" | "environment">("user");
+  const [flipping, setFlipping] = useState(false);
   const [elapsedMs, setElapsedMs] = useState(0);
   const [reviewUrl, setReviewUrl] = useState<string | null>(null);
   const [reviewFile, setReviewFile] = useState<File | null>(null);
@@ -327,43 +329,78 @@ export function CircleRecorder({ onCancel, onReady }: Props) {
   }
 
   async function flipCamera() {
+    if (
+      flippingRef.current ||
+      phase === "booting" ||
+      phase === "review" ||
+      !streamRef.current
+    ) {
+      return;
+    }
     const next = facingRef.current === "user" ? "environment" : "user";
+    flippingRef.current = true;
+    setFlipping(true);
     setError(null);
+
+    const wasRecording = phase === "recording";
+    const stream = streamRef.current;
+
     try {
-      const stream = streamRef.current;
-      if (stream && (phase === "recording" || phase === "live")) {
-        const newTrack = await getFacingVideoTrack(next, {
-          width: 480,
-          height: 480,
-        });
-        const old = stream.getVideoTracks()[0];
-        if (old) {
-          stream.removeTrack(old);
-          old.stop();
+      // 1) applyConstraints — без нового getUserMedia
+      const old = stream.getVideoTracks()[0];
+      if (old) {
+        try {
+          await old.applyConstraints({ facingMode: { exact: next } });
+          facingRef.current = next;
+          setFacing(next);
+          return;
+        } catch {
+          /* fall through */
         }
-        stream.addTrack(newTrack);
-        facingRef.current = next;
-        setFacing(next);
-        if (liveRef.current) {
-          liveRef.current.srcObject = stream;
-          liveRef.current.muted = true;
-          await liveRef.current.play().catch(() => undefined);
-        }
-        return;
       }
+
+      // 2) новый видеотрек + замена
+      const newTrack = await getFacingVideoTrack(next, {
+        width: 480,
+        height: 480,
+      });
+      if (old) {
+        stream.removeTrack(old);
+        old.stop();
+      }
+      stream.addTrack(newTrack);
+      facingRef.current = next;
       setFacing(next);
-      await attachStream(next);
-      setPhase("live");
+
+      if (liveRef.current) {
+        liveRef.current.srcObject = stream;
+        liveRef.current.muted = true;
+        await liveRef.current.play().catch(() => undefined);
+      }
+
+      // replaceTrack ломает WebM — перезапускаем MediaRecorder
+      if (wasRecording && recorderRef.current) {
+        try {
+          const rec = recorderRef.current;
+          rec.ondataavailable = null;
+          rec.onstop = null;
+          if (rec.state !== "inactive") rec.stop();
+        } catch {
+          /* ignore */
+        }
+        recorderRef.current = null;
+        chunksRef.current = [];
+        beginRecorderOnStream(stream);
+      }
     } catch {
       setError("Не удалось переключить камеру");
+    } finally {
+      flippingRef.current = false;
+      setFlipping(false);
     }
   }
 
-  function startRecord() {
-    const stream = streamRef.current;
-    if (!stream || phase === "recording" || !camReady) return;
-    setError(null);
-    chunksRef.current = [];
+  function beginRecorderOnStream(stream: MediaStream) {
     const mime = pickMime();
     let rec: MediaRecorder;
     const opts: MediaRecorderOptions = mime ? { mimeType: mime } : {};
@@ -414,6 +451,14 @@ export function CircleRecorder({ onCancel, onReady }: Props) {
       }, 60);
     };
     rec.start(120);
+  }
+
+  function startRecord() {
+    const stream = streamRef.current;
+    if (!stream || phase === "recording" || !camReady) return;
+    setError(null);
+    chunksRef.current = [];
+    beginRecorderOnStream(stream);
     startedAtRef.current = Date.now();
     setElapsedMs(0);
     setPhase("recording");
@@ -529,7 +574,7 @@ export function CircleRecorder({ onCancel, onReady }: Props) {
         <button
           type="button"
           onClick={() => void flipCamera()}
-          disabled={phase === "recording" || phase === "booting" || !!reviewUrl}
+          disabled={phase === "booting" || phase === "review" || flipping}
           className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-md disabled:opacity-35"
           aria-label="Перевернуть камеру"
         >
@@ -599,11 +644,13 @@ export function CircleRecorder({ onCancel, onReady }: Props) {
         <p className="mt-6 min-h-[1.25rem] text-center text-[13px] text-white/65">
           {error
             ? error
-            : phase === "recording"
-              ? "Нажмите ещё раз, чтобы закончить"
-              : phase === "review"
-                ? "Посмотрите и отправьте — или переснимите"
-                : "Запись уже идёт"}
+            : flipping
+              ? "Переключаем камеру…"
+              : phase === "recording"
+                ? "Нажмите ещё раз, чтобы закончить · сверху — камера"
+                : phase === "review"
+                  ? "Посмотрите и отправьте — или переснимите"
+                  : "Запись уже идёт"}
         </p>
       </div>
 
