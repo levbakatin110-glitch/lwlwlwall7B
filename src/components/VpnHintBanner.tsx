@@ -97,11 +97,10 @@ export function VpnHintBanner({
           <MayaIcon name="pulse" size={16} />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="font-semibold text-amber-200">Похоже, включён VPN</p>
+          <p className="font-semibold text-amber-200">VPN не мешает Мае</p>
           <p className="mt-1 text-[13px] leading-relaxed text-muted">
-            Геолокация нужна для погоды «где вы сейчас». VPN часто подменяет место —
-            поэтому градусы могут быть чужие. Отключите VPN, пожалуйста — или укажите
-            город в разделе «Малыш».
+            Чат и дневники работают как обычно. Погоду берём из города в профиле,
+            а не с IP VPN. Если город не тот — поправьте в разделе «Малыш».
           </p>
           <button
             type="button"

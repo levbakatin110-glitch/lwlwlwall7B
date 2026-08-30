@@ -18,6 +18,28 @@ export class AppErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error("[maya] AppErrorBoundary", error, info.componentStack);
+    const msg = `${error?.name ?? ""} ${error?.message ?? ""}`;
+    if (
+      !/ChunkLoadError|Loading chunk|Failed to fetch dynamically imported module/i.test(
+        msg,
+      )
+    ) {
+      return;
+    }
+    try {
+      if (sessionStorage.getItem("maya-chunk-reload") === "1") return;
+      sessionStorage.setItem("maya-chunk-reload", "1");
+    } catch {
+      return;
+    }
+    const go = () => window.location.reload();
+    if (!navigator.serviceWorker?.getRegistrations) {
+      go();
+      return;
+    }
+    void navigator.serviceWorker.getRegistrations().then((regs) => {
+      Promise.all(regs.map((r) => r.unregister())).finally(go);
+    });
   }
 
   render() {

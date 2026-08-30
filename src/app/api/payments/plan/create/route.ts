@@ -2,7 +2,6 @@ import { readSessionFromRequest } from "@/lib/session";
 import { normalizeEmail } from "@/lib/email-codes";
 import {
   ACCOMPANIMENT_RUB,
-  PLAN_BREAKDOWN_RUB,
   accompanyProductForTopic,
   planPaymentsBypass,
   planPaymentsLive,
@@ -130,7 +129,7 @@ export async function POST(req: Request) {
       childId: body.childId,
       clientEntries: entries,
       requestInstant: body.instant,
-      voluntary: body.voluntary,
+      voluntary: false,
     });
     if (!guard.ok) {
       return Response.json({ error: guard.error, code: guard.code }, { status: 403 });
@@ -141,7 +140,7 @@ export async function POST(req: Request) {
     email: session.email,
     topic,
     productId: planProductForTopic(topic),
-    priceRub: PLAN_BREAKDOWN_RUB,
+    priceRub: ACCOMPANIMENT_RUB,
     childId: body.childId,
     childName: body.childName,
     clientEntries: entries,

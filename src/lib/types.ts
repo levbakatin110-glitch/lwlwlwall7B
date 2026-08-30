@@ -125,7 +125,7 @@ export type JournalEntry = {
   fields?: Record<string, string | number>;
 };
 
-export type CoreNavId = "chat" | "profile" | "wardrobe" | "memories" | "modules";
+export type CoreNavId = "chat" | "profile" | "wardrobe" | "modules";
 
 export type WeatherSnapshot = {
   city: string;

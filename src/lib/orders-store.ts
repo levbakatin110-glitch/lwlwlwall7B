@@ -428,7 +428,11 @@ export function appendMessage(
   const planPatch: Partial<PlanOrder> = {};
   if (msg.pdfFile || status === "plan_sent") {
     if (!order.planSentAt) planPatch.planSentAt = row.createdAt;
-    if (!order.chatDeadlineAt) planPatch.chatDeadlineAt = chatDeadlineFromNow();
+    if (!order.chatDeadlineAt) {
+      planPatch.chatDeadlineAt = order.accompanimentPaid
+        ? (order.accompanimentDeadlineAt ?? accompanimentDeadlineFromNow())
+        : chatDeadlineFromNow();
+    }
   }
 
   const next: PlanOrder = {
@@ -487,6 +491,7 @@ export function fulfillPlanOrderPayment(
 export function fulfillAccompanimentPayment(
   parentOrderId: string,
   paymentRef?: string,
+  opts?: { skipIntro?: boolean },
 ): PlanOrder | null {
   const order = getOrder(parentOrderId);
   if (!order) return null;
@@ -494,6 +499,17 @@ export function fulfillAccompanimentPayment(
 
   const now = new Date().toISOString();
   const consultant = getPlanConsultant(order.consultantId);
+  const extra =
+    opts?.skipIntro
+      ? []
+      : [
+          {
+            id: newMessageId(),
+            createdAt: now,
+            role: "system" as const,
+            text: accompanimentIntroMessage(consultant.name),
+          },
+        ];
   const next: PlanOrder = {
     ...order,
     accompanimentPaid: true,
@@ -504,15 +520,7 @@ export function fulfillAccompanimentPayment(
     accompanimentDeadlineAt: accompanimentDeadlineFromNow(),
     paymentRef: paymentRef ?? order.paymentRef,
     updatedAt: now,
-    messages: [
-      ...order.messages,
-      {
-        id: newMessageId(),
-        createdAt: now,
-        role: "system",
-        text: accompanimentIntroMessage(consultant.name),
-      },
-    ],
+    messages: [...order.messages, ...extra],
   };
   upsertOrder(next);
   return next;

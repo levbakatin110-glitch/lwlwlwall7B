@@ -2,136 +2,194 @@
 
 import { useMemo, useState } from "react";
 import { useAppStore } from "@/lib/store";
+import {
+  DiaryEmpty,
+  DiaryPage,
+  DiarySectionTitle,
+  DiaryStats,
+  DiaryTimeline,
+  DiaryTimelineRow,
+} from "@/components/diary/DiaryShell";
+import {
+  entriesForToday,
+  entryTimeMs,
+  formatClock,
+  todayYmd,
+} from "@/lib/diary-day";
 
 const KINDS = [
   {
     id: "wet",
     label: "Мокрый",
+    emoji: "💧",
     tone: "bg-sky-500/15 text-sky-800 dark:text-sky-200",
   },
   {
     id: "dirty",
     label: "Грязный",
+    emoji: "💩",
     tone: "bg-amber-500/15 text-amber-900 dark:text-amber-200",
   },
   {
     id: "both",
     label: "Оба",
+    emoji: "💧💩",
     tone: "bg-violet-500/15 text-violet-800 dark:text-violet-200",
   },
   {
     id: "dry",
-    label: "Сухой / проверка",
+    label: "Сухой",
+    emoji: "✓",
     tone: "bg-emerald-500/15 text-emerald-800 dark:text-emerald-200",
   },
 ] as const;
 
+type KindId = (typeof KINDS)[number]["id"];
+
+function kindLabel(id: string): string {
+  return KINDS.find((k) => k.id === id)?.label ?? id;
+}
+
 export function DiaperTracker() {
   const addJournalEntry = useAppStore((s) => s.addJournalEntry);
+  const removeJournalEntry = useAppStore((s) => s.removeJournalEntry);
   const entries = useAppStore((s) => s.journals.diaper ?? []);
-  const [kind, setKind] = useState<(typeof KINDS)[number]["id"]>("wet");
-  const [rash, setRash] = useState(false);
-  const [note, setNote] = useState("");
-  const [savedFlash, setSavedFlash] = useState(false);
+  const [rashNext, setRashNext] = useState(false);
+  const [flashKind, setFlashKind] = useState<KindId | null>(null);
 
-  const todayCount = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10);
-    return entries.filter((e) => e.date === today).length;
-  }, [entries]);
+  const todayEntries = useMemo(
+    () =>
+      [...entriesForToday(entries)].sort(
+        (a, b) => entryTimeMs(b) - entryTimeMs(a),
+      ),
+    [entries],
+  );
 
-  const byKind = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10);
-    const map = { wet: 0, dirty: 0, both: 0, dry: 0 };
-    for (const e of entries) {
-      if (e.date !== today) continue;
+  const stats = useMemo(() => {
+    let wet = 0;
+    let dirty = 0;
+    for (const e of todayEntries) {
       const k = String(e.fields?.kind || "");
-      if (k in map) map[k as keyof typeof map] += 1;
+      if (k === "wet" || k === "both") wet++;
+      if (k === "dirty" || k === "both") dirty++;
     }
-    return map;
-  }, [entries]);
+    return { total: todayEntries.length, wet, dirty };
+  }, [todayEntries]);
 
-  function save() {
+  function log(kind: KindId) {
     const meta = KINDS.find((k) => k.id === kind)!;
     const parts: string[] = [meta.label];
-    if (rash) parts.push("раздражение");
+    if (rashNext) parts.push("раздражение");
     addJournalEntry("diaper", {
-      date: new Date().toISOString().slice(0, 10),
+      date: todayYmd(),
       value: parts.join(" · "),
-      note: note.trim(),
+      note: "",
       fields: {
         kind,
-        rash: rash ? 1 : 0,
+        rash: rashNext ? 1 : 0,
+        startMs: Date.now(),
       },
     });
-    setNote("");
-    setRash(false);
-    setSavedFlash(true);
-    window.setTimeout(() => setSavedFlash(false), 1800);
+    setRashNext(false);
+    setFlashKind(kind);
+    window.setTimeout(() => setFlashKind(null), 600);
   }
 
   return (
-    <div className="maya-rise overflow-hidden rounded-[1.5rem] border border-line bg-card/80 p-4 sm:p-5">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2 className="font-display text-xl font-semibold tracking-tight">
-            Смена подгузника
-          </h2>
-          <p className="mt-1 text-xs text-muted">
-            Сегодня уже {todayCount}{" "}
-            {todayCount === 1 ? "раз" : todayCount < 5 ? "раза" : "раз"}
-          </p>
+    <DiaryPage>
+      <div className="maya-rise overflow-hidden rounded-[1.5rem] border border-line bg-card/80 p-4 sm:p-5">
+        <h2 className="font-display text-xl font-semibold tracking-tight">
+          Смена подгузника
+        </h2>
+
+        <div className="mt-4">
+          <DiaryStats
+            items={[
+              { label: "сегодня всего", value: stats.total },
+              { label: "мокрых", value: stats.wet },
+              { label: "грязных", value: stats.dirty },
+            ]}
+          />
         </div>
+
+        <button
+          type="button"
+          onClick={() => setRashNext((v) => !v)}
+          className={`mt-4 w-full rounded-xl border px-3 py-2.5 text-left text-sm transition ${
+            rashNext
+              ? "border-blush/40 bg-blush-soft text-foreground"
+              : "border-line text-muted hover:border-accent/25"
+          }`}
+        >
+          {rashNext
+            ? "Следующая запись — с раздражением"
+            : "Отметить раздражение на следующую смену"}
+        </button>
+
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          {KINDS.map((k) => (
+            <button
+              key={k.id}
+              type="button"
+              onClick={() => log(k.id)}
+              className={`rounded-2xl border px-3 py-4 text-left transition active:scale-[0.97] ${
+                flashKind === k.id
+                  ? "border-accent bg-accent-soft ring-2 ring-accent/30"
+                  : "border-line bg-card/50 hover:border-accent/25"
+              }`}
+            >
+              <p className="text-lg leading-none">{k.emoji}</p>
+              <p className="mt-1.5 text-sm font-semibold">{k.label}</p>
+            </button>
+          ))}
+        </div>
+
+        {todayEntries.length > 0 ? (
+          <div className="mt-5">
+            <DiarySectionTitle left="Сегодня" right={String(stats.total)} />
+            <DiaryTimeline>
+              {todayEntries.map((e, i) => {
+                const k = String(e.fields?.kind || "");
+                const hasRash = Number(e.fields?.rash) === 1;
+                return (
+                  <li key={e.id}>
+                    <DiaryTimelineRow
+                      mark={todayEntries.length - i}
+                      accent={i === 0}
+                      onClick={() => {
+                        if (
+                          window.confirm("Удалить эту запись из дневника?")
+                        ) {
+                          removeJournalEntry("diaper", e.id);
+                        }
+                      }}
+                      left={
+                        <div>
+                          <p className="text-sm font-medium">{kindLabel(k)}</p>
+                          <p className="text-[10px] tabular-nums text-muted/70">
+                            {formatClock(entryTimeMs(e))}
+                          </p>
+                        </div>
+                      }
+                      right={
+                        hasRash ? (
+                          <p className="text-sm font-medium text-blush">
+                            раздражение
+                          </p>
+                        ) : (
+                          <p className="text-sm text-muted/40">—</p>
+                        )
+                      }
+                    />
+                  </li>
+                );
+              })}
+            </DiaryTimeline>
+          </div>
+        ) : (
+          <DiaryEmpty>Нажмите тип — запись сохранится сразу</DiaryEmpty>
+        )}
       </div>
-
-      <div className="mt-4 grid grid-cols-2 gap-2">
-        {KINDS.map((k) => (
-          <button
-            key={k.id}
-            type="button"
-            onClick={() => setKind(k.id)}
-            className={`rounded-2xl border px-3 py-3.5 text-left transition ${
-              kind === k.id
-                ? "border-accent bg-accent-soft ring-1 ring-accent/30"
-                : "border-line bg-card/50 hover:border-accent/25"
-            }`}
-          >
-            <p className="text-sm font-semibold">{k.label}</p>
-            <p className="mt-0.5 text-[11px] text-muted">
-              сегодня {byKind[k.id]}
-            </p>
-          </button>
-        ))}
-      </div>
-
-      <button
-        type="button"
-        onClick={() => setRash((v) => !v)}
-        className={`mt-3 w-full rounded-xl border px-3 py-2.5 text-left text-sm ${
-          rash
-            ? "border-blush/40 bg-blush-soft text-foreground"
-            : "border-line text-muted"
-        }`}
-      >
-        {rash ? "Есть раздражение / опрелость" : "Отметить раздражение?"}
-      </button>
-
-      <label className="mt-3 block text-sm">
-        <span className="text-xs text-muted">Заметка</span>
-        <input
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          placeholder="крем, размер, что угодно…"
-          className="mt-1 w-full rounded-xl border border-line bg-card px-3 py-2"
-        />
-      </label>
-
-      <button
-        type="button"
-        onClick={save}
-        className="mt-4 w-full rounded-2xl bg-accent py-3 text-sm font-semibold text-on-accent"
-      >
-        {savedFlash ? "Записано ✓" : "Сохранить смену"}
-      </button>
-    </div>
+    </DiaryPage>
   );
 }

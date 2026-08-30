@@ -13,7 +13,23 @@ export function activatePlanOrderAfterPayment(
   orderId: string,
   paymentRef?: string,
 ): PlanOrder | null {
+  const existing = getOrder(orderId);
+
   if (productId.startsWith("accompany_")) {
+    if (existing?.status === "awaiting_payment") {
+      const paid = fulfillPlanOrderPayment(orderId, paymentRef);
+      if (!paid) return null;
+      const withMonth = fulfillAccompanimentPayment(orderId, paymentRef, {
+        skipIntro: true,
+      });
+      schedulePlanAiDraft(orderId);
+      const out = withMonth ?? paid;
+      void notifyNewPlanOrder(out).catch((e) =>
+        console.error("[plan-activate] notify accompany-first", e),
+      );
+      return out;
+    }
+
     const order = fulfillAccompanimentPayment(orderId, paymentRef);
     if (order) {
       void notifyNewPlanOrder(order).catch((e) =>

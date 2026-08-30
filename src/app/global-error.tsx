@@ -3,9 +3,39 @@
 import { useEffect } from "react";
 
 /**
- * Ловит падение root layout.
- * Не стирает localStorage сама — иначе любой сбой = снова анкета.
+ * Падение root layout. Часто это не «баг страницы», а старый JS после деплоя
+ * (телефон держит прошлый чанк). Тогда один жёсткий reload чинит.
+ * Логика здесь inline — общий импорт сам может не загрузиться.
  */
+function isStaleBuildError(error: Error) {
+  const msg = `${error?.name ?? ""} ${error?.message ?? ""}`;
+  return /ChunkLoadError|Loading chunk|Failed to fetch dynamically imported module|error loading dynamically imported module/i.test(
+    msg,
+  );
+}
+
+function hardReloadOnce() {
+  try {
+    if (sessionStorage.getItem("maya-chunk-reload") === "1") return;
+    sessionStorage.setItem("maya-chunk-reload", "1");
+  } catch {
+    window.location.reload();
+    return;
+  }
+  const go = () => {
+    const u = new URL(window.location.href);
+    u.searchParams.set("_r", String(Date.now()));
+    window.location.replace(u.toString());
+  };
+  if (!navigator.serviceWorker?.getRegistrations) {
+    go();
+    return;
+  }
+  void navigator.serviceWorker.getRegistrations().then((regs) => {
+    Promise.all(regs.map((r) => r.unregister())).finally(go);
+  });
+}
+
 export default function GlobalError({
   error,
   reset,
@@ -15,6 +45,7 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     console.error("[maya] global error", error);
+    if (isStaleBuildError(error)) hardReloadOnce();
   }, [error]);
 
   return (
@@ -38,7 +69,8 @@ export default function GlobalError({
             Мая споткнулась
           </p>
           <p style={{ fontSize: 14, opacity: 0.7, margin: "10px 0 0" }}>
-            Данные не трогаем. Обнови страницу или зайди на главную.
+            Часто это старая версия после обновления сайта. Нажмите «Попробовать
+            снова» — подтянем свежий код. Данные не трогаем.
           </p>
           <div
             style={{
@@ -51,7 +83,10 @@ export default function GlobalError({
           >
             <button
               type="button"
-              onClick={() => reset()}
+              onClick={() => {
+                hardReloadOnce();
+                reset();
+              }}
               style={{
                 border: "none",
                 background: "#e85a7a",
@@ -67,7 +102,7 @@ export default function GlobalError({
             <button
               type="button"
               onClick={() => {
-                window.location.href = "/";
+                window.location.href = "/?fix=1";
               }}
               style={{
                 border: "1px solid #e8d0d8",

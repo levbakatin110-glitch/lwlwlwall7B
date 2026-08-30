@@ -107,7 +107,7 @@ export async function POST(req: Request) {
       coords &&
       Number.isFinite(coords.latitude) &&
       Number.isFinite(coords.longitude);
-    if (!hasCoords) {
+    if (!hasCoords && !body.profile?.city?.trim()) {
       const ipGeo = await withTimeout(
         lookupIpGeo(clientIpFromRequest(req)),
         2000,
@@ -115,12 +115,6 @@ export async function POST(req: Request) {
       );
       if (ipGeo) {
         coords = { latitude: ipGeo.latitude, longitude: ipGeo.longitude };
-        if (!body.profile?.city?.trim() && ipGeo.city && body.profile) {
-          body = {
-            ...body,
-            profile: { ...body.profile, city: ipGeo.city },
-          };
-        }
       }
     }
 

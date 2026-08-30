@@ -307,7 +307,7 @@ export async function resolveWeather(opts: {
       vpnSuspect,
       source: weather ? "coords" : "none",
       needCity: false,
-      detectedCity: place?.name ?? null,
+      detectedCity: vpnSuspect ? null : (place?.name ?? null),
     };
   }
 

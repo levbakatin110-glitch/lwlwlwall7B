@@ -1,5 +1,5 @@
 /* PWA: сеть всегда свежая + push / локальные напоминания */
-const CACHE = "maya-shell-v10";
+const CACHE = "maya-shell-v11";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();

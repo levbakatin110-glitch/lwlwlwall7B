@@ -87,9 +87,9 @@ export function HomeWeatherCard({
         });
         onVpnSuspect?.(Boolean(vpnSuspect));
 
-        if (detectedCity?.trim()) {
+        if (detectedCity?.trim() && !vpnSuspect) {
           const current = useAppStore.getState().profile;
-          if (current.city?.trim() !== detectedCity.trim()) {
+          if (!current.city?.trim()) {
             setProfile({ ...current, city: detectedCity.trim() });
           }
         }

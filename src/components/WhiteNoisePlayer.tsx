@@ -4,10 +4,12 @@ import Link from "next/link";
 import { MayaIcon } from "@/components/icons/MayaIcon";
 import { PlanTeamFloatingButton } from "@/components/plan/PlanTeamEntry";
 
-/** Плавающие кнопки: план+чат (графит) + общение мам */
+/** Плавающие кнопки: план+чат (графит) + общение мам.
+ *  На телефоне прячем: те же разделы уже в карусели шапки,
+ *  а FABs залезают на переписку с Маей. */
 export function WhiteNoisePlayer() {
   return (
-    <div className="pointer-events-none fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] right-3 z-40 flex flex-col items-end gap-2.5 md:bottom-5 md:right-5">
+    <div className="pointer-events-none fixed bottom-5 right-5 z-40 hidden flex-col items-end gap-2.5 md:flex">
       <PlanTeamFloatingButton />
       <Link
         href="/community"

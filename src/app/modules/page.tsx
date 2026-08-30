@@ -256,18 +256,20 @@ export default function ModulesPage() {
             Мои
           </p>
           <ul className="space-y-3">
-            {customModules.map((mod, i) => (
+            {customModules
+              .filter((mod) => mod && typeof mod.id === "string")
+              .map((mod, i) => (
               <li
                 key={mod.id}
                 className="maya-item flex flex-col gap-3 rounded-2xl border border-line bg-card/70 p-4 sm:flex-row sm:items-center sm:justify-between"
                 style={{ animationDelay: `${i * 45}ms` }}
               >
                 <div className="flex gap-3">
-                  <IconBadge name={mod.icon} />
+                  <IconBadge name={mod.icon || "spark"} />
                   <div>
-                    <p className="font-medium">{mod.title}</p>
+                    <p className="font-medium">{mod.title || "Дневник"}</p>
                     <p className="mt-1 text-sm text-muted">{mod.description}</p>
-                    {mod.fields?.length ? (
+                    {Array.isArray(mod.fields) && mod.fields.length ? (
                       <p className="mt-1 text-xs text-muted">
                         Поля: {mod.fields.map((f) => f.label).join(", ")}
                       </p>

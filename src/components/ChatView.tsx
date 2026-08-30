@@ -233,13 +233,17 @@ export function ChatView() {
 
   function requestPhoneLocation() {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
-      void fallbackIpLocation();
+      if (!useAppStore.getState().profile?.city?.trim()) {
+        void fallbackIpLocation();
+      }
       return;
     }
     // На http:// (не localhost) Chrome часто запрещает GPS
     if (typeof window !== "undefined" && !window.isSecureContext) {
       setCoords(null);
-      void fallbackIpLocation();
+      if (!useAppStore.getState().profile?.city?.trim()) {
+        void fallbackIpLocation();
+      }
       return;
     }
     setCoords(null);
@@ -252,12 +256,14 @@ export function ChatView() {
       },
       () => {
         setCoords(null);
-        void fallbackIpLocation();
+        if (!useAppStore.getState().profile?.city?.trim()) {
+          void fallbackIpLocation();
+        }
       },
       {
-        enableHighAccuracy: true,
-        maximumAge: 60_000,
-        timeout: 4000,
+        enableHighAccuracy: false,
+        maximumAge: 120_000,
+        timeout: 2500,
       },
     );
   }
@@ -287,15 +293,8 @@ export function ChatView() {
             latitude: data.latitude!,
             longitude: data.longitude!,
           };
+          // Не пишем город с IP в профиль: при VPN это чужая страна.
           setCoords(next);
-          if (data.city?.trim()) {
-            const current = useAppStore.getState().profile;
-            if (!current.city?.trim()) {
-              useAppStore
-                .getState()
-                .setProfile({ ...current, city: data.city.trim() });
-            }
-          }
           return next;
         }
       }
@@ -319,13 +318,6 @@ export function ChatView() {
       if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
       const next = { latitude, longitude };
       setCoords(next);
-      const place = (data.city || data.region || "").trim();
-      if (place) {
-        const current = useAppStore.getState().profile;
-        if (!current.city?.trim()) {
-          useAppStore.getState().setProfile({ ...current, city: place });
-        }
-      }
       return next;
     } catch {
       return null;
@@ -507,7 +499,8 @@ export function ChatView() {
     startTransition(async () => {
       try {
         let sendCoords = coords;
-        if (!sendCoords) {
+        const hasCity = Boolean(useAppStore.getState().profile?.city?.trim());
+        if (!sendCoords && !hasCity) {
           // Не ждём гео дольше 1.5с — иначе чат упирается в 504 nginx
           sendCoords = await Promise.race([
             fallbackIpLocation(),

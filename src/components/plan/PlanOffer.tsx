@@ -4,24 +4,25 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { clientEntriesForTopic } from "@/lib/backup-read-client";
-import {
-  evaluatePlanOfferEligibility,
-  evaluatePlanSelfServeEligibility,
-} from "@/lib/plan-offer-eligibility";
+import { evaluatePlanOfferEligibility } from "@/lib/plan-offer-eligibility";
 import {
   enablePlanOfferInstantFromUrl,
   readPlanOfferInstant,
 } from "@/lib/plan-offer-instant";
 import { useAppStore } from "@/lib/store";
-import { orderStatusHint, planFocusLabel } from "@/lib/plan-consultants";
+import {
+  orderStatusHint,
+  planFocusLabel,
+  PLAN_CONSULTANT_IDS,
+} from "@/lib/plan-consultants";
 import {
   ACCOMPANIMENT_INCLUDES,
-  ACCOMPANIMENT_RUB,
-  PLAN_BREAKDOWN_RUB,
-  PLAN_OFFER_HOOK,
+  PLAN_CONSULTANT_NAMES,
+  PLAN_OFFER_CTA,
   PLAN_OFFER_TITLE,
   PLAN_TOPIC_LABEL,
-  PLAN_TOPIC_LABEL_NOM,
+  accompanimentPriceLine,
+  planOfferHookForTopic,
   type PlanTopic,
 } from "@/lib/plan-products";
 import { PlanConsultantAvatar } from "@/components/plan/PlanConsultantAvatar";
@@ -204,7 +205,7 @@ export function SpecialistChat({ orderId }: { orderId: string }) {
             </h1>
             <p className="text-[11px] text-muted">
               {consultant?.role ?? "Консультант для мам"}
-              {topic ? ` · ${planFocusLabel(order.topic)}` : ""} · не врач
+              {order?.topic ? ` · ${planFocusLabel(order.topic)}` : ""} · не врач
             </p>
           </div>
         </div>
@@ -213,9 +214,11 @@ export function SpecialistChat({ orderId }: { orderId: string }) {
         ) : null}
         {!closed && order?.status !== "awaiting_payment" ? (
           <p className="mt-2 text-[11px] leading-relaxed text-muted">
-            {order?.status === "plan_sent" || order?.status === "clarifying"
-              ? "Спрашивайте про план и про всё, что волнует — смотрим дневники и отвечаем по делу."
-              : "После плана — 3 дня чата: можно писать про малыша, режим и ваш день."}
+            {order?.accompanimentPaid
+              ? "Можно писать про сон, кормление, режим и как вы сами. Смотрим дневник."
+              : order?.status === "plan_sent" || order?.status === "clarifying"
+              ? "План уже у вас. Пишите, если что-то непонятно или не получается."
+              : "Консультант смотрит дневник и готовит план. Обычно в течение суток."}
           </p>
         ) : null}
       </div>
@@ -294,7 +297,11 @@ export function SpecialistChat({ orderId }: { orderId: string }) {
           </p>
           <div className="mt-4 rounded-2xl border border-accent/25 bg-accent-soft/40 p-4">
             <p className="font-display text-base font-semibold">
-              Сопровождение месяц · {ACCOMPANIMENT_RUB} ₽
+              Остаться с консультантом на месяц · {accompanimentPriceLine()}
+            </p>
+            <p className="mt-1 text-xs leading-relaxed text-muted">
+              Будем смотреть дневник дальше и править план, если что-то не
+              заходит.
             </p>
             <ul className="mt-2 space-y-1 text-xs text-muted">
               {ACCOMPANIMENT_INCLUDES.map((line) => (
@@ -311,7 +318,7 @@ export function SpecialistChat({ orderId }: { orderId: string }) {
                 ? "Ожидаем оплату…"
                 : payBusy
                   ? "Переход к оплате…"
-                  : "Хочу, чтобы вели месяц"}
+                  : "Остаться на месяц"}
             </button>
           </div>
           <Link
@@ -480,106 +487,35 @@ export function PlanOfferBanner({ moduleId }: { moduleId: string }) {
 
   return (
     <div className="mb-4 rounded-2xl border border-accent/25 bg-gradient-to-br from-accent-soft/80 to-card p-4">
-      <p className="font-display text-base font-semibold">{PLAN_OFFER_TITLE}</p>
-      <p className="mt-1 text-xs leading-relaxed text-muted">{PLAN_OFFER_HOOK}</p>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">
+        По вашим записям · {label} · не ИИ
+      </p>
+      <div className="mt-2 flex items-center gap-2">
+        <span className="flex shrink-0 -space-x-2">
+          {PLAN_CONSULTANT_IDS.map((id) => (
+            <PlanConsultantAvatar
+              key={id}
+              consultantId={id}
+              size={32}
+              className="ring-2 ring-white"
+            />
+          ))}
+        </span>
+        <p className="text-[11px] leading-snug text-muted">
+          {PLAN_CONSULTANT_NAMES}
+        </p>
+      </div>
+      <p className="font-display mt-2 text-base font-semibold">{PLAN_OFFER_TITLE}</p>
+      <p className="mt-1 text-xs leading-relaxed text-muted">
+        {planOfferHookForTopic(topic)}
+      </p>
+      <p className="mt-2 text-xs text-muted">{accompanimentPriceLine()}</p>
       <Link
         href={`/plan/order?topic=${topic}`}
         className="mt-3 inline-flex rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-[var(--on-accent,#fff)]"
       >
-        Разобрать дневник · {PLAN_BREAKDOWN_RUB} ₽
+        {PLAN_OFFER_CTA}
       </Link>
-    </div>
-  );
-}
-
-function topicFromModuleId(moduleId: string): PlanTopic | null {
-  if (moduleId === "sleep") return "sleep";
-  if (
-    moduleId === "breastfeeding" ||
-    moduleId === "formula" ||
-    moduleId === "solids"
-  ) {
-    return "feed";
-  }
-  return null;
-}
-
-/** Тихая ссылка внизу дневника — для тех, кто хочет план сам */
-export function PlanSelfServeHint({ moduleId }: { moduleId: string }) {
-  const topic = topicFromModuleId(moduleId);
-  const journals = useAppStore((s) => s.journals);
-  const birthDate = useAppStore((s) => s.profile?.birthDate);
-  const [instant, setInstant] = useState(false);
-  const [hasOrder, setHasOrder] = useState(false);
-
-  useEffect(() => {
-    setInstant(enablePlanOfferInstantFromUrl() || readPlanOfferInstant());
-  }, []);
-
-  useEffect(() => {
-    if (!topic) return;
-    void fetch("/api/plan-orders", { credentials: "include" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d: { orders?: { topic: string }[] } | null) => {
-        const mine = (d?.orders ?? []).filter((o) => o.topic === topic);
-        setHasOrder(mine.length > 0);
-      })
-      .catch(() => {});
-  }, [topic]);
-
-  if (!topic || hasOrder) return null;
-
-  const entries = clientEntriesForTopic(journals, topic);
-  const concern = evaluatePlanOfferEligibility({
-    topic,
-    entries,
-    journals,
-    birthDate,
-    instant,
-  });
-  const selfServe = evaluatePlanSelfServeEligibility({ entries });
-
-  if (concern.showOffer || !selfServe.canOrder) return null;
-
-  const label = PLAN_TOPIC_LABEL[topic];
-
-  return (
-    <p className="mt-5 text-center text-[11px] leading-relaxed text-muted">
-      Хотите разбор по {label}, даже если всё спокойно?{" "}
-      <Link
-        href={`/plan/order?topic=${topic}&self=1`}
-        className="font-medium text-accent underline decoration-accent/30 underline-offset-2"
-      >
-        Заказать · {PLAN_BREAKDOWN_RUB} ₽
-      </Link>
-    </p>
-  );
-}
-
-/** Профиль — ненавязчивые ссылки на заказ разбора */
-export function PlanServicesCard() {
-  return (
-    <div className="mt-4 rounded-2xl border border-line bg-card/50 px-4 py-3.5">
-      <p className="text-sm font-medium text-foreground">
-        Персональный план по дневнику
-      </p>
-      <p className="mt-1 text-xs leading-relaxed text-muted">
-        Разбор с консультантом для мам · {PLAN_BREAKDOWN_RUB} ₽ · не врач
-      </p>
-      <div className="mt-2.5 flex flex-wrap gap-2">
-        <Link
-          href="/plan/order?topic=sleep&self=1"
-          className="rounded-full border border-line bg-background px-3 py-1.5 text-xs font-medium text-foreground transition hover:border-accent/30"
-        >
-          {PLAN_TOPIC_LABEL_NOM.sleep}
-        </Link>
-        <Link
-          href="/plan/order?topic=feed&self=1"
-          className="rounded-full border border-line bg-background px-3 py-1.5 text-xs font-medium text-foreground transition hover:border-accent/30"
-        >
-          {PLAN_TOPIC_LABEL_NOM.feed}
-        </Link>
-      </div>
     </div>
   );
 }

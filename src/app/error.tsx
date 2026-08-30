@@ -21,9 +21,13 @@ export default function Error({
     const key = "maya-chunk-reload";
     if (sessionStorage.getItem(key)) return;
     sessionStorage.setItem(key, "1");
-    void navigator.serviceWorker?.getRegistrations?.().then((regs) => {
-      for (const r of regs) void r.unregister();
-      window.location.reload();
+    const go = () => window.location.reload();
+    if (!navigator.serviceWorker?.getRegistrations) {
+      go();
+      return;
+    }
+    void navigator.serviceWorker.getRegistrations().then((regs) => {
+      Promise.all(regs.map((r) => r.unregister())).finally(go);
     });
   }, [error]);
 

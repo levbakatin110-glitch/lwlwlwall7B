@@ -44,7 +44,7 @@ export const LEGAL_SITE_URL = env(
   "https://hey-maya.ru",
 ).replace(/\/$/, "");
 
-export const LEGAL_EDITION = "27.08.2026";
+export const LEGAL_EDITION = "30.08.2026";
 
 export const LEGAL_BRAND = "Мая";
 export const LEGAL_PRODUCT = "Maya Premium";

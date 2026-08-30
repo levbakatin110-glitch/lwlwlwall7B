@@ -1,7 +1,25 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import {
+  DiaryEmpty,
+  DiaryPage,
+  DiaryPrimaryButton,
+  DiarySectionTitle,
+  DiaryStats,
+  DiaryStickyCta,
+  DiaryTimeline,
+  DiaryTimelineRow,
+} from "@/components/diary/DiaryShell";
+import {
+  entriesForToday,
+  entryTimeMs,
+  formatClock,
+  formatDuration,
+  wakeMinutesSince,
+} from "@/lib/diary-day";
 import { useAppStore } from "@/lib/store";
+import type { JournalEntry } from "@/lib/types";
 
 type Kind = "nap" | "night";
 
@@ -12,25 +30,47 @@ type SleepLive = {
 
 const KEY = "maya-sleep-session";
 
-function fmt(sec: number) {
-  const h = Math.floor(sec / 3600);
-  const m = Math.floor((sec % 3600) / 60);
-  const s = sec % 60;
-  if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+function sleepStartMs(e: JournalEntry): number {
+  if (typeof e.fields?.startMs === "number") return e.fields.startMs;
+  if (typeof e.fields?.from === "string") {
+    const t = Date.parse(e.fields.from);
+    if (!Number.isNaN(t)) return t;
+  }
+  return entryTimeMs(e);
 }
 
-export function SleepTracker({
-  journalId = "sleep",
-}: {
-  journalId?: string;
-}) {
+function sleepEndMs(e: JournalEntry): number {
+  if (typeof e.fields?.endMs === "number") return e.fields.endMs;
+  if (typeof e.fields?.to === "string") {
+    const t = Date.parse(e.fields.to);
+    if (!Number.isNaN(t)) return t;
+  }
+  const sec = Number(e.fields?.totalSec);
+  if (Number.isFinite(sec)) return sleepStartMs(e) + sec * 1000;
+  return sleepStartMs(e);
+}
+
+function sleepDurationSec(e: JournalEntry): number {
+  const sec = Number(e.fields?.totalSec);
+  if (Number.isFinite(sec)) return sec;
+  return Math.max(0, Math.floor((sleepEndMs(e) - sleepStartMs(e)) / 1000));
+}
+
+function kindLabel(kind: string | undefined, isMom: boolean): string {
+  if (kind === "night") return "ночной";
+  return isMom ? "дневной отдых" : "дневной";
+}
+
+export function SleepTracker({ journalId = "sleep" }: { journalId?: string }) {
   const addJournalEntry = useAppStore((s) => s.addJournalEntry);
+  const removeJournalEntry = useAppStore((s) => s.removeJournalEntry);
+  const entries = useAppStore((s) => s.journals[journalId] ?? []);
+
   const storageKey = journalId === "sleep" ? KEY : `${KEY}-${journalId}`;
+  const isMomSleep = journalId === "preg_sleep";
+
   const [live, setLive] = useState<SleepLive | null>(null);
   const [now, setNow] = useState(() => Date.now());
-  const [flash, setFlash] = useState(false);
-  const [hint, setHint] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -61,119 +101,194 @@ export function SleepTracker({
     return Math.max(0, Math.floor((now - live.startedAt) / 1000));
   }, [live, now]);
 
+  const todayEntries = useMemo(() => {
+    return entriesForToday(entries)
+      .slice()
+      .sort((a, b) => sleepEndMs(b) - sleepEndMs(a));
+  }, [entries]);
+
+  const stats = useMemo(() => {
+    const totalSec = todayEntries.reduce((s, e) => s + sleepDurationSec(e), 0);
+    const wake = wakeMinutesSince(entries);
+    return {
+      totalSec,
+      count: todayEntries.length,
+      wakeLabel: wake != null ? `${wake} мин` : "—",
+    };
+  }, [todayEntries, entries]);
+
   function start(kind: Kind) {
-    setHint(null);
     setLive({ kind, startedAt: Date.now() });
+    setNow(Date.now());
   }
 
   function stop() {
     if (!live) return;
-    // короткий тап по ошибке — не пишем в дневник
     if (elapsed < 15) {
       setLive(null);
-      setHint(
-        journalId === "preg_sleep"
-          ? "Слишком коротко (меньше 15 сек) — не записала. Засеките снова, если реально отдыхали."
-          : "Слишком коротко (меньше 15 сек) — не записала. Если малыш реально поспал, засеките снова.",
-      );
       return;
     }
-    const start = new Date(live.startedAt);
-    const end = new Date();
+    const startDate = new Date(live.startedAt);
+    const endDate = new Date();
     const pad = (n: number) => String(n).padStart(2, "0");
-    const range = `${pad(start.getHours())}:${pad(start.getMinutes())}–${pad(end.getHours())}:${pad(end.getMinutes())}`;
-    const isMom = journalId === "preg_sleep";
-    const label = live.kind === "night" ? "ночь" : "дневной сон";
+    const range = `${pad(startDate.getHours())}:${pad(startDate.getMinutes())}–${pad(endDate.getHours())}:${pad(endDate.getMinutes())}`;
+    const label = live.kind === "night" ? "ночь" : isMomSleep ? "дневной отдых" : "дневной сон";
     addJournalEntry(journalId, {
-      date: `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-${String(start.getDate()).padStart(2, "0")}`,
-      value: `${label} ${range} · ${fmt(elapsed)}`,
+      date: `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, "0")}-${String(startDate.getDate()).padStart(2, "0")}`,
+      value: `${label} ${range} · ${formatDuration(elapsed)}`,
       note: "",
       fields: {
         kind: live.kind,
         totalSec: elapsed,
-        from: start.toISOString(),
-        to: end.toISOString(),
+        from: startDate.toISOString(),
+        to: endDate.toISOString(),
+        startMs: live.startedAt,
+        endMs: endDate.getTime(),
       },
     });
     setLive(null);
-    setHint(null);
-    setFlash(true);
-    window.setTimeout(() => setFlash(false), 2200);
   }
 
-  const isMomSleep = journalId === "preg_sleep";
+  const hasTimeline = todayEntries.length > 0 || live;
 
   return (
-    <div className="maya-rise overflow-hidden rounded-[1.5rem] border border-line bg-card/80 p-4 sm:p-5">
-      <h2 className="font-display text-xl font-semibold tracking-tight">
-        {live
-          ? isMomSleep
-            ? "Отдыхаю…"
-            : "Спит…"
-          : isMomSleep
-            ? "Засечь отдых"
-            : "Засечь сон"}
-      </h2>
+    <DiaryPage stickyPad>
+      <DiaryStats
+        items={[
+          {
+            label: "Сегодня",
+            value: stats.totalSec > 0 ? formatDuration(stats.totalSec) : "—",
+          },
+          { label: "Снов", value: stats.count },
+          { label: "Бодрств.", value: stats.wakeLabel },
+        ]}
+      />
 
       {live ? (
-        <div className="mt-5 text-center">
-          <p className="text-xs uppercase tracking-[0.16em] text-muted">
-            {live.kind === "night" ? "Ночной" : "Дневной"}
+        <div className="mt-6 text-center">
+          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">
+            {live.kind === "night" ? "Ночной" : isMomSleep ? "Отдых" : "Дневной"}
           </p>
           <p className="font-mono mt-2 text-5xl font-semibold tabular-nums tracking-tight">
-            {fmt(elapsed)}
+            {formatDuration(elapsed)}
           </p>
-          <button
-            type="button"
-            onClick={stop}
-            className="mt-6 w-full rounded-2xl bg-accent py-3.5 text-sm font-semibold text-[#ffffff]"
-          >
-            {isMomSleep ? "Проснулась — сохранить" : "Проснулся — сохранить"}
-          </button>
-          <button
-            type="button"
-            onClick={() => setLive(null)}
-            className="mt-2 w-full py-2 text-xs text-muted hover:text-foreground"
-          >
-            Отменить
-          </button>
+        </div>
+      ) : null}
+
+      {hasTimeline ? (
+        <div className="mt-5">
+          <DiarySectionTitle left="Время" right="Тип" />
+          <DiaryTimeline>
+            {live ? (
+              <li>
+                <DiaryTimelineRow
+                  accent
+                  mark={todayEntries.length + 1}
+                  left={
+                    <div className="flex flex-col items-end gap-0.5">
+                      <span className="text-[11px] tabular-nums text-muted">
+                        {formatClock(live.startedAt)}–…
+                      </span>
+                      <span className="font-display text-lg font-semibold tabular-nums text-accent">
+                        {formatDuration(elapsed)}
+                      </span>
+                    </div>
+                  }
+                  right={
+                    <span className="text-sm font-medium">
+                      {kindLabel(live.kind, isMomSleep)}
+                    </span>
+                  }
+                />
+              </li>
+            ) : null}
+            {todayEntries.map((e, i) => {
+              const startMs = sleepStartMs(e);
+              const endMs = sleepEndMs(e);
+              const dur = sleepDurationSec(e);
+              const isNewest = i === 0 && !live;
+              return (
+                <li key={e.id}>
+                  <DiaryTimelineRow
+                    accent={isNewest}
+                    mark={todayEntries.length - i}
+                    onClick={() => {
+                      if (
+                        window.confirm(
+                          isMomSleep
+                            ? "Удалить эту запись об отдыхе?"
+                            : "Удалить эту запись о сне?",
+                        )
+                      ) {
+                        removeJournalEntry(journalId, e.id);
+                      }
+                    }}
+                    left={
+                      <div className="flex flex-col items-end gap-0.5">
+                        <span className="text-[11px] tabular-nums text-muted">
+                          {formatClock(startMs)}–{formatClock(endMs)}
+                        </span>
+                        <span
+                          className={`font-display text-lg font-semibold tabular-nums ${
+                            isNewest ? "text-accent" : "text-foreground"
+                          }`}
+                        >
+                          {formatDuration(dur)}
+                        </span>
+                      </div>
+                    }
+                    right={
+                      <span className="text-sm font-medium">
+                        {kindLabel(
+                          typeof e.fields?.kind === "string"
+                            ? e.fields.kind
+                            : undefined,
+                          isMomSleep,
+                        )}
+                      </span>
+                    }
+                  />
+                </li>
+              );
+            })}
+          </DiaryTimeline>
         </div>
       ) : (
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          <button
-            type="button"
-            onClick={() => start("nap")}
-            className="rounded-[1.25rem] border border-line bg-background/50 px-3 py-6 text-left hover:border-accent/35"
-          >
-            <p className="font-display text-lg font-semibold">Дневной</p>
-            <p className="mt-1 text-xs text-muted">
-              {isMomSleep ? "Короткий отдых" : "Короткий сон"}
-            </p>
-          </button>
-          <button
-            type="button"
-            onClick={() => start("night")}
-            className="rounded-[1.25rem] border border-line bg-background/50 px-3 py-6 text-left hover:border-accent/35"
-          >
-            <p className="font-display text-lg font-semibold">Ночной</p>
-            <p className="mt-1 text-xs text-muted">До утра</p>
-          </button>
-        </div>
+        <DiaryEmpty>
+          {isMomSleep ? "Засеките отдых" : "Засеките сон"}
+        </DiaryEmpty>
       )}
 
-      {flash && (
-        <p className="maya-msg-in mt-3 text-sm font-medium text-accent">
-          {isMomSleep
-            ? "Отдых записан · берегите себя"
-            : "Сон записан · Мая следит за режимом"}
-        </p>
-      )}
-      {hint && (
-        <p className="maya-msg-in mt-3 text-sm text-muted">{hint}</p>
-      )}
-      {!live && !hint && (
-        <p className="mt-3 text-[11px] text-muted">От 15 сек — иначе не сохранится.</p>
-      )}
-    </div>
+      <DiaryStickyCta>
+        {live ? (
+          <div className="flex gap-2">
+            <DiaryPrimaryButton onClick={stop}>
+              <span className="tabular-nums">{formatDuration(elapsed)}</span>
+              <span>· {isMomSleep ? "Проснулась" : "Проснулся"} · сохранить</span>
+            </DiaryPrimaryButton>
+            <button
+              type="button"
+              onClick={() => setLive(null)}
+              className="shrink-0 rounded-2xl border border-line bg-card px-4 py-4 text-sm font-medium text-muted"
+            >
+              ×
+            </button>
+          </div>
+        ) : (
+          <>
+            <DiaryPrimaryButton onClick={() => start("nap")}>
+              {isMomSleep ? "Дневной отдых" : "Дневной сон"}
+            </DiaryPrimaryButton>
+            <button
+              type="button"
+              onClick={() => start("night")}
+              className="w-full rounded-2xl border border-line bg-card px-5 py-3.5 text-sm font-semibold text-foreground transition active:scale-[0.98]"
+            >
+              Ночной
+            </button>
+          </>
+        )}
+      </DiaryStickyCta>
+    </DiaryPage>
   );
 }

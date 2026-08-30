@@ -15,7 +15,6 @@ import { Sidebar } from "./Sidebar";
 import { ThemeSync } from "./ThemeSync";
 import { WhiteNoisePlayer } from "./WhiteNoisePlayer";
 import { CookieBanner } from "./legal/CookieBanner";
-import { PregnancyStatusBanner } from "./pregnancy/PregnancyStatusBanner";
 import { MayaIcon } from "@/components/icons/MayaIcon";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -101,7 +100,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <QuickNavCarousel />
             </header>
           )}
-          {!isCommunity && !isPlanFlow && <PregnancyStatusBanner />}
           <main className={`relative flex min-h-0 flex-1 flex-col overflow-x-hidden overscroll-none pb-[env(safe-area-inset-bottom)] ${isPlanChat || isHome ? "overflow-hidden" : "overflow-y-auto"}`}>
             {children}
           </main>

@@ -83,17 +83,6 @@ export const CUSTOM_DIARY_HINT: DiaryHint = {
   ],
 };
 
-export const MEMORIES_HINT: DiaryHint = {
-  body: "Фото с датой — Мая соберёт историю.",
-  examples: [
-    {
-      label: "Наша история",
-      prompt:
-        "Расскажи историю малыша по нашим моментам — коротко, по порядку.",
-    },
-  ],
-};
-
 export function hintForDiary(moduleId: string, isCustom?: boolean): DiaryHint {
   if (DIARY_HINTS[moduleId]) return DIARY_HINTS[moduleId];
   if (isCustom) return CUSTOM_DIARY_HINT;

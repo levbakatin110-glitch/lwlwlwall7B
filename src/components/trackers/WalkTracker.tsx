@@ -1,189 +1,268 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import {
+  DiaryEmpty,
+  DiaryPage,
+  DiaryPrimaryButton,
+  DiarySectionTitle,
+  DiaryStats,
+  DiaryStickyCta,
+  DiaryTimeline,
+  DiaryTimelineRow,
+} from "@/components/diary/DiaryShell";
+import {
+  entriesForToday,
+  entryTimeMs,
+  formatClock,
+  formatDuration,
+  todayYmd,
+} from "@/lib/diary-day";
 import { useAppStore } from "@/lib/store";
+import type { JournalEntry } from "@/lib/types";
 
 const SS_KEY = "maya-walk-session";
-const QUICK = [15, 30, 45, 60, 90] as const;
+const MIN_SEC = 30;
 
-type Session = {
-  startedAt: number;
-  place: string;
+type LiveSession = {
+  startMs: number;
+  from?: string;
+  to?: string;
 };
 
-function loadSession(): Session | null {
+function loadSession(): LiveSession | null {
   try {
     const raw = sessionStorage.getItem(SS_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as Session;
+    const s = JSON.parse(raw) as LiveSession;
+    if (typeof s?.startMs === "number") return s;
   } catch {
-    return null;
+    /* */
   }
+  return null;
 }
 
-function formatDur(sec: number) {
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+function entryTotalSec(e: JournalEntry): number {
+  const fromField = Number(e.fields?.totalSec);
+  if (Number.isFinite(fromField) && fromField > 0) return fromField;
+  const fromMin = Number(e.fields?.totalMin);
+  if (Number.isFinite(fromMin) && fromMin > 0) return fromMin * 60;
+  const m = e.value.match(/(\d+)\s*мин/i);
+  return m ? Number(m[1]) * 60 : 0;
+}
+
+function entryEndMs(e: JournalEntry): number {
+  const f = e.fields;
+  if (typeof f?.endMs === "number") return f.endMs;
+  const start = entryTimeMs(e);
+  const dur = entryTotalSec(e);
+  return start + dur * 1000;
 }
 
 export function WalkTracker() {
   const addJournalEntry = useAppStore((s) => s.addJournalEntry);
+  const removeJournalEntry = useAppStore((s) => s.removeJournalEntry);
   const entries = useAppStore((s) => s.journals.walk ?? []);
-  const [session, setSession] = useState<Session | null>(null);
-  const [tick, setTick] = useState(0);
-  const [place, setPlace] = useState("");
-  const [savedFlash, setSavedFlash] = useState(false);
+  const [live, setLive] = useState<LiveSession | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
 
   useEffect(() => {
-    setSession(loadSession());
+    const s = loadSession();
+    if (s) {
+      setLive(s);
+      if (s.from) setFrom(s.from);
+      if (s.to) setTo(s.to);
+    }
   }, []);
 
   useEffect(() => {
-    if (!session) return;
-    const id = window.setInterval(() => setTick((t) => t + 1), 1000);
+    try {
+      if (!live) sessionStorage.removeItem(SS_KEY);
+      else sessionStorage.setItem(SS_KEY, JSON.stringify(live));
+    } catch {
+      /* */
+    }
+  }, [live]);
+
+  useEffect(() => {
+    if (!live) return;
+    const id = window.setInterval(() => setNow(Date.now()), 200);
     return () => window.clearInterval(id);
-  }, [session]);
+  }, [live]);
 
-  const elapsedSec = session
-    ? Math.max(0, Math.floor((Date.now() - session.startedAt) / 1000) + tick * 0)
-    : 0;
-  // recompute from Date.now on each tick
-  const liveSec = session
-    ? Math.max(0, Math.floor((Date.now() - session.startedAt) / 1000))
-    : 0;
-  void tick;
-
-  const todayMin = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10);
-    return entries
-      .filter((e) => e.date === today)
-      .reduce((sum, e) => {
-        const fromField = Number(e.fields?.totalMin);
-        if (Number.isFinite(fromField)) return sum + fromField;
-        const m = e.value.match(/(\d+)\s*мин/i);
-        return sum + (m ? Number(m[1]) : 0);
-      }, 0);
+  const todayItems = useMemo(() => {
+    return entriesForToday(entries)
+      .map((e) => ({
+        e,
+        startMs: entryTimeMs(e),
+        endMs: entryEndMs(e),
+        totalSec: entryTotalSec(e),
+        from: String(e.fields?.from ?? e.fields?.place ?? ""),
+        to: String(e.fields?.to ?? ""),
+      }))
+      .filter((x) => x.totalSec > 0)
+      .sort((a, b) => b.startMs - a.startMs);
   }, [entries]);
 
-  function start() {
-    const next: Session = {
-      startedAt: Date.now(),
-      place: place.trim(),
+  const stats = useMemo(() => {
+    const totalSec = todayItems.reduce((s, x) => s + x.totalSec, 0);
+    const totalMin = Math.round(totalSec / 60);
+    const last = todayItems[0];
+    return {
+      totalMin,
+      count: todayItems.length,
+      last: last ? formatClock(last.startMs) : "—",
     };
-    sessionStorage.setItem(SS_KEY, JSON.stringify(next));
-    setSession(next);
+  }, [todayItems]);
+
+  const liveSec = live
+    ? Math.max(0, Math.floor((now - live.startMs) / 1000))
+    : 0;
+
+  function start() {
+    const startMs = Date.now();
+    const next: LiveSession = {
+      startMs,
+      from: from.trim() || undefined,
+      to: to.trim() || undefined,
+    };
+    setLive(next);
+    setNow(startMs);
   }
 
   function stopAndSave() {
-    if (!session) return;
-    const totalSec = Math.max(30, Math.floor((Date.now() - session.startedAt) / 1000));
+    if (!live) return;
+    const endMs = Date.now();
+    const totalSec = Math.floor((endMs - live.startMs) / 1000);
+    if (totalSec < MIN_SEC) {
+      sessionStorage.removeItem(SS_KEY);
+      setLive(null);
+      return;
+    }
     const totalMin = Math.max(1, Math.round(totalSec / 60));
-    const placeLabel = (session.place || place).trim();
-    const value = placeLabel
-      ? `${totalMin} мин · ${placeLabel}`
-      : `${totalMin} мин`;
+    const fromLabel = (live.from ?? from).trim();
+    const toLabel = (live.to ?? to).trim();
+    const parts = [`${totalMin} мин`];
+    if (fromLabel) parts.push(fromLabel);
+    if (toLabel && toLabel !== fromLabel) parts.push(`→ ${toLabel}`);
     addJournalEntry("walk", {
-      date: new Date().toISOString().slice(0, 10),
-      value,
+      date: todayYmd(),
+      value: parts.join(" · "),
       note: "",
       fields: {
         totalSec,
-        totalMin,
-        place: placeLabel,
+        startMs: live.startMs,
+        endMs,
+        ...(fromLabel ? { from: fromLabel } : {}),
+        ...(toLabel ? { to: toLabel } : {}),
       },
     });
     sessionStorage.removeItem(SS_KEY);
-    setSession(null);
-    setSavedFlash(true);
-    window.setTimeout(() => setSavedFlash(false), 2200);
+    setLive(null);
   }
 
-  function quickSave(min: number) {
-    const placeLabel = place.trim();
-    const value = placeLabel ? `${min} мин · ${placeLabel}` : `${min} мин`;
-    addJournalEntry("walk", {
-      date: new Date().toISOString().slice(0, 10),
-      value,
-      note: "",
-      fields: {
-        totalSec: min * 60,
-        totalMin: min,
-        place: placeLabel,
-      },
-    });
-    setSavedFlash(true);
-    window.setTimeout(() => setSavedFlash(false), 1800);
-  }
+  const hasData = todayItems.length > 0 || live;
 
   return (
-    <div className="maya-rise overflow-hidden rounded-[1.5rem] border border-line bg-card/80 p-4 sm:p-5">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2 className="font-display text-xl font-semibold tracking-tight">
-            Прогулка
-          </h2>
-          <p className="mt-1 text-xs text-muted">
-            Сегодня уже ~{todayMin} мин на воздухе
-          </p>
+    <DiaryPage stickyPad>
+      <DiaryStats
+        items={[
+          { label: "Сегодня минут", value: stats.totalMin },
+          { label: "Прогулок", value: stats.count },
+          { label: "Последняя", value: stats.last },
+        ]}
+      />
+
+      {!live ? (
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <label className="block text-sm">
+            <span className="text-[11px] text-muted">Откуда</span>
+            <input
+              value={from}
+              onChange={(e) => setFrom(e.target.value)}
+              placeholder="дом"
+              className="mt-1 w-full rounded-xl border border-line bg-card px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="block text-sm">
+            <span className="text-[11px] text-muted">Куда</span>
+            <input
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+              placeholder="парк"
+              className="mt-1 w-full rounded-xl border border-line bg-card px-3 py-2 text-sm"
+            />
+          </label>
         </div>
-      </div>
+      ) : null}
 
-      <label className="mt-4 block text-sm">
-        <span className="text-xs text-muted">Где гуляете (по желанию)</span>
-        <input
-          value={place}
-          onChange={(e) => setPlace(e.target.value)}
-          placeholder="двор, парк, коляска…"
-          className="mt-1 w-full rounded-xl border border-line bg-card px-3 py-2"
-          disabled={!!session}
-        />
-      </label>
-
-      {session ? (
-        <div className="mt-5 rounded-2xl border border-accent/25 bg-accent-soft/50 px-4 py-5 text-center">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-accent">
-            Идём
-          </p>
-          <p className="font-display mt-2 text-5xl font-semibold tabular-nums tracking-tight">
-            {formatDur(liveSec || elapsedSec)}
-          </p>
-          <button
-            type="button"
-            onClick={stopAndSave}
-            className="mt-4 w-full rounded-2xl bg-accent py-3 text-sm font-semibold text-on-accent"
-          >
-            {savedFlash ? "Сохранено ✓" : "Закончить и записать"}
-          </button>
+      {hasData ? (
+        <div className="mt-5">
+          <DiarySectionTitle left="Сегодня" />
+          <DiaryTimeline>
+            {live ? (
+              <li>
+                <DiaryTimelineRow
+                  accent
+                  left={
+                    <span className="text-[11px] tabular-nums text-muted">
+                      {formatClock(live.startMs)}
+                    </span>
+                  }
+                  mark="…"
+                  right={
+                    <span className="font-display text-lg font-semibold tabular-nums text-accent">
+                      {formatDuration(liveSec)}
+                    </span>
+                  }
+                />
+              </li>
+            ) : null}
+            {todayItems.map((item, i) => {
+              const route =
+                [item.from, item.to].filter(Boolean).join(" → ") || "—";
+              return (
+                <li key={item.e.id}>
+                  <DiaryTimelineRow
+                    accent={i === 0 && !live}
+                    left={
+                      <span className="text-[11px] tabular-nums text-muted">
+                        {formatClock(item.startMs)}
+                      </span>
+                    }
+                    mark={Math.max(1, Math.round(item.totalSec / 60))}
+                    right={
+                      <span className="text-sm text-muted">{route}</span>
+                    }
+                    onClick={() => {
+                      if (window.confirm("Удалить прогулку?")) {
+                        removeJournalEntry("walk", item.e.id);
+                      }
+                    }}
+                  />
+                </li>
+              );
+            })}
+          </DiaryTimeline>
         </div>
       ) : (
-        <>
-          <button
-            type="button"
-            onClick={start}
-            className="mt-4 w-full rounded-2xl bg-accent py-3.5 text-sm font-semibold text-on-accent"
-          >
-            Начать прогулку
-          </button>
-          <div className="mt-3 flex flex-wrap justify-center gap-1.5">
-            {QUICK.map((m) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => quickSave(m)}
-                className="rounded-full border border-line px-3 py-1.5 text-xs font-semibold text-muted hover:text-foreground"
-              >
-                {m} мин
-              </button>
-            ))}
-          </div>
-          {savedFlash && (
-            <p className="mt-3 text-center text-sm font-medium text-accent">
-              Записано ✓
-            </p>
-          )}
-        </>
+        <DiaryEmpty>Нажмите кнопку, когда выйдете гулять</DiaryEmpty>
       )}
-    </div>
+
+      <DiaryStickyCta>
+        {live ? (
+          <DiaryPrimaryButton onClick={stopAndSave}>
+            <span className="tabular-nums">{formatDuration(liveSec)}</span>
+            <span>· Закончить</span>
+          </DiaryPrimaryButton>
+        ) : (
+          <DiaryPrimaryButton onClick={start}>
+            Прогулка началась
+          </DiaryPrimaryButton>
+        )}
+      </DiaryStickyCta>
+    </DiaryPage>
   );
 }

@@ -1,6 +1,23 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import {
+  DiaryChip,
+  DiaryEmpty,
+  DiaryPage,
+  DiaryPrimaryButton,
+  DiarySectionTitle,
+  DiaryStats,
+  DiaryStickyCta,
+  DiaryTimeline,
+  DiaryTimelineRow,
+} from "@/components/diary/DiaryShell";
+import {
+  entriesForToday,
+  entryTimeMs,
+  formatClock,
+  todayYmd,
+} from "@/lib/diary-day";
 import { useAppStore } from "@/lib/store";
 
 function toLocalInputValue(d: Date) {
@@ -31,12 +48,12 @@ export function NotesTracker() {
   const removeJournalEntry = useAppStore((s) => s.removeJournalEntry);
   const entries = useAppStore((s) => s.journals.notes ?? []);
   const [text, setText] = useState("");
-  const [withRemind, setWithRemind] = useState(true);
+  const [withRemind, setWithRemind] = useState(false);
   const [remindAt, setRemindAt] = useState(() =>
     toLocalInputValue(tomorrowAt(18, 0)),
   );
-  const [savedFlash, setSavedFlash] = useState(false);
 
+  const today = entriesForToday(entries);
   const upcoming = useMemo(() => {
     const now = Date.now();
     return entries
@@ -57,143 +74,167 @@ export function NotesTracker() {
     const body = text.trim();
     if (!body) return;
     const remindIso =
-      withRemind && remindAt
-        ? new Date(remindAt).toISOString()
-        : undefined;
+      withRemind && remindAt ? new Date(remindAt).toISOString() : undefined;
     if (withRemind && remindIso && Number.isNaN(new Date(remindIso).getTime())) {
       return;
     }
-
     const value = remindIso
-      ? `${body} · напомнить ${formatRemind(remindIso)}`
+      ? `${body} · ${formatRemind(remindIso)}`
       : body;
-
     addJournalEntry("notes", {
-      date: new Date().toISOString().slice(0, 10),
+      date: todayYmd(),
       value,
       note: body,
-      fields: remindIso
-        ? {
-            remindAt: remindIso,
-            text: body,
-          }
-        : { text: body },
+      fields: {
+        text: body,
+        startMs: Date.now(),
+        ...(remindIso ? { remindAt: remindIso } : {}),
+      },
     });
-
     if (remindIso && typeof Notification !== "undefined") {
       if (Notification.permission === "default") {
         void Notification.requestPermission();
       }
     }
-
     setText("");
-    setSavedFlash(true);
-    window.setTimeout(() => setSavedFlash(false), 1800);
   }
 
-  return (
-    <div className="maya-rise overflow-hidden rounded-[1.5rem] border border-line bg-card/80 p-4 sm:p-5">
-      <h2 className="font-display text-xl font-semibold tracking-tight">
-        Заметка
-      </h2>
-      <p className="mt-1 text-xs text-muted">
-        Можно просто записать или поставить напоминание
-      </p>
+  const timeline = [...today].sort(
+    (a, b) => entryTimeMs(b) - entryTimeMs(a),
+  );
 
-      <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder="Например: завтра погулять в 18:00"
-        rows={3}
-        className="mt-4 w-full resize-none rounded-2xl border border-line bg-card px-3 py-2.5 text-sm leading-relaxed"
+  return (
+    <DiaryPage stickyPad>
+      <DiaryStats
+        items={[
+          { label: "Сегодня", value: today.length },
+          { label: "Напоминаний", value: upcoming.length },
+          {
+            label: "Всего",
+            value: entries.length,
+          },
+        ]}
       />
 
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        {[
-          { label: "Завтра 18:00", at: tomorrowAt(18) },
-          { label: "Завтра 10:00", at: tomorrowAt(10) },
-          {
-            label: "Через 1 час",
-            at: new Date(Date.now() + 60 * 60 * 1000),
-          },
-        ].map((p) => (
-          <button
-            key={p.label}
-            type="button"
-            onClick={() => {
-              setWithRemind(true);
-              setRemindAt(toLocalInputValue(p.at));
-              if (!text.trim()) setText("Погулять с малышом");
-            }}
-            className="rounded-full border border-line px-3 py-1.5 text-[11px] font-semibold text-muted hover:text-foreground"
-          >
-            {p.label}
-          </button>
-        ))}
-      </div>
-
-      <label className="mt-4 flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={withRemind}
-          onChange={(e) => setWithRemind(e.target.checked)}
-          className="accent-[var(--accent)]"
+      <div className="mt-4 rounded-2xl border border-line bg-card p-3">
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Текст заметки"
+          rows={3}
+          className="w-full resize-none rounded-xl border-0 bg-transparent px-1 py-1 text-sm leading-relaxed outline-none"
         />
-        <span>Напоминание</span>
-      </label>
-
-      {withRemind && (
-        <label className="mt-2 block text-sm">
-          <span className="text-xs text-muted">Когда напомнить</span>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {[
+            { label: "Завтра 18:00", at: tomorrowAt(18) },
+            { label: "Завтра 10:00", at: tomorrowAt(10) },
+            { label: "+1 час", at: new Date(Date.now() + 3_600_000) },
+          ].map((p) => (
+            <DiaryChip
+              key={p.label}
+              active={false}
+              onClick={() => {
+                setWithRemind(true);
+                setRemindAt(toLocalInputValue(p.at));
+              }}
+            >
+              {p.label}
+            </DiaryChip>
+          ))}
+          <DiaryChip
+            active={withRemind}
+            onClick={() => setWithRemind((v) => !v)}
+          >
+            {withRemind ? "с напоминанием" : "без напоминания"}
+          </DiaryChip>
+        </div>
+        {withRemind ? (
           <input
             type="datetime-local"
             value={remindAt}
             onChange={(e) => setRemindAt(e.target.value)}
-            className="mt-1 w-full rounded-xl border border-line bg-card px-3 py-2"
+            className="mt-3 w-full rounded-xl border border-line bg-background px-3 py-2 text-sm"
           />
-        </label>
-      )}
+        ) : null}
+      </div>
 
-      <button
-        type="button"
-        onClick={save}
-        disabled={!text.trim()}
-        className="mt-4 w-full rounded-2xl bg-accent py-3 text-sm font-semibold text-on-accent disabled:opacity-40"
-      >
-        {savedFlash ? "Сохранено ✓" : withRemind ? "Сохранить с напоминанием" : "Сохранить"}
-      </button>
-
-      {upcoming.length > 0 && (
-        <div className="mt-6">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-accent">
-            Ближайшие напоминания
-          </p>
-          <ul className="mt-2 space-y-2">
-            {upcoming.map((e) => (
-              <li
-                key={e.id}
-                className="flex items-start justify-between gap-2 rounded-xl border border-line bg-card/60 px-3 py-2.5"
-              >
-                <div className="min-w-0">
-                  <p className="text-sm font-medium leading-snug">
-                    {String(e.fields?.text || e.note || e.value)}
-                  </p>
-                  <p className="mt-0.5 text-[11px] text-muted">
-                    {formatRemind(String(e.fields?.remindAt))}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => removeJournalEntry("notes", e.id)}
-                  className="shrink-0 text-[11px] text-muted hover:text-foreground"
-                >
-                  Удалить
-                </button>
+      {upcoming.length > 0 ? (
+        <div className="mt-5">
+          <DiarySectionTitle left="Ближайшие" />
+          <DiaryTimeline>
+            {upcoming.map((e, i) => (
+              <li key={e.id}>
+                <DiaryTimelineRow
+                  accent={i === 0}
+                  mark={i + 1}
+                  left={
+                    <span className="text-sm font-medium leading-snug">
+                      {String(e.fields?.text || e.note || e.value)}
+                    </span>
+                  }
+                  right={
+                    <span className="text-xs tabular-nums text-muted">
+                      {formatRemind(String(e.fields?.remindAt))}
+                    </span>
+                  }
+                  onClick={() => {
+                    if (window.confirm("Удалить заметку?")) {
+                      removeJournalEntry("notes", e.id);
+                    }
+                  }}
+                />
               </li>
             ))}
-          </ul>
+          </DiaryTimeline>
         </div>
-      )}
-    </div>
+      ) : null}
+
+      {timeline.length > 0 && upcoming.length === 0 ? (
+        <div className="mt-5">
+          <DiarySectionTitle left="Сегодня" />
+          <DiaryTimeline>
+            {timeline.map((e, i) => (
+              <li key={e.id}>
+                <DiaryTimelineRow
+                  mark={timeline.length - i}
+                  left={
+                    <div>
+                      <span className="text-[11px] tabular-nums text-muted">
+                        {formatClock(entryTimeMs(e))}
+                      </span>
+                      <p className="text-sm font-medium leading-snug">
+                        {String(e.fields?.text || e.note || e.value)}
+                      </p>
+                    </div>
+                  }
+                  right={
+                    e.fields?.remindAt ? (
+                      <span className="text-[11px] text-accent">⏰</span>
+                    ) : (
+                      <span className="text-muted/40">—</span>
+                    )
+                  }
+                  onClick={() => {
+                    if (window.confirm("Удалить заметку?")) {
+                      removeJournalEntry("notes", e.id);
+                    }
+                  }}
+                />
+              </li>
+            ))}
+          </DiaryTimeline>
+        </div>
+      ) : null}
+
+      {!timeline.length && !upcoming.length ? (
+        <DiaryEmpty>Заметок пока нет</DiaryEmpty>
+      ) : null}
+
+      <DiaryStickyCta>
+        <DiaryPrimaryButton disabled={!text.trim()} onClick={save}>
+          Сохранить
+        </DiaryPrimaryButton>
+      </DiaryStickyCta>
+    </DiaryPage>
   );
 }

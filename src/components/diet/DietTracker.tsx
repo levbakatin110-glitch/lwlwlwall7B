@@ -2,6 +2,12 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import {
+  DiarySectionTitle,
+  DiaryStats,
+  DiaryTimeline,
+  DiaryTimelineRow,
+} from "@/components/diary/DiaryShell";
+import {
   ACTIVITY_OPTIONS,
   GOAL_OPTIONS,
   MEAL_OPTIONS,
@@ -9,6 +15,7 @@ import {
   emptyDietDraft,
   isDietPlanReady,
 } from "@/lib/diet";
+import { entryTimeMs, formatClock, todayYmd } from "@/lib/diary-day";
 import type {
   DietActivity,
   DietGoalMode,
@@ -33,8 +40,6 @@ function formatTodayRu() {
   }
 }
 
-const NUTRITION_GUIDE_URL = "https://lollypollya.ru/index.html#nutrition";
-
 function parseKcal(e: {
   fields?: Record<string, string | number>;
   value: string;
@@ -53,14 +58,12 @@ function segBtn(active: boolean) {
   }`;
 }
 
-/**
- * Калькулятор калорий (Миффлин–Сан Жеор) + дневной лог.
- * Как у нормальных сервисов: данные → Рассчитать → ориентир ккал.
- */
+/** Калькулятор калорий (Миффлин–Сан Жеор) + дневной лог. */
 export function DietTracker({ journalId = "diet" }: { journalId?: string }) {
   const stored = useAppStore((s) => s.dietPlan);
   const setDietPlan = useAppStore((s) => s.setDietPlan);
   const addJournalEntry = useAppStore((s) => s.addJournalEntry);
+  const removeJournalEntry = useAppStore((s) => s.removeJournalEntry);
   const entries = useAppStore((s) => s.journals[journalId] ?? []);
 
   const [draft, setDraft] = useState(() => {
@@ -86,12 +89,21 @@ export function DietTracker({ journalId = "diet" }: { journalId?: string }) {
   const [food, setFood] = useState("");
   const [flash, setFlash] = useState(false);
 
-  const todayKcal = useMemo(() => {
-    const today = todayIso();
-    return entries
-      .filter((e) => e.date === today)
-      .reduce((sum, e) => sum + parseKcal(e), 0);
-  }, [entries]);
+  const today = todayYmd();
+
+  const todayEntries = useMemo(
+    () =>
+      entries
+        .filter((e) => e.date === today)
+        .map((e) => ({ e, kcal: parseKcal(e), startMs: entryTimeMs(e) }))
+        .sort((a, b) => b.startMs - a.startMs),
+    [entries, today],
+  );
+
+  const todayKcal = useMemo(
+    () => todayEntries.reduce((sum, x) => sum + x.kcal, 0),
+    [todayEntries],
+  );
 
   function onCalculate(e: FormEvent) {
     e.preventDefault();
@@ -131,10 +143,10 @@ export function DietTracker({ journalId = "diet" }: { journalId?: string }) {
       ? `${mealLabel} · ${kcal} ккал · ${foodLabel}`
       : `${mealLabel} · ${kcal} ккал`;
     addJournalEntry(journalId, {
-      date: todayIso(),
+      date: today,
       value,
       note: "",
-      fields: { kcal, meal, food: foodLabel },
+      fields: { kcal, meal, food: foodLabel, startMs: Date.now() },
     });
     setFood("");
     setFlash(true);
@@ -290,17 +302,6 @@ export function DietTracker({ journalId = "diet" }: { journalId?: string }) {
             врача или нутрициолога.
           </p>
 
-          {!result && (
-            <a
-              href={NUTRITION_GUIDE_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 rounded-2xl border border-line bg-background px-4 py-3 text-sm font-semibold text-foreground transition hover:border-accent/40 hover:bg-accent-soft"
-            >
-              Гайд по питанию
-              <span className="text-xs font-medium text-accent">↗</span>
-            </a>
-          )}
         </form>
 
         {result && (
@@ -327,15 +328,6 @@ export function DietTracker({ journalId = "diet" }: { journalId?: string }) {
                     : "Для поддержания текущего веса"}
               </p>
             </div>
-            <a
-              href={NUTRITION_GUIDE_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 rounded-2xl border border-line bg-card px-4 py-3 text-sm font-semibold text-foreground transition hover:border-accent/40 hover:bg-accent-soft"
-            >
-              Гайд по питанию
-              <span className="text-xs font-medium text-accent">↗</span>
-            </a>
           </div>
         )}
       </section>
@@ -343,7 +335,18 @@ export function DietTracker({ journalId = "diet" }: { journalId?: string }) {
       {/* —— Дневной учёт —— */}
       {result && (
         <section className="rounded-[1.5rem] border border-line bg-card/80 p-4 sm:p-5">
-          <div className="flex items-end justify-between gap-3">
+          <DiaryStats
+            items={[
+              { label: "Съедено", value: `${todayKcal} ккал` },
+              {
+                label: "% цели",
+                value: goal > 0 ? `${Math.round(progress * 100)}%` : "—",
+              },
+              { label: "Приёмов", value: todayEntries.length },
+            ]}
+          />
+
+          <div className="mt-4 flex items-end justify-between gap-3">
             <div>
               <h3 className="font-display text-xl font-semibold tracking-tight">
                 Сегодня
@@ -421,6 +424,40 @@ export function DietTracker({ journalId = "diet" }: { journalId?: string }) {
             <p className="maya-msg-in mt-2 text-center text-sm font-medium text-accent">
               Записано
             </p>
+          )}
+
+          {todayEntries.length > 0 && (
+            <div className="mt-5">
+              <DiarySectionTitle
+                left="Приёмы"
+                right={`${todayEntries.length}`}
+              />
+              <DiaryTimeline>
+                {todayEntries.map((item, i) => (
+                  <li key={item.e.id}>
+                    <DiaryTimelineRow
+                      accent={i === 0}
+                      left={
+                        <span className="text-[11px] tabular-nums text-muted">
+                          {formatClock(item.startMs)}
+                        </span>
+                      }
+                      mark={item.kcal}
+                      right={
+                        <span className="text-sm leading-snug">
+                          {item.e.value}
+                        </span>
+                      }
+                      onClick={() => {
+                        if (window.confirm("Удалить запись?")) {
+                          removeJournalEntry(journalId, item.e.id);
+                        }
+                      }}
+                    />
+                  </li>
+                ))}
+              </DiaryTimeline>
+            </div>
           )}
         </section>
       )}

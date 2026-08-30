@@ -71,11 +71,11 @@ export function orderStatusHint(
 }
 
 export function systemIntroMessage(consultantName: string): string {
-  return `${consultantName} разберёт дневник, составит план и будет на связи в чате. Спрашивайте не только про план — про малыша, режим, кормление, сон, ваш день. Ожидание плана — до 24 часов. Это не врач.`;
+  return `${consultantName} — живой человек, не ИИ. Посмотрит дневник и напишет план — обычно в течение суток. Потом месяц можно писать сюда: сон, кормление, режим, если вы сами вымотались. Это не врач.`;
 }
 
 export function accompanimentIntroMessage(consultantName: string): string {
-  return `Сопровождение подключено на 30 дней. ${consultantName} будет смотреть дневник и подсказывать по ходу.`;
+  return `Сопровождение на 30 дней. ${consultantName} — живой человек: будет смотреть дневник и подсказывать по ходу.`;
 }
 
 /** @deprecated */

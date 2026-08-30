@@ -1,9 +1,5 @@
 import { planOfferContextFromBackup } from "@/lib/backup-read";
-import {
-  evaluatePlanOfferEligibility,
-  evaluatePlanSelfServeEligibility,
-  PLAN_SELF_SERVE_MIN_DAYS,
-} from "@/lib/plan-offer-eligibility";
+import { evaluatePlanOfferEligibility } from "@/lib/plan-offer-eligibility";
 import type { PlanTopic } from "@/lib/plan-products";
 import type { JournalEntry } from "@/lib/types";
 
@@ -41,15 +37,12 @@ export function assertPlanOfferEligible(input: {
   }
 
   if (input.voluntary) {
-    const self = evaluatePlanSelfServeEligibility({ entries: ctx.entries });
-    if (!self.canOrder) {
-      return {
-        ok: false,
-        code: "not_enough_days",
-        error: `Нужно хотя бы ${PLAN_SELF_SERVE_MIN_DAYS} разных дня с записями в дневнике.`,
-      };
-    }
-    return { ok: true };
+    return {
+      ok: false,
+      code: "no_self_serve",
+      error:
+        "Консультанта предлагаем, когда по дневнику видно, что вам тяжело. Пока можно просто вести записи.",
+    };
   }
 
   const eligibility = evaluatePlanOfferEligibility({
@@ -65,7 +58,7 @@ export function assertPlanOfferEligible(input: {
       ok: false,
       code: "not_eligible",
       error:
-        "Разбор по дневнику сейчас недоступен. Если хотите заказать сами — откройте ссылку в профиле или внизу дневника.",
+        "Консультанта подключаем, когда по дневнику видно, что вам тяжело. Пока можно просто вести записи — этого достаточно.",
     };
   }
 

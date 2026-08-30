@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { IconBadge, MayaIcon } from "@/components/icons/MayaIcon";
+import { PlanOfferBanner } from "@/components/plan/PlanOffer";
 import { childDisplayName } from "@/lib/children";
 import {
   ageLabelRu,
@@ -82,8 +83,6 @@ export default function SummaryPage() {
   const enabledModules = useAppStore((s) => s.enabledModules);
   const customModules = useAppStore((s) => s.customModules);
   const wardrobe = useAppStore((s) => s.wardrobe);
-  const memories = useAppStore((s) => s.memories);
-  const memoryStory = useAppStore((s) => s.memoryStory);
   const subscription = useAppStore((s) => s.subscription);
   const aiChatUsage = useAppStore((s) => s.aiChatUsage);
   const consumeAiChatQuota = useAppStore((s) => s.consumeAiChatQuota);
@@ -174,8 +173,6 @@ ${brief}`;
               weatherTags: w.weatherTags,
               aiDescription: w.aiDescription,
             })),
-            memories,
-            memoryStory,
             journals,
           }),
         });
@@ -351,6 +348,18 @@ ${brief}`;
           </div>
         ))}
       </div>
+
+      {hints.some((h) => h.tone === "watch") ? (
+        <div className="mt-4">
+          <PlanOfferBanner
+            moduleId={
+              hints.some((h) => h.id.startsWith("feed"))
+                ? "breastfeeding"
+                : "sleep"
+            }
+          />
+        </div>
+      ) : null}
 
       <div className="mt-6 rounded-2xl border border-accent/25 bg-accent-soft/40 p-4">
         <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-accent">

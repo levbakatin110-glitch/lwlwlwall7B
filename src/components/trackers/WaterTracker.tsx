@@ -1,151 +1,198 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  DiaryChip,
+  DiaryEmpty,
+  DiaryPage,
+  DiarySectionTitle,
+  DiaryStats,
+  DiaryStickyCta,
+  DiaryTimeline,
+  DiaryTimelineRow,
+} from "@/components/diary/DiaryShell";
+import {
+  entriesForToday,
+  entryTimeMs,
+  formatClock,
+  todayYmd,
+} from "@/lib/diary-day";
 import { useAppStore } from "@/lib/store";
+import type { JournalEntry } from "@/lib/types";
 
-const PRESETS = [100, 150, 200, 250, 300, 500] as const;
-const GOAL_ML = 2000;
+const GOAL_KEY = "maya-water-goal";
+const GOAL_OPTIONS = [1500, 2000, 2500] as const;
+const DEFAULT_GOAL = 2000;
+const QUICK_ML = [100, 200, 250, 500] as const;
+
+function loadGoal(): number {
+  try {
+    const n = Number(localStorage.getItem(GOAL_KEY));
+    if ((GOAL_OPTIONS as readonly number[]).includes(n)) return n;
+  } catch {
+    /* */
+  }
+  return DEFAULT_GOAL;
+}
+
+function entryMl(e: JournalEntry): number {
+  const fromField = Number(e.fields?.ml);
+  if (Number.isFinite(fromField)) return fromField;
+  const m = e.value.match(/(\d+)\s*мл/i);
+  return m ? Number(m[1]) : 0;
+}
 
 export function WaterTracker() {
   const addJournalEntry = useAppStore((s) => s.addJournalEntry);
+  const removeJournalEntry = useAppStore((s) => s.removeJournalEntry);
   const entries = useAppStore((s) => s.journals.water ?? []);
-  const [ml, setMl] = useState(250);
-  const [savedFlash, setSavedFlash] = useState(false);
+  const [goal, setGoal] = useState(DEFAULT_GOAL);
 
-  const todayMl = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10);
-    return entries
-      .filter((e) => e.date === today)
-      .reduce((sum, e) => {
-        const fromField = Number(e.fields?.ml);
-        if (Number.isFinite(fromField)) return sum + fromField;
-        const m = e.value.match(/(\d+)\s*мл/i);
-        return sum + (m ? Number(m[1]) : 0);
-      }, 0);
-  }, [entries]);
+  useEffect(() => {
+    setGoal(loadGoal());
+  }, []);
 
-  const progress = Math.min(1, todayMl / GOAL_ML);
-  const fillY = 18 + (1 - progress) * 72;
+  function setGoalAndStore(ml: number) {
+    setGoal(ml);
+    try {
+      localStorage.setItem(GOAL_KEY, String(ml));
+    } catch {
+      /* */
+    }
+  }
 
-  function save(amount = ml) {
+  const todayEntries = useMemo(
+    () =>
+      entriesForToday(entries)
+        .map((e) => ({ e, ml: entryMl(e), startMs: entryTimeMs(e) }))
+        .filter((x) => x.ml > 0)
+        .sort((a, b) => b.startMs - a.startMs),
+    [entries],
+  );
+
+  const todayMl = useMemo(
+    () => todayEntries.reduce((sum, x) => sum + x.ml, 0),
+    [todayEntries],
+  );
+
+  const pct = goal > 0 ? Math.min(100, Math.round((todayMl / goal) * 100)) : 0;
+  const left = Math.max(0, goal - todayMl);
+  const ringPct = Math.min(1, todayMl / goal);
+  const circumference = 2 * Math.PI * 54;
+  const dashOffset = circumference * (1 - ringPct);
+
+  function addWater(amount: number) {
     if (amount < 20) return;
+    const startMs = Date.now();
     addJournalEntry("water", {
-      date: new Date().toISOString().slice(0, 10),
+      date: todayYmd(),
       value: `${amount} мл`,
       note: "",
-      fields: { ml: amount },
+      fields: { ml: amount, startMs },
     });
-    setSavedFlash(true);
-    window.setTimeout(() => setSavedFlash(false), 1800);
   }
 
   return (
-    <div className="maya-rise overflow-hidden rounded-[1.5rem] border border-line bg-card/80 p-4 sm:p-5">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2 className="font-display text-xl font-semibold tracking-tight">
-            Вода за день
-          </h2>
-          <p className="mt-1 text-xs text-muted">
-            Цель ~{GOAL_ML} мл · осталось{" "}
-            {Math.max(0, GOAL_ML - todayMl)} мл
-          </p>
+    <DiaryPage stickyPad>
+      <DiaryStats
+        items={[
+          { label: "Выпито", value: `${todayMl} мл` },
+          { label: "% цели", value: `${pct}%` },
+          { label: "Осталось", value: left > 0 ? `${left} мл` : "✓" },
+        ]}
+      />
+
+      <div className="mt-5 flex flex-col items-center">
+        <div className="relative h-36 w-36">
+          <svg viewBox="0 0 120 120" className="h-full w-full -rotate-90">
+            <circle
+              cx="60"
+              cy="60"
+              r="54"
+              fill="none"
+              stroke="color-mix(in oklab, var(--line) 80%, transparent)"
+              strokeWidth="10"
+            />
+            <circle
+              cx="60"
+              cy="60"
+              r="54"
+              fill="none"
+              stroke="var(--accent)"
+              strokeWidth="10"
+              strokeLinecap="round"
+              strokeDasharray={circumference}
+              strokeDashoffset={dashOffset}
+              className="transition-[stroke-dashoffset] duration-500"
+            />
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <p className="font-display text-3xl font-semibold tabular-nums tracking-tight">
+              {todayMl}
+            </p>
+            <p className="text-[11px] text-muted">из {goal} мл</p>
+          </div>
         </div>
-        <p className="font-display text-3xl font-semibold tabular-nums">
-          {todayMl}
-          <span className="ml-1 text-base font-medium text-muted">мл</span>
-        </p>
-      </div>
 
-      <div className="mt-5 flex items-end justify-center gap-8">
-        <svg viewBox="0 0 72 110" className="h-36 w-24" aria-hidden>
-          <path
-            d="M18 14h36l6 78c0 6-5 10-12 10H24c-7 0-12-4-12-10l6-78Z"
-            className="fill-background stroke-line"
-            strokeWidth="1.5"
-          />
-          <defs>
-            <clipPath id="water-glass">
-              <path d="M20 16h32l5.5 76c0 4-4 8-10 8H24.5c-6 0-10-4-10-8L20 16Z" />
-            </clipPath>
-          </defs>
-          <g clipPath="url(#water-glass)">
-            <rect
-              x="14"
-              y={fillY}
-              width="44"
-              height={110 - fillY}
-              className="fill-sky-400/55 dark:fill-sky-300/40"
-            />
-            <ellipse
-              cx="36"
-              cy={fillY}
-              rx="18"
-              ry="3"
-              className="fill-sky-300/90 dark:fill-sky-200/50"
-            />
-          </g>
-          <path
-            d="M22 12h28"
-            className="stroke-foreground/25"
-            strokeWidth="3"
-            strokeLinecap="round"
-          />
-        </svg>
-
-        <div className="min-w-[7rem]">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
-            Добавить
-          </p>
-          <p className="font-display mt-1 text-4xl font-semibold tabular-nums">
-            {ml}
-            <span className="ml-1 text-base text-muted">мл</span>
-          </p>
-          <input
-            type="range"
-            min={50}
-            max={500}
-            step={10}
-            value={ml}
-            onChange={(e) => setMl(Number(e.target.value))}
-            className="mt-3 w-full accent-[var(--accent)]"
-          />
+        <div className="mt-4 flex flex-wrap justify-center gap-1.5">
+          {GOAL_OPTIONS.map((g) => (
+            <DiaryChip
+              key={g}
+              active={goal === g}
+              onClick={() => setGoalAndStore(g)}
+            >
+              {g}
+            </DiaryChip>
+          ))}
         </div>
       </div>
 
-      <div className="mt-4 h-2 overflow-hidden rounded-full bg-line/50">
-        <div
-          className="h-full rounded-full bg-sky-400 transition-all dark:bg-sky-300"
-          style={{ width: `${progress * 100}%` }}
-        />
-      </div>
-      <p className="mt-1.5 text-center text-[11px] text-muted">
-        {Math.round(progress * 100)}%
-      </p>
+      {todayEntries.length > 0 ? (
+        <div className="mt-6">
+          <DiarySectionTitle left="Сегодня" right={`${todayEntries.length}`} />
+          <DiaryTimeline>
+            {todayEntries.map((item) => (
+              <li key={item.e.id}>
+                <DiaryTimelineRow
+                  left={
+                    <span className="text-[11px] tabular-nums text-muted">
+                      {formatClock(item.startMs)}
+                    </span>
+                  }
+                  mark={item.ml}
+                  right={
+                    <span className="text-sm tabular-nums text-muted">
+                      {item.ml} мл
+                    </span>
+                  }
+                  onClick={() => {
+                    if (window.confirm("Удалить запись?")) {
+                      removeJournalEntry("water", item.e.id);
+                    }
+                  }}
+                />
+              </li>
+            ))}
+          </DiaryTimeline>
+        </div>
+      ) : (
+        <DiaryEmpty>Нажмите +, чтобы отметить воду</DiaryEmpty>
+      )}
 
-      <div className="mt-4 flex flex-wrap gap-1.5">
-        {PRESETS.map((p) => (
-          <button
-            key={p}
-            type="button"
-            onClick={() => {
-              setMl(p);
-              save(p);
-            }}
-            className="rounded-full border border-line px-3 py-1.5 text-xs font-semibold text-muted hover:border-accent/40 hover:text-foreground"
-          >
-            +{p}
-          </button>
-        ))}
-      </div>
-
-      <button
-        type="button"
-        onClick={() => save()}
-        className="mt-4 w-full rounded-2xl bg-accent py-3 text-sm font-semibold text-on-accent"
-      >
-        {savedFlash ? "Записано ✓" : `Выпить ${ml} мл`}
-      </button>
-    </div>
+      <DiaryStickyCta>
+        <div className="grid grid-cols-4 gap-2">
+          {QUICK_ML.map((ml) => (
+            <button
+              key={ml}
+              type="button"
+              onClick={() => addWater(ml)}
+              className="rounded-2xl border border-line bg-card py-3.5 text-sm font-semibold tabular-nums text-foreground shadow-sm transition active:scale-[0.97]"
+            >
+              +{ml}
+            </button>
+          ))}
+        </div>
+      </DiaryStickyCta>
+    </DiaryPage>
   );
 }
