@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { getFacingAvStream, getFacingVideoTrack } from "@/lib/camera-facing";
 import { isAppleMobile, isWebmUnsupported } from "@/lib/media-mime";
 
 const CIRCLE_MAX_MS = 30_000;
@@ -76,24 +77,20 @@ function ProgressRing({
 
 export function CircleNotePlayer({ url }: { url: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const blobUrlRef = useRef<string | null>(null);
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [broken, setBroken] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
+    let cancelled = false;
     setBroken(false);
     setPlaying(false);
     setProgress(0);
 
-    const primeFrame = () => {
-      try {
-        if (v.readyState >= 1) v.currentTime = 0.01;
-      } catch {
-        /* ignore */
-      }
-    };
     const onTime = () => {
       if (v.duration && Number.isFinite(v.duration)) {
         setProgress(v.currentTime / v.duration);
@@ -102,27 +99,70 @@ export function CircleNotePlayer({ url }: { url: string }) {
     const onEnd = () => {
       setPlaying(false);
       setProgress(0);
-      v.currentTime = 0;
+      try {
+        v.currentTime = 0;
+      } catch {
+        /* ignore */
+      }
     };
-    const onError = () => setBroken(true);
+    const onError = () => {
+      if (!cancelled) setBroken(true);
+    };
 
-    v.addEventListener("loadedmetadata", primeFrame);
-    v.addEventListener("loadeddata", primeFrame);
     v.addEventListener("timeupdate", onTime);
     v.addEventListener("ended", onEnd);
     v.addEventListener("error", onError);
+
+    void (async () => {
+      try {
+        // Полный blob обходит кривые Range у части прокси/Safari
+        const res = await fetch(url, {
+          credentials: "same-origin",
+          cache: reloadKey > 0 ? "reload" : "default",
+        });
+        if (!res.ok) throw new Error("fetch failed");
+        const blob = await res.blob();
+        if (cancelled || blob.size < 64) throw new Error("empty");
+        if (blobUrlRef.current) {
+          URL.revokeObjectURL(blobUrlRef.current);
+          blobUrlRef.current = null;
+        }
+        const obj = URL.createObjectURL(blob);
+        blobUrlRef.current = obj;
+        v.src = obj;
+        v.load();
+      } catch {
+        if (cancelled) return;
+        // fallback на прямой URL
+        try {
+          v.src = url;
+          v.load();
+        } catch {
+          setBroken(true);
+        }
+      }
+    })();
+
     return () => {
-      v.removeEventListener("loadedmetadata", primeFrame);
-      v.removeEventListener("loadeddata", primeFrame);
+      cancelled = true;
       v.removeEventListener("timeupdate", onTime);
       v.removeEventListener("ended", onEnd);
       v.removeEventListener("error", onError);
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current);
+        blobUrlRef.current = null;
+      }
     };
-  }, [url]);
+  }, [url, reloadKey]);
 
   async function toggle() {
     const v = videoRef.current;
     if (!v) return;
+    if (broken) {
+      setBroken(false);
+      setReloadKey((k) => k + 1);
+      return;
+    }
     if (playing) {
       v.pause();
       setPlaying(false);
@@ -138,7 +178,7 @@ export function CircleNotePlayer({ url }: { url: string }) {
         await v.play();
         setPlaying(true);
       } catch {
-        /* ignore */
+        setBroken(true);
       }
     }
   }
@@ -157,7 +197,6 @@ export function CircleNotePlayer({ url }: { url: string }) {
       <span className="absolute inset-[7px] overflow-hidden rounded-full bg-black shadow-[0_8px_28px_rgba(0,0,0,0.35)] ring-1 ring-white/15">
         <video
           ref={videoRef}
-          src={url}
           playsInline
           preload="auto"
           className="h-full w-full object-cover"
@@ -165,8 +204,8 @@ export function CircleNotePlayer({ url }: { url: string }) {
         {broken ? (
           <span className="absolute inset-0 flex items-center justify-center bg-black/70 px-3 text-center text-[11px] leading-snug text-white/85">
             {isWebmUnsupported()
-              ? "Кружок конвертируется — обновите через минуту"
-              : "Не удалось открыть видео"}
+              ? "Кружок ещё готовится — нажмите ещё раз через пару секунд"
+              : "Не удалось открыть — нажмите ещё раз"}
           </span>
         ) : !playing ? (
           <span className="absolute inset-0 flex items-center justify-center bg-black/25">
@@ -226,17 +265,7 @@ export function CircleRecorder({ onCancel, onReady }: Props) {
     async (mode: "user" | "environment") => {
       stopTracks();
       setCamReady(false);
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-        },
-        video: {
-          facingMode: { ideal: mode },
-          width: { ideal: 480 },
-          height: { ideal: 480 },
-        },
-      });
+      const stream = await getFacingAvStream(mode, { width: 480, height: 480 });
       streamRef.current = stream;
       facingRef.current = mode;
       const video = liveRef.current;
@@ -298,15 +327,34 @@ export function CircleRecorder({ onCancel, onReady }: Props) {
   }
 
   async function flipCamera() {
-    if (phase === "recording") return;
-    const next = facing === "user" ? "environment" : "user";
-    setFacing(next);
+    const next = facingRef.current === "user" ? "environment" : "user";
     setError(null);
     try {
+      const stream = streamRef.current;
+      if (stream && (phase === "recording" || phase === "live")) {
+        const newTrack = await getFacingVideoTrack(next, {
+          width: 480,
+          height: 480,
+        });
+        const old = stream.getVideoTracks()[0];
+        if (old) {
+          stream.removeTrack(old);
+          old.stop();
+        }
+        stream.addTrack(newTrack);
+        facingRef.current = next;
+        setFacing(next);
+        if (liveRef.current) {
+          liveRef.current.srcObject = stream;
+          liveRef.current.muted = true;
+          await liveRef.current.play().catch(() => undefined);
+        }
+        return;
+      }
+      setFacing(next);
       await attachStream(next);
       setPhase("live");
     } catch {
-      setFacing(facing);
       setError("Не удалось переключить камеру");
     }
   }

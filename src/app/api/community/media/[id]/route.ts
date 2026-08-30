@@ -21,12 +21,11 @@ function byteRange(
   return { start, end };
 }
 
-/** Node/TS: Buffer/Uint8Array не совпадает с DOM BodyInit — отдаём ArrayBuffer. */
-function asBody(buf: Uint8Array): ArrayBuffer {
-  return buf.buffer.slice(
-    buf.byteOffset,
-    buf.byteOffset + buf.byteLength,
-  ) as ArrayBuffer;
+/** Надёжное тело ответа: Blob из копии байт (без SharedArrayBuffer/пула Buffer). */
+function asBody(buf: Uint8Array): Blob {
+  const copy = new Uint8Array(buf.byteLength);
+  copy.set(buf);
+  return new Blob([copy]);
 }
 
 export async function GET(req: Request, ctx: Ctx) {
@@ -42,12 +41,16 @@ export async function GET(req: Request, ctx: Ctx) {
   try {
     const { buffer, mime } = await resolvePlaybackBuffer(media.path, media.kind);
     const size = buffer.length;
+    if (size < 32) {
+      return new Response("Not found", { status: 404 });
+    }
     const range = byteRange(size, req.headers.get("range"));
 
     const baseHeaders: Record<string, string> = {
-      "Content-Type": mime,
+      "Content-Type": mime || "application/octet-stream",
       "Accept-Ranges": "bytes",
       "Cache-Control": "public, max-age=86400",
+      "Content-Disposition": "inline",
     };
 
     if (range) {

@@ -10,6 +10,7 @@ import {
 } from "react";
 import { CIRCLE_MAX_UPLOAD_BYTES } from "@/components/CircleRecorder";
 import { VOICE_MAX_UPLOAD_BYTES } from "@/components/VoiceRecorder";
+import { getFacingAvStream, getFacingVideoTrack } from "@/lib/camera-facing";
 import { isAppleMobile } from "@/lib/media-mime";
 
 export type HoldRecordKind = "voice" | "circle";
@@ -201,44 +202,52 @@ export function useHoldMediaRecord({ onReady, onError }: Options) {
     flippingRef.current = true;
     const next = facingRef.current === "user" ? "environment" : "user";
     try {
-      const rec = recorderRef.current;
-      if (rec && rec.state === "recording") {
-        await new Promise<void>((resolve) => {
-          rec.onstop = () => resolve();
-          rec.stop();
-        });
-        recorderRef.current = null;
+      const stream = streamRef.current;
+      if (!stream) return;
+
+      const old = stream.getVideoTracks()[0];
+      // Быстрый путь без нового getUserMedia
+      if (old) {
+        try {
+          await old.applyConstraints({ facingMode: { exact: next } });
+          facingRef.current = next;
+          setFacing(next);
+          return;
+        } catch {
+          /* continue */
+        }
       }
 
-      const oldStream = streamRef.current;
-      const audioTracks = oldStream ? [...oldStream.getAudioTracks()] : [];
-      oldStream?.getVideoTracks().forEach((track) => {
-        oldStream.removeTrack(track);
-        track.stop();
-      });
-
-      const videoOnly = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { ideal: next },
-          width: { ideal: 480 },
-          height: { ideal: 480 },
-        },
-      });
-      const videoTrack = videoOnly.getVideoTracks()[0];
-      videoOnly.getAudioTracks().forEach((t) => t.stop());
-
-      const combined = new MediaStream([...audioTracks, videoTrack]);
-      streamRef.current = combined;
+      const newTrack = await getFacingVideoTrack(next);
+      if (old) {
+        stream.removeTrack(old);
+        old.stop();
+      }
+      stream.addTrack(newTrack);
       facingRef.current = next;
       setFacing(next);
 
       if (liveRef.current) {
-        liveRef.current.srcObject = combined;
+        liveRef.current.srcObject = stream;
         liveRef.current.muted = true;
         await liveRef.current.play().catch(() => undefined);
       }
 
-      beginRecorder(combined, "circle");
+      // replaceTrack середины записи часто ломает WebM → перезапуск MediaRecorder
+      const kind = activeKindRef.current;
+      if (kind && recorderRef.current) {
+        try {
+          const rec = recorderRef.current;
+          rec.ondataavailable = null;
+          rec.onstop = null;
+          if (rec.state !== "inactive") rec.stop();
+        } catch {
+          /* ignore */
+        }
+        recorderRef.current = null;
+        chunksRef.current = [];
+        beginRecorder(stream, kind);
+      }
     } catch {
       onErrorRef.current("Не удалось переключить камеру");
     } finally {
@@ -259,14 +268,7 @@ export function useHoldMediaRecord({ onReady, onError }: Options) {
       try {
         const stream =
           kind === "circle"
-            ? await navigator.mediaDevices.getUserMedia({
-                audio: { echoCancellation: true, noiseSuppression: true },
-                video: {
-                  facingMode: { ideal: facingRef.current },
-                  width: { ideal: 480 },
-                  height: { ideal: 480 },
-                },
-              })
+            ? await getFacingAvStream(facingRef.current)
             : await navigator.mediaDevices.getUserMedia({
                 audio: { echoCancellation: true, noiseSuppression: true },
               });
