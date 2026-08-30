@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getFacingAvStream, getFacingVideoTrack } from "@/lib/camera-facing";
+import { getFacingAvStream, switchStreamFacing } from "@/lib/camera-facing";
 import { isAppleMobile, isWebmUnsupported } from "@/lib/media-mime";
 
 const CIRCLE_MAX_MS = 30_000;
@@ -248,7 +248,6 @@ export function CircleRecorder({ onCancel, onReady }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [camReady, setCamReady] = useState(false);
   const ownedPreviewRef = useRef<string | null>(null);
-  const didAutoStart = useRef(false);
 
   const clearTick = useCallback(() => {
     if (tickRef.current) {
@@ -346,39 +345,7 @@ export function CircleRecorder({ onCancel, onReady }: Props) {
     const stream = streamRef.current;
 
     try {
-      // 1) applyConstraints — без нового getUserMedia
-      const old = stream.getVideoTracks()[0];
-      if (old) {
-        try {
-          await old.applyConstraints({ facingMode: { exact: next } });
-          facingRef.current = next;
-          setFacing(next);
-          return;
-        } catch {
-          /* fall through */
-        }
-      }
-
-      // 2) новый видеотрек + замена
-      const newTrack = await getFacingVideoTrack(next, {
-        width: 480,
-        height: 480,
-      });
-      if (old) {
-        stream.removeTrack(old);
-        old.stop();
-      }
-      stream.addTrack(newTrack);
-      facingRef.current = next;
-      setFacing(next);
-
-      if (liveRef.current) {
-        liveRef.current.srcObject = stream;
-        liveRef.current.muted = true;
-        await liveRef.current.play().catch(() => undefined);
-      }
-
-      // replaceTrack ломает WebM — перезапускаем MediaRecorder
+      // Сначала остановить запись — иначе смена трека «молчит» до конца кружка
       if (wasRecording && recorderRef.current) {
         try {
           const rec = recorderRef.current;
@@ -390,6 +357,19 @@ export function CircleRecorder({ onCancel, onReady }: Props) {
         }
         recorderRef.current = null;
         chunksRef.current = [];
+      }
+
+      await switchStreamFacing(stream, next, { width: 480, height: 480 });
+      facingRef.current = next;
+      setFacing(next);
+
+      if (liveRef.current) {
+        liveRef.current.srcObject = stream;
+        liveRef.current.muted = true;
+        await liveRef.current.play().catch(() => undefined);
+      }
+
+      if (wasRecording) {
         beginRecorderOnStream(stream);
       }
     } catch {
@@ -474,13 +454,6 @@ export function CircleRecorder({ onCancel, onReady }: Props) {
     }, 80);
   }
 
-  useEffect(() => {
-    if (phase !== "live" || !camReady || error || didAutoStart.current) return;
-    didAutoStart.current = true;
-    startRecord();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, camReady, error]);
-
   function stopRecord() {
     const rec = recorderRef.current;
     if (!rec || rec.state !== "recording") return;
@@ -508,7 +481,6 @@ export function CircleRecorder({ onCancel, onReady }: Props) {
     setReviewFile(null);
     setElapsedMs(0);
     setError(null);
-    didAutoStart.current = false;
     void attachStream(facingRef.current)
       .then(() => setPhase("live"))
       .catch(() => {
@@ -647,10 +619,10 @@ export function CircleRecorder({ onCancel, onReady }: Props) {
             : flipping
               ? "Переключаем камеру…"
               : phase === "recording"
-                ? "Нажмите ещё раз, чтобы закончить · сверху — камера"
+                ? "Идёт запись · сверху можно сменить камеру"
                 : phase === "review"
                   ? "Посмотрите и отправьте — или переснимите"
-                  : "Запись уже идёт"}
+                  : "Выберите камеру сверху · затем красная кнопка — запись"}
         </p>
       </div>
 
