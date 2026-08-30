@@ -35,7 +35,7 @@ export function PremiumGate({ children }: { children: React.ReactNode }) {
   const subscription = useAppStore((s) => s.subscription);
   const onboardingDone = useAppStore((s) => s.onboardingDone);
   const pregnancy = useAppStore((s) => s.pregnancy);
-  const children = useAppStore((s) => s.children);
+  const childProfiles = useAppStore((s) => s.children);
   const enabledModules = useAppStore((s) => s.enabledModules);
   const active = isSubscriptionActive(subscription);
 
@@ -43,10 +43,12 @@ export function PremiumGate({ children }: { children: React.ReactNode }) {
     () =>
       getValuePitch({
         pregnant: Boolean(pregnancy?.active),
-        hasChild: children.some((c) => !c.namePending && Boolean(c.birthDate)),
+        hasChild: childProfiles.some(
+          (c) => !c.namePending && Boolean(c.birthDate),
+        ),
         trackCycle: enabledModules.includes("cycle"),
       }),
-    [pregnancy?.active, children, enabledModules],
+    [pregnancy?.active, childProfiles, enabledModules],
   );
 
   const mustPay =

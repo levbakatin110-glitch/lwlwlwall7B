@@ -26,7 +26,7 @@ export default function PricingInner() {
   const activateSubscription = useAppStore((s) => s.activateSubscription);
   const clearSubscription = useAppStore((s) => s.clearSubscription);
   const pregnancy = useAppStore((s) => s.pregnancy);
-  const children = useAppStore((s) => s.children);
+  const childProfiles = useAppStore((s) => s.children);
   const enabledModules = useAppStore((s) => s.enabledModules);
   const active = isSubscriptionActive(subscription);
   const current = active ? planById(subscription.planId) : null;
@@ -38,10 +38,12 @@ export default function PricingInner() {
     () =>
       getValuePitch({
         pregnant: Boolean(pregnancy?.active),
-        hasChild: children.some((c) => !c.namePending && Boolean(c.birthDate)),
+        hasChild: childProfiles.some(
+          (c) => !c.namePending && Boolean(c.birthDate),
+        ),
         trackCycle: enabledModules.includes("cycle"),
       }),
-    [pregnancy?.active, children, enabledModules],
+    [pregnancy?.active, childProfiles, enabledModules],
   );
 
   useEffect(() => {
