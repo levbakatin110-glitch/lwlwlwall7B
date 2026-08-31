@@ -12,7 +12,7 @@ export const TEMP_UNLOCK_ALL = false;
  * ВРЕМЕННО: кнопка «Оплатить» сразу выдаёт Premium (без Prodamus).
  * Перед боем с реальными деньгами — выключить.
  */
-export const FAKE_PAYMENTS = false;
+export const FAKE_PAYMENTS = true;
 
 /**
  * Без бесплатной пробной: чат, дневники и функции — только с Premium.
