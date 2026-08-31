@@ -16,7 +16,6 @@ import {
   todayIso,
   type DayEventKind,
 } from "@/lib/day-summary";
-import { openDoctorReportPdf } from "@/lib/doctor-report";
 import {
   canSendAiChat,
 } from "@/lib/subscription";
@@ -203,31 +202,15 @@ ${brief}`;
 
   return (
     <div className="maya-page mx-auto w-full max-w-2xl px-4 py-8 pb-28">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="font-display flex items-center gap-3 text-3xl font-semibold">
-            <IconBadge name="list" />
-            Итоги дня
-          </h1>
-          <p className="mt-1 text-sm text-muted">
-            {name}
-            {age ? ` · ${age}` : ""}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() =>
-            openDoctorReportPdf({
-              profile,
-              journals,
-              date,
-              verdict: shownVerdict,
-            })
-          }
-          className="shrink-0 rounded-xl border border-line bg-card/80 px-3 py-2 text-xs font-semibold text-foreground transition hover:border-accent/40"
-        >
-          PDF врачу
-        </button>
+      <div>
+        <h1 className="font-display flex items-center gap-3 text-3xl font-semibold">
+          <IconBadge name="list" />
+          Итоги дня
+        </h1>
+        <p className="mt-1 text-sm text-muted">
+          {name}
+          {age ? ` · ${age}` : ""}
+        </p>
       </div>
 
       <div className="mt-6 flex items-center justify-between gap-2">
