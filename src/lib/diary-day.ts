@@ -15,6 +15,16 @@ export function formatClock(ms: number): string {
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
+/** Интервал между двумя метками: «12 мин», «1 ч 4 мин». */
+export function formatGap(fromMs: number, toMs: number): string {
+  const min = Math.max(0, Math.round((toMs - fromMs) / 60_000));
+  if (min < 1) return "<1 мин";
+  if (min < 60) return `${min} мин`;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return m ? `${h} ч ${m} мин` : `${h} ч`;
+}
+
 export function formatDuration(sec: number): string {
   const s = Math.max(0, Math.floor(sec));
   const h = Math.floor(s / 3600);

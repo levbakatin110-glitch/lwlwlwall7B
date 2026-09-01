@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import {
   DiaryChip,
-  DiaryCoach,
   DiaryEmpty,
   DiaryPage,
   DiaryPrimaryButton,
@@ -110,28 +109,7 @@ export function SymptomsTracker() {
         ]}
       />
 
-      <DiaryCoach
-        tone={
-          todayEntries[0]?.severity === 3
-            ? "watch"
-            : todayEntries.length === 0
-              ? "tip"
-              : "ok"
-        }
-        title={
-          todayEntries[0]?.severity === 3
-            ? "Сильный симптом — не терпите молча"
-            : todayEntries.length === 0
-              ? "Паттерн важнее разового «ой»"
-              : "Записано — легче рассказать врачу"
-        }
-      >
-        {todayEntries[0]?.severity === 3
-          ? "Сильная головная боль, отёки лица/рук, мушки, боль в животе — не геройствуйте, звоните в ЖК или скорую. Дневник потом покажете."
-          : "Тошнота, изжога, спина часто «нормы беременности», но всплеск или новое — повод отметить и спросить. Красные флаги: кровотечение, воды, нет шевелений."}
-      </DiaryCoach>
-
-      <div className="mt-5 rounded-2xl border border-line bg-card p-4">
+      <div className="maya-diary-panel">
         <p className="text-[11px] font-medium text-muted">Симптом</p>
         <div className="mt-2 flex flex-wrap gap-1.5">
           {SYMPTOMS.map((s) => (

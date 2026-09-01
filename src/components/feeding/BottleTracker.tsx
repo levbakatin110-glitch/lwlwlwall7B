@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useAppStore } from "@/lib/store";
 import {
   DiaryChip,
-  DiaryCoach,
   DiaryEmpty,
   DiaryPage,
   DiaryPrimaryButton,
@@ -121,51 +120,15 @@ export function BottleTracker() {
 
   return (
     <DiaryPage stickyPad>
-      <div className="maya-rise overflow-hidden rounded-[1.5rem] border border-line bg-card/80 p-4 sm:p-5">
-        <div className="flex items-start justify-between gap-3">
-          <h2 className="font-display text-xl font-semibold tracking-tight">
-            Сколько налили?
-          </h2>
-          <p className="font-display text-3xl font-semibold tabular-nums text-foreground">
-            {ml}
-            <span className="ml-1 text-base font-medium text-muted">мл</span>
-          </p>
-        </div>
+      <DiaryStats
+        items={[
+          { label: "порция", value: `${ml} мл` },
+          { label: "сегодня", value: stats.totalMl },
+          { label: "кормлений", value: stats.count },
+        ]}
+      />
 
-        <div className="mt-4">
-          <DiaryStats
-            items={[
-              { label: "мл сегодня", value: stats.totalMl },
-              { label: "кормлений", value: stats.count },
-              { label: "последняя порция", value: stats.lastMl },
-            ]}
-          />
-        </div>
-
-        <DiaryCoach
-          tone={
-            stats.count === 0
-              ? "tip"
-              : stats.totalMl >= 800
-                ? "watch"
-                : "ok"
-          }
-          title={
-            stats.count === 0
-              ? "Порция, не гонка за мл"
-              : stats.totalMl >= 800
-                ? "Объём за день уже большой"
-                : `Сегодня ${stats.totalMl} мл`
-          }
-        >
-          {stats.count === 0
-            ? "Объём смеси считает педиатр по весу и возрасту. Здесь — чтобы видеть паузы между бутылками и не кормить «на всякий случай» каждый час."
-            : stats.totalMl >= 800
-              ? "Если это не смесь по схеме врача — сверьтесь с нормой. Перекорм даёт срыгивания и плохой сон, недокорм — беспокойство."
-              : "Интервал часто 2,5–3,5 часа днём. Ночью новорождённого не «тренируют голодом» без рекомендации врача."}
-        </DiaryCoach>
-
-        <div className="mt-4 flex items-end justify-center gap-6">
+      <div className="flex items-end justify-center gap-6">
           <svg
             viewBox="0 0 80 120"
             className="h-40 w-28 drop-shadow-sm"
@@ -333,7 +296,6 @@ export function BottleTracker() {
         ) : (
           <DiaryEmpty>Сегодня ещё не записано</DiaryEmpty>
         )}
-      </div>
 
       <DiaryStickyCta>
         <DiaryPrimaryButton onClick={save} disabled={ml < 10}>

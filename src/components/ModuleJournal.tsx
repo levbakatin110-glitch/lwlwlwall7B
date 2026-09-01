@@ -479,9 +479,9 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
   }
 
   return (
-    <div className="maya-page mx-auto w-full max-w-2xl px-4 py-6 md:py-8">
-      <div className="maya-rise flex flex-wrap items-start justify-between gap-3">
-        <h1 className="font-display flex items-center gap-3 text-3xl font-semibold tracking-tight">
+    <div className="maya-page mx-auto w-full max-w-2xl px-4 py-5 md:py-7">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="font-display flex items-center gap-2.5 text-[1.55rem] font-semibold tracking-tight sm:text-2xl">
           <IconBadge name={mod.icon} />
           {mod.title}
         </h1>

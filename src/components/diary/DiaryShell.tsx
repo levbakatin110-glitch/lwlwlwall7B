@@ -8,30 +8,40 @@ export type DiaryStat = {
   hint?: string;
 };
 
-/** Карточка метрик */
+/** Сводка: крупная первая цифра + остальные рядом, без трёх одинаковых клеток. */
 export function DiaryStats({ items }: { items: DiaryStat[] }) {
-  const n = Math.min(4, Math.max(1, items.length));
+  const [hero, ...rest] = items;
+  if (!hero) return null;
   return (
-    <div className="rounded-2xl border border-line bg-card px-2 py-3.5 shadow-sm sm:px-3">
-      <div
-        className="grid gap-1 text-center"
-        style={{ gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))` }}
-      >
-        {items.slice(0, n).map((it, i) => (
-          <div
-            key={it.label}
-            className={i > 0 ? "border-l border-line px-1" : "px-1"}
-          >
-            <p className="text-[10px] leading-tight text-muted">{it.label}</p>
-            <p className="mt-1.5 font-display text-xl font-semibold tabular-nums tracking-tight sm:text-2xl">
-              {it.value}
-            </p>
-            {it.hint ? (
-              <p className="mt-0.5 text-[10px] text-muted">{it.hint}</p>
-            ) : null}
-          </div>
-        ))}
+    <div className="maya-diary-hero">
+      <div className="min-w-0">
+        <p className="text-[11px] font-medium tracking-wide text-muted">
+          {hero.label}
+        </p>
+        <p className="font-display mt-1 text-[2.15rem] font-semibold leading-none tracking-tight tabular-nums sm:text-4xl">
+          {hero.value}
+        </p>
+        {hero.hint ? (
+          <p className="mt-1.5 text-[11px] text-muted">{hero.hint}</p>
+        ) : null}
       </div>
+      {rest.length > 0 ? (
+        <div className="flex min-w-0 flex-1 flex-wrap justify-end gap-x-6 gap-y-3 sm:gap-x-8">
+          {rest.map((it) => (
+            <div key={it.label} className="min-w-[4.5rem] text-right">
+              <p className="text-[10px] font-medium tracking-wide text-muted">
+                {it.label}
+              </p>
+              <p className="mt-1 font-display text-xl font-semibold tabular-nums tracking-tight">
+                {it.value}
+              </p>
+              {it.hint ? (
+                <p className="mt-0.5 text-[10px] text-muted">{it.hint}</p>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -44,68 +54,73 @@ export function DiarySectionTitle({
   right?: string;
 }) {
   return (
-    <div className="mb-2 flex items-center justify-between px-0.5 text-[11px] font-medium text-muted">
-      <span>{left}</span>
-      {right ? <span>{right}</span> : null}
+    <div className="mb-1.5 flex items-center justify-between px-0.5">
+      <span className="text-[11px] font-semibold tracking-wide text-muted">
+        {left}
+      </span>
+      {right ? (
+        <span className="text-[11px] tabular-nums text-muted/80">{right}</span>
+      ) : null}
     </div>
   );
 }
 
-/** Строка записи — карточка, без «плывущей» сетки таймлайна */
 export function DiaryTimelineRow({
   left,
   right,
   mark,
   accent,
+  tone = "default",
   onClick,
 }: {
   left: ReactNode;
   right?: ReactNode;
-  mark: ReactNode;
+  mark?: ReactNode;
   accent?: boolean;
+  tone?: "default" | "warn" | "hot";
   onClick?: () => void;
 }) {
   const Tag = onClick ? "button" : "div";
+  const markTone =
+    tone === "hot"
+      ? "bg-blush-soft text-blush"
+      : tone === "warn"
+        ? "bg-amber-500/15 text-amber-900 dark:text-amber-200"
+        : accent
+          ? "bg-accent-soft text-accent"
+          : "bg-foreground/[0.06] text-foreground/80";
   return (
     <Tag
       type={onClick ? "button" : undefined}
       onClick={onClick}
-      className={`flex w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left shadow-sm transition ${
-        accent
-          ? "border-accent/35 bg-accent-soft/50"
-          : "border-line bg-card"
-      } ${onClick ? "active:scale-[0.99]" : ""}`}
+      className={`maya-diary-row flex w-full items-center gap-3 px-3 py-3 text-left ${
+        onClick ? "active:bg-accent-soft/40" : ""
+      }`}
     >
-      <span
-        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold text-[var(--on-accent,#fff)] shadow-sm ${
-          accent
-            ? "bg-gradient-to-br from-accent to-[color-mix(in_oklab,var(--accent)_65%,#fb7185)] ring-4 ring-accent/15"
-            : "bg-gradient-to-br from-accent/90 to-[color-mix(in_oklab,var(--accent)_70%,#fb7185)]"
-        }`}
-      >
-        {mark}
-      </span>
-      <div className="min-w-0 flex-1 text-left [&>div]:items-start [&>div]:text-left [&_.items-end]:!items-start [&_.text-right]:!text-left">
-        {left}
-      </div>
+      {mark != null ? (
+        <span
+          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold tabular-nums ${markTone}`}
+        >
+          {mark}
+        </span>
+      ) : null}
+      <div className="min-w-0 flex-1">{left}</div>
       {right != null ? (
-        <div className="max-w-[40%] shrink-0 text-right text-sm">{right}</div>
+        <div className="max-w-[42%] shrink-0 text-right font-display text-[15px] font-semibold tabular-nums leading-snug">
+          {right}
+        </div>
       ) : null}
     </Tag>
   );
 }
 
 export function DiaryTimeline({ children }: { children: ReactNode }) {
-  return <ul className="space-y-2">{children}</ul>;
+  return <ul className="maya-diary-list">{children}</ul>;
 }
 
-/**
- * CTA в потоке (order-first), не position:fixed.
- * У .maya-page animation с transform ломает fixed — кнопка уезжала поверх списка.
- */
 export function DiaryStickyCta({ children }: { children: ReactNode }) {
   return (
-    <div className="order-first rounded-2xl border border-line bg-card p-3 shadow-sm">
+    <div className="order-first">
       <div className="flex w-full flex-col gap-2">{children}</div>
     </div>
   );
@@ -127,10 +142,8 @@ export function DiaryPrimaryButton({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={`flex w-full items-center justify-center gap-2.5 rounded-2xl px-5 py-4 text-base font-semibold text-[var(--on-accent,#fff)] shadow-[0_8px_28px_color-mix(in_oklab,var(--accent)_40%,transparent)] transition active:scale-[0.98] disabled:opacity-40 ${
-        danger
-          ? "bg-gradient-to-r from-[color-mix(in_oklab,var(--accent)_80%,#ef4444)] to-accent"
-          : "bg-gradient-to-r from-accent via-[color-mix(in_oklab,var(--accent)_85%,#fb7185)] to-[color-mix(in_oklab,var(--accent)_75%,#f97316)]"
+      className={`flex w-full items-center justify-center gap-2.5 rounded-2xl px-5 py-[1.05rem] text-[15px] font-semibold text-[var(--on-accent,#fff)] transition active:scale-[0.98] disabled:opacity-35 ${
+        danger ? "maya-diary-cta-danger" : "maya-diary-cta"
       }`}
     >
       {children}
@@ -151,18 +164,18 @@ export function DiaryChip({
 }) {
   const activeCls =
     tone === "hot"
-      ? "bg-blush-soft text-blush ring-1 ring-blush/35"
+      ? "bg-blush-soft text-blush ring-1 ring-blush/30"
       : tone === "warn"
-        ? "bg-amber-500/15 text-amber-900 ring-1 ring-amber-500/30 dark:text-amber-200"
+        ? "bg-amber-500/15 text-amber-900 ring-1 ring-amber-500/25 dark:text-amber-200"
         : "bg-accent text-[var(--on-accent,#fff)]";
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+      className={`rounded-full px-3.5 py-2 text-[12px] font-semibold transition ${
         active
           ? activeCls
-          : "border border-line text-muted hover:text-foreground"
+          : "bg-foreground/[0.04] text-muted hover:bg-foreground/[0.07] hover:text-foreground"
       }`}
     >
       {children}
@@ -172,40 +185,14 @@ export function DiaryChip({
 
 export function DiaryEmpty({ children }: { children: ReactNode }) {
   return (
-    <p className="mt-6 text-center text-sm text-muted">{children}</p>
+    <p className="px-1 py-8 text-center text-sm leading-relaxed text-muted">
+      {children}
+    </p>
   );
 }
 
-export function DiaryCoach({
-  tone,
-  title,
-  children,
-}: {
-  tone: "ok" | "watch" | "go" | "tip";
-  title: string;
-  children: ReactNode;
-}) {
-  const wrap =
-    tone === "go"
-      ? "border-blush/45 bg-blush-soft"
-      : tone === "watch"
-        ? "border-amber-400/40 bg-amber-400/10"
-        : tone === "ok"
-          ? "border-emerald-500/30 bg-emerald-500/8"
-          : "border-accent/25 bg-accent-soft/50";
-  return (
-    <div className={`rounded-2xl border px-4 py-3.5 ${wrap}`}>
-      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
-        Мая подсказывает
-      </p>
-      <p className="mt-1 font-display text-lg font-semibold leading-tight tracking-tight">
-        {title}
-      </p>
-      <div className="mt-1.5 text-sm leading-relaxed text-foreground/85">
-        {children}
-      </div>
-    </div>
-  );
+export function DiaryPanel({ children }: { children: ReactNode }) {
+  return <div className="maya-diary-panel">{children}</div>;
 }
 
 /** Полоска последнего часа: занятые минуты подсвечены. */
@@ -218,11 +205,11 @@ export function DiaryHourStrip({
 }) {
   const windowMs = 60 * 60 * 1000;
   const from = now - windowMs;
-  const cells = 30;
+  const cells = 36;
   const cellMs = windowMs / cells;
   return (
     <div>
-      <div className="flex h-8 overflow-hidden rounded-xl border border-line bg-background">
+      <div className="maya-diary-strip flex h-2 overflow-hidden">
         {Array.from({ length: cells }, (_, i) => {
           const a = from + i * cellMs;
           const b = a + cellMs;
@@ -230,14 +217,12 @@ export function DiaryHourStrip({
           return (
             <span
               key={i}
-              className={`h-full flex-1 ${
-                hit ? "bg-accent" : "bg-transparent"
-              } ${i > 0 ? "border-l border-line/40" : ""}`}
+              className={`h-full flex-1 ${hit ? "bg-accent" : ""}`}
             />
           );
         })}
       </div>
-      <div className="mt-1 flex justify-between text-[10px] text-muted">
+      <div className="mt-1.5 flex justify-between text-[10px] text-muted">
         <span>час назад</span>
         <span>сейчас</span>
       </div>
@@ -245,7 +230,7 @@ export function DiaryHourStrip({
   );
 }
 
-/** 24 часа: когда спали (для сна малыша / мамы). */
+/** 24 часа: когда спали. */
 export function DiaryDayStrip({
   now,
   spans,
@@ -261,7 +246,7 @@ export function DiaryDayStrip({
   const cellMs = windowMs / cells;
   return (
     <div>
-      <div className="flex h-7 overflow-hidden rounded-xl border border-line bg-background">
+      <div className="maya-diary-strip flex h-2 overflow-hidden">
         {Array.from({ length: cells }, (_, i) => {
           const a = from + i * cellMs;
           const b = a + cellMs;
@@ -269,17 +254,15 @@ export function DiaryDayStrip({
           return (
             <span
               key={i}
-              className={`h-full flex-1 ${hit ? "bg-accent/85" : ""} ${
-                i > 0 ? "border-l border-line/30" : ""
-              }`}
+              className={`h-full flex-1 ${hit ? "bg-accent/90" : ""}`}
             />
           );
         })}
       </div>
-      <div className="mt-1 flex justify-between text-[10px] text-muted">
-        <span>00:00</span>
-        <span>12:00</span>
-        <span>24:00</span>
+      <div className="mt-1.5 flex justify-between text-[10px] text-muted">
+        <span>00</span>
+        <span>12</span>
+        <span>24</span>
       </div>
     </div>
   );
@@ -294,6 +277,6 @@ export function DiaryPage({
   stickyPad?: boolean;
 }) {
   return (
-    <div className="relative flex flex-col gap-4">{children}</div>
+    <div className="relative flex flex-col gap-5">{children}</div>
   );
 }

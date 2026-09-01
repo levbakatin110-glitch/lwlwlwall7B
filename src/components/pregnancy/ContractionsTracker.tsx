@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   DiaryChip,
-  DiaryCoach,
   DiaryEmpty,
   DiaryHourStrip,
   DiaryPage,
@@ -15,11 +14,7 @@ import {
   DiaryTimelineRow,
 } from "@/components/diary/DiaryShell";
 import { localToday } from "@/lib/local-date";
-import {
-  assessContractions,
-  formatSec,
-  type ContractionSample,
-} from "@/lib/pregnancy";
+import { formatSec } from "@/lib/pregnancy";
 import { getJournalEntries, useAppStore } from "@/lib/store";
 import type { JournalEntry } from "@/lib/types";
 
@@ -177,15 +172,6 @@ export function ContractionsTracker() {
     return { inHour, avgDur, avgInt };
   }, [chronological, now]);
 
-  const coach = useMemo(() => {
-    const samples: ContractionSample[] = chronological.map((t) => ({
-      startMs: t.startMs,
-      durationSec: t.durationSec,
-      intervalSec: t.intervalSec,
-    }));
-    return assessContractions(samples, now);
-  }, [chronological, now]);
-
   const breath = breathLabel(liveDurationSec);
   const wave = live
     ? Math.min(1, 0.25 + 0.75 * Math.sin((liveDurationSec / 8) * Math.PI) ** 2)
@@ -266,10 +252,6 @@ export function ContractionsTracker() {
 
       <DiaryHourStrip now={now} spans={hourSpans} />
 
-      <DiaryCoach tone={coach.tone} title={coach.title}>
-        {coach.body}
-      </DiaryCoach>
-
       {live ? (
         <div className="overflow-hidden rounded-[1.5rem] border border-accent/40 bg-gradient-to-b from-accent-soft via-card to-card px-4 py-6 text-center">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-accent">
@@ -316,10 +298,7 @@ export function ContractionsTracker() {
       ) : null}
 
       {timeline.length === 0 && !live && !pending ? (
-        <DiaryEmpty>
-          Нажмите в начале волны и ещё раз, когда отпустит. Мая посчитает
-          интервал и подскажет правило 5-1-1 — это ориентир, не диагноз.
-        </DiaryEmpty>
+        <DiaryEmpty>Начало волны — и ещё раз, когда отпустит.</DiaryEmpty>
       ) : (
         <div>
           <DiarySectionTitle left="Сегодня" right={`${timeline.length}`} />

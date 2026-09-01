@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
   DiaryChip,
-  DiaryCoach,
   DiaryEmpty,
   DiaryPage,
   DiarySectionTitle,
@@ -99,17 +98,6 @@ export function BirthPlanTracker() {
         ]}
       />
 
-      <DiaryCoach
-        tone={sorted.length >= 3 ? "ok" : "tip"}
-        title={
-          sorted.length >= 3
-            ? "План есть — обсудите в роддоме"
-            : "Пожелания, не договор"
-        }
-      >
-        Роддом не обязан выполнить каждый пункт, если есть медпоказания. Запишите важное сюда и распечатайте из медкарты — так партнёр и акушерка видят одно и то же.
-      </DiaryCoach>
-
       <p className="mt-3 text-center text-xs text-muted">
         PDF и полный план — в{" "}
         <Link href="/med" className="text-accent underline">
@@ -117,7 +105,7 @@ export function BirthPlanTracker() {
         </Link>
       </p>
 
-      <div className="mt-5 rounded-2xl border border-line bg-card p-4">
+      <div className="maya-diary-panel">
         <p className="text-[11px] font-medium text-muted">Пункты плана</p>
         <div className="mt-2 flex flex-wrap gap-1.5">
           {PLAN_ITEMS.map((item) => (

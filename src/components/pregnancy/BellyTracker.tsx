@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import {
-  DiaryCoach,
   DiaryEmpty,
   DiaryPage,
   DiaryPrimaryButton,
@@ -89,21 +88,6 @@ export function BellyTracker() {
         ]}
       />
 
-      <DiaryCoach
-        tone={sorted.length >= 2 ? "ok" : "tip"}
-        title={
-          delta != null && delta <= -2
-            ? "Окружность уменьшилась"
-            : sorted.length === 0
-              ? "Сантиметр на уровне пупка"
-              : "Рост живота — ориентир"
-        }
-      >
-        {delta != null && delta <= -2
-          ? "Падение на пару см — перемерьте стоя, утром. Если живот «опал» и шевелений мало — к врачу, не ждите планового."
-          : "Лента горизонтально, на одном уровне, после туалета. Врач смотрит ВДМ, не только «обхват». Скачок без веса бывает из‑за положения малыша."}
-      </DiaryCoach>
-
       <div className="mt-5 flex flex-col items-center rounded-3xl border border-line bg-gradient-to-b from-card to-[color-mix(in_oklab,var(--accent)_6%,var(--card))] py-10 shadow-sm">
         <input
           type="text"
@@ -127,27 +111,32 @@ export function BellyTracker() {
         <div className="mt-6">
           <DiarySectionTitle left="История" right={`${sorted.length}`} />
           <DiaryTimeline>
-            {sorted.map((item, i) => (
+            {sorted.map((item, i) => {
+              const older = sorted[i + 1];
+              const d = older != null ? Math.round(item.cm - older.cm) : null;
+              return (
               <li key={item.e.id}>
                 <DiaryTimelineRow
                   accent={i === 0}
                   left={
                     <div>
-                      <span className="text-[11px] tabular-nums text-muted">
+                      <p className="text-[13px] font-medium">{item.e.date}</p>
+                      <p className="text-[11px] tabular-nums text-muted">
                         {formatClock(item.startMs)}
-                      </span>
-                      <p className="text-[10px] text-muted/70">{item.e.date}</p>
+                      </p>
                     </div>
                   }
-                  mark={<span className="text-xs tabular-nums">{item.cm}</span>}
                   right={
                     <div>
-                      <span className="text-sm tabular-nums text-muted">
-                        {formatCm(item.cm)}
-                      </span>
-                      {item.e.note ? (
-                        <p className="mt-0.5 text-xs text-muted/80">{item.e.note}</p>
-                      ) : null}
+                      <p>{formatCm(item.cm)}</p>
+                      {d != null ? (
+                        <p className="text-[11px] font-medium text-muted">
+                          {d > 0 ? "+" : ""}
+                          {d} см
+                        </p>
+                      ) : (
+                        <p className="text-[11px] font-medium text-muted">старт</p>
+                      )}
                     </div>
                   }
                   onClick={() => {
@@ -157,7 +146,8 @@ export function BellyTracker() {
                   }}
                 />
               </li>
-            ))}
+            );
+            })}
           </DiaryTimeline>
         </div>
       ) : (

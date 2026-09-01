@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   DiaryChip,
-  DiaryCoach,
   DiaryPage,
   DiaryPrimaryButton,
   DiarySectionTitle,
@@ -260,19 +259,6 @@ export function BreastfeedingTracker() {
           { label: "Последняя", value: stats.lastLabel },
         ]}
       />
-
-      <DiaryCoach
-        tone="tip"
-        title={
-          suggest
-            ? `Следующая — ${suggest === "left" ? "левая" : "правая"}`
-            : "Две груди — два таймера"
-        }
-      >
-        {suggest
-          ? "Начните с той, которой заканчивали реже. Так меньше застой и проще отследить перекос."
-          : "Жмите сторону, когда малыш сосёт. Пауза не сбрасывает минуты. В конце — сохранить."}
-      </DiaryCoach>
 
       <div className="mt-5 grid grid-cols-2 gap-3">
         {(["left", "right"] as const).map((side) => {

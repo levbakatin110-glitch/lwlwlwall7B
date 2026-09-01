@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   DiaryChip,
-  DiaryCoach,
   DiaryEmpty,
   DiaryPage,
   DiarySectionTitle,
@@ -16,6 +15,7 @@ import {
   entriesForToday,
   entryTimeMs,
   formatClock,
+  formatGap,
   todayYmd,
 } from "@/lib/diary-day";
 import { useAppStore } from "@/lib/store";
@@ -103,22 +103,7 @@ export function WaterTracker() {
         ]}
       />
 
-      <DiaryCoach
-        tone={pct >= 100 ? "ok" : pct < 30 && todayEntries.length > 0 ? "watch" : "tip"}
-        title={
-          pct >= 100
-            ? "Норма на сегодня"
-            : left > 0
-              ? `Ещё ${left} мл`
-              : "Глоток"
-        }
-      >
-        {pct >= 100
-          ? "Цель закрыта. Дальше — по жажде, без гонки за литрами."
-          : "Грудное вскармливание и жара требуют больше. Стакан у кровати срабатывает лучше напоминалок."}
-      </DiaryCoach>
-
-      <div className="mt-5 flex flex-col items-center">
+      <div className="flex flex-col items-center">
         <div className="relative h-36 w-36">
           <svg viewBox="0 0 120 120" className="h-full w-full -rotate-90">
             <circle
@@ -144,9 +129,9 @@ export function WaterTracker() {
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <p className="font-display text-3xl font-semibold tabular-nums tracking-tight">
-              {todayMl}
+              {pct}%
             </p>
-            <p className="text-[11px] text-muted">из {goal} мл</p>
+            <p className="text-[11px] text-muted">цель {goal}</p>
           </div>
         </div>
 
@@ -164,35 +149,51 @@ export function WaterTracker() {
       </div>
 
       {todayEntries.length > 0 ? (
-        <div className="mt-6">
+        <div>
           <DiarySectionTitle left="Сегодня" right={`${todayEntries.length}`} />
           <DiaryTimeline>
-            {todayEntries.map((item) => (
-              <li key={item.e.id}>
-                <DiaryTimelineRow
-                  left={
-                    <span className="text-[11px] tabular-nums text-muted">
-                      {formatClock(item.startMs)}
-                    </span>
-                  }
-                  mark={item.ml}
-                  right={
-                    <span className="text-sm tabular-nums text-muted">
-                      {item.ml} мл
-                    </span>
-                  }
-                  onClick={() => {
-                    if (window.confirm("Удалить запись?")) {
-                      removeJournalEntry("water", item.e.id);
+            {todayEntries.map((item, i) => {
+              const older = todayEntries[i + 1];
+              const running = todayEntries
+                .slice(i)
+                .reduce((s, x) => s + x.ml, 0);
+              return (
+                <li key={item.e.id}>
+                  <DiaryTimelineRow
+                    accent={i === 0}
+                    left={
+                      <div>
+                        <p className="text-[13px] font-medium tabular-nums">
+                          {formatClock(item.startMs)}
+                        </p>
+                        <p className="text-[11px] text-muted">
+                          {older
+                            ? `через ${formatGap(older.startMs, item.startMs)}`
+                            : "первая сегодня"}
+                        </p>
+                      </div>
                     }
-                  }}
-                />
-              </li>
-            ))}
+                    right={
+                      <div>
+                        <p>+{item.ml}</p>
+                        <p className="text-[11px] font-medium text-muted">
+                          Σ {running}
+                        </p>
+                      </div>
+                    }
+                    onClick={() => {
+                      if (window.confirm("Удалить запись?")) {
+                        removeJournalEntry("water", item.e.id);
+                      }
+                    }}
+                  />
+                </li>
+              );
+            })}
           </DiaryTimeline>
         </div>
       ) : (
-        <DiaryEmpty>Пока пусто</DiaryEmpty>
+        <DiaryEmpty>Плюс миллилитры сверху</DiaryEmpty>
       )}
 
       <DiaryStickyCta>

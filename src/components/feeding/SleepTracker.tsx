@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  DiaryCoach,
   DiaryDayStrip,
   DiaryEmpty,
   DiaryPage,
@@ -131,26 +130,6 @@ export function SleepTracker({ journalId = "sleep" }: { journalId?: string }) {
     return spans;
   }, [todayEntries, live, now]);
 
-  const sleepCoach = live
-    ? {
-        tone: "tip" as const,
-        title: "Тихо считаем",
-        body: isMomSleep
-          ? "Даже 20 минут — уже отдых. Не обесценивайте короткий сон."
-          : "Не смотрите в экран каждые 2 минуты. Кнопка подождёт, когда проснётся.",
-      }
-    : stats.wakeMin != null && stats.wakeMin > 150 && !isMomSleep
-      ? {
-          tone: "watch" as const,
-          title: "Долгое окно бодрствования",
-          body: `Уже ${stats.wakeMin} мин без сна. Если малыш трёт глаза — ловите окно, не «ещё одну серию».`,
-        }
-      : {
-          tone: "tip" as const,
-          title: "Карта суток",
-          body: "Полоска ниже — когда спали сегодня. Так видно дырки лучше, чем по списку «ещё одна запись».",
-        };
-
   function start(kind: Kind) {
     setLive({ kind, startedAt: Date.now() });
     setNow(Date.now());
@@ -199,10 +178,6 @@ export function SleepTracker({ journalId = "sleep" }: { journalId?: string }) {
       />
 
       <DiaryDayStrip now={now} spans={sleepSpans} />
-
-      <DiaryCoach tone={sleepCoach.tone} title={sleepCoach.title}>
-        {sleepCoach.body}
-      </DiaryCoach>
 
       {live ? (
         <div className="mt-6 text-center">

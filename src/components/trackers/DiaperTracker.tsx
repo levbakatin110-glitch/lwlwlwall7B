@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import { useAppStore } from "@/lib/store";
 import {
-  DiaryCoach,
   DiaryEmpty,
   DiaryPage,
   DiarySectionTitle,
@@ -80,24 +79,6 @@ export function DiaperTracker() {
   const lastMs = todayEntries[0] ? entryTimeMs(todayEntries[0]) : null;
   const minsSince =
     lastMs != null ? Math.max(0, Math.floor((Date.now() - lastMs) / 60_000)) : null;
-  const diaperCoach =
-    stats.wet < 3 && todayEntries.length >= 4
-      ? {
-          tone: "watch" as const,
-          title: "Мокрых маловато",
-          body: "За день обычно ждут хотя бы 5–6 мокрых. Если малыш вялый или мало писает — это повод написать педиатру, не ждать «на всякий случай».",
-        }
-      : minsSince != null && minsSince > 180 && stats.total > 0
-        ? {
-            tone: "tip" as const,
-            title: "Давно не меняли",
-            body: `Последняя смена ${minsSince} мин назад. Даже «сухой» чекин помогает увидеть, не слишком ли редко.`,
-          }
-        : {
-            tone: "tip" as const,
-            title: "Один тап — и в истории",
-            body: "Мокрый / грязный / оба / сухой. Если краснеет попа — включите «раздражение» перед сменой. Это потом видно в ленте.",
-          };
 
   function log(kind: KindId) {
     const meta = KINDS.find((k) => k.id === kind)!;
@@ -120,34 +101,23 @@ export function DiaperTracker() {
 
   return (
     <DiaryPage>
-      <div className="maya-rise overflow-hidden rounded-[1.5rem] border border-line bg-card/80 p-4 sm:p-5">
-        <h2 className="font-display text-xl font-semibold tracking-tight">
-          Смена подгузника
-        </h2>
+      <DiaryStats
+        items={[
+          { label: "сегодня", value: stats.total },
+          { label: "мокрых", value: stats.wet },
+          {
+            label: "с последней",
+            value:
+              minsSince == null
+                ? "—"
+                : minsSince >= 60
+                  ? `${Math.floor(minsSince / 60)} ч`
+                  : `${minsSince} мин`,
+          },
+        ]}
+      />
 
-        <div className="mt-4">
-          <DiaryStats
-            items={[
-              { label: "сегодня всего", value: stats.total },
-              { label: "мокрых", value: stats.wet },
-              {
-                label: "с последней",
-                value:
-                  minsSince == null
-                    ? "—"
-                    : minsSince >= 60
-                      ? `${Math.floor(minsSince / 60)} ч`
-                      : `${minsSince} мин`,
-              },
-            ]}
-          />
-        </div>
-
-        <DiaryCoach tone={diaperCoach.tone} title={diaperCoach.title}>
-          {diaperCoach.body}
-        </DiaryCoach>
-
-        <button
+      <button
           type="button"
           onClick={() => setRashNext((v) => !v)}
           className={`mt-4 w-full rounded-xl border px-3 py-2.5 text-left text-sm transition ${
@@ -222,11 +192,8 @@ export function DiaperTracker() {
             </DiaryTimeline>
           </div>
         ) : (
-          <DiaryEmpty>
-            Тапните тип смены. История за сегодня появится здесь.
-          </DiaryEmpty>
+          <DiaryEmpty>Тип смены — в историю</DiaryEmpty>
         )}
-      </div>
     </DiaryPage>
   );
 }
