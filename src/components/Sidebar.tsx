@@ -28,9 +28,12 @@ function isOpenWithoutPay(href: string): boolean {
   );
 }
 
-const CORE: { href: string; label: string; icon: IconName }[] = [
+const TALK: { href: string; label: string; icon: IconName }[] = [
   { href: "/", label: "Чат с Маей", icon: "chat" },
-  { href: "/community", label: "Общение", icon: "circle" },
+  { href: "/community", label: "Круг мам", icon: "circle" },
+];
+
+const NAV: { href: string; label: string; icon: IconName }[] = [
   { href: "/summary", label: "Итоги дня", icon: "list" },
   { href: "/med", label: "Мед. карта", icon: "health" },
   { href: "/pricing", label: "Подписка", icon: "spark" },
@@ -81,7 +84,6 @@ export function Sidebar({
   const customModules = useAppStore((s) => s.customModules ?? []);
   const childrenList = useAppStore((s) => s.children ?? []);
   const activeChildId = useAppStore((s) => s.activeChildId);
-  const profile = useAppStore((s) => s.profile);
   const switchChild = useAppStore((s) => s.switchChild);
   const subscription = useAppStore((s) => s.subscription);
   const paywalled = PAID_ONLY && !isSubscriptionActive(subscription);
@@ -177,139 +179,152 @@ export function Sidebar({
     />
   );
 
-  const childSwitcher = (
-    <div className="mb-4 px-1">
-      <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted">
-        Сейчас
+  function sectionLabel(text: string) {
+    return (
+      <p className="mb-1.5 px-2.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">
+        {text}
       </p>
-      <div className="flex flex-col gap-1">
-        {childrenList.map((c) => {
-          const active = c.id === activeChildId;
-          return (
-            <button
-              key={c.id}
-              type="button"
-              onClick={() => switchChild(c.id)}
-              className={`flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition ${
-                active ? "bg-accent-soft ring-1 ring-line" : "hover:bg-card"
-              }`}
-            >
-              <span className="flex h-8 w-8 shrink-0 overflow-hidden rounded-lg bg-background">
-                {c.photoData ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={c.photoData}
-                    alt=""
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <span className="m-auto text-[11px] font-semibold text-muted">
-                    {childDisplayName(c).slice(0, 1).toUpperCase()}
-                  </span>
-                )}
-              </span>
-              <span
-                className={`truncate text-[13px] font-medium ${
-                  active ? "text-foreground" : "text-muted"
+    );
+  }
+
+  function navLinks(items: { href: string; label: string; icon: IconName }[]) {
+    return items.map((item) => (
+      <Link
+        key={item.href}
+        href={item.href}
+        onClick={(e) => onNavClick(e, item.href)}
+        className={linkClass(
+          item.href === "/"
+            ? pathname === "/"
+            : pathname === item.href || pathname.startsWith(`${item.href}/`),
+        )}
+      >
+        <MayaIcon name={item.icon} size={17} />
+        <span>{item.label}</span>
+      </Link>
+    ));
+  }
+
+  const childSwitcher =
+    childrenList.length > 1 ? (
+      <div className="mb-1">
+        {sectionLabel("Дети")}
+        <div className="flex flex-col gap-0.5">
+          {childrenList.map((c) => {
+            const active = c.id === activeChildId;
+            return (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => switchChild(c.id)}
+                className={`flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition ${
+                  active ? "bg-accent-soft ring-1 ring-line" : "hover:bg-card"
                 }`}
               >
-                {childDisplayName(c)}
-              </span>
-            </button>
-          );
-        })}
+                <span className="flex h-8 w-8 shrink-0 overflow-hidden rounded-lg bg-background">
+                  {c.photoData ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={c.photoData}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span className="m-auto text-[11px] font-semibold text-muted">
+                      {childDisplayName(c).slice(0, 1).toUpperCase()}
+                    </span>
+                  )}
+                </span>
+                <span
+                  className={`truncate text-[13px] font-medium ${
+                    active ? "text-foreground" : "text-muted"
+                  }`}
+                >
+                  {childDisplayName(c)}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
-      <Link
-        href="/profile"
-        onClick={(e) => onNavClick(e, "/profile")}
-        className="mt-1.5 block px-2.5 text-[11px] font-semibold text-accent hover:underline"
-      >
-        + Ещё ребёнок / профиль
-      </Link>
-    </div>
-  );
+    ) : null;
 
   const nav = (
-    <nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto overscroll-contain p-3">
+    <nav className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain p-3">
       {childSwitcher}
-      <p className="mb-1.5 px-2.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted">
-        Навигация
-      </p>
-      {CORE.map((item) => (
-        <Link
-          key={item.href}
-          href={item.href}
-          onClick={(e) => onNavClick(e, item.href)}
-          className={linkClass(
-            item.href === "/"
-              ? pathname === "/"
-              : pathname === item.href || pathname.startsWith(`${item.href}/`),
-          )}
-        >
-          <MayaIcon name={item.icon} size={17} />
-          <span>{item.label}</span>
-        </Link>
-      ))}
-      <a
-        href={SUPPORT_MAIL}
-        onClick={(e) => onNavClick(e, SUPPORT_MAIL)}
-        className={linkClass(false)}
-        title={LEGAL_OPERATOR.supportEmail}
-      >
-        <MayaIcon name="notes" size={17} />
-        <span>Поддержка</span>
-      </a>
 
-      <p className="mb-1.5 mt-4 px-2.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted">
-        {childDisplayName(profile)}
-      </p>
-      <Link
-        href="/modules"
-        onClick={(e) => onNavClick(e, "/modules")}
-        className={`mb-1 flex items-center gap-2.5 rounded-xl border border-dashed border-accent/45 bg-accent-soft/50 px-2.5 py-2.5 text-[13px] font-semibold tracking-tight text-accent transition hover:border-accent/70 hover:bg-accent-soft ${
-          pathname === "/modules" || pathname.startsWith("/modules/")
-            ? "ring-1 ring-accent/35"
-            : ""
-        }`}
-      >
-        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent text-[var(--on-accent,#fff)]">
-          <MayaIcon name="plus" size={15} />
-        </span>
-        <span className="min-w-0 flex-1">Разделы</span>
-      </Link>
-      {visiblePinned.map((item) => (
-        <Link
-          key={item.href}
-          href={item.href}
-          onClick={(e) => onNavClick(e, item.href)}
-          className={linkClass(
-            pathname === item.href || pathname.startsWith(`${item.href}/`),
-          )}
-        >
-          <MayaIcon name={item.icon} size={17} />
-          <span>{item.label}</span>
-        </Link>
-      ))}
+      <div className={childSwitcher ? "mt-4 border-t border-line/70 pt-3.5" : ""}>
+        {sectionLabel("Общение")}
+        <div className="flex flex-col gap-0.5">{navLinks(TALK)}</div>
+      </div>
 
-      {extraDiaries.map((mod) => {
-        const href = `/m/${mod.id}`;
-        return (
-          <Link
-            key={mod.id}
-            href={href}
-            onClick={(e) => onNavClick(e, href)}
-            className={linkClass(pathname === href)}
+      <div className="mt-4 border-t border-line/70 pt-3.5">
+        {sectionLabel("Навигация")}
+        <div className="flex flex-col gap-0.5">
+          {navLinks(NAV)}
+          <a
+            href={SUPPORT_MAIL}
+            onClick={(e) => onNavClick(e, SUPPORT_MAIL)}
+            className={linkClass(false)}
+            title={LEGAL_OPERATOR.supportEmail}
           >
-            <MayaIcon name={mod.icon} size={17} />
-            <span>{mod.shortTitle}</span>
+            <MayaIcon name="notes" size={17} />
+            <span>Поддержка</span>
+          </a>
+        </div>
+      </div>
+
+      <div className="mt-4 border-t border-line/70 pt-3.5">
+        {sectionLabel("Разделы")}
+        <div className="flex flex-col gap-0.5">
+          <Link
+            href="/modules"
+            onClick={(e) => onNavClick(e, "/modules")}
+            className={`mb-0.5 flex items-center gap-2.5 rounded-xl border border-dashed border-accent/45 bg-accent-soft/50 px-2.5 py-2.5 text-[13px] font-semibold tracking-tight text-accent transition hover:border-accent/70 hover:bg-accent-soft ${
+              pathname === "/modules" || pathname.startsWith("/modules/")
+                ? "ring-1 ring-accent/35"
+                : ""
+            }`}
+          >
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent text-[var(--on-accent,#fff)]">
+              <MayaIcon name="plus" size={15} />
+            </span>
+            <span className="min-w-0 flex-1">Все дневники</span>
           </Link>
-        );
-      })}
+          {visiblePinned.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={(e) => onNavClick(e, item.href)}
+              className={linkClass(
+                pathname === item.href || pathname.startsWith(`${item.href}/`),
+              )}
+            >
+              <MayaIcon name={item.icon} size={17} />
+              <span>{item.label}</span>
+            </Link>
+          ))}
+          {extraDiaries.map((mod) => {
+            const href = `/m/${mod.id}`;
+            return (
+              <Link
+                key={mod.id}
+                href={href}
+                onClick={(e) => onNavClick(e, href)}
+                className={linkClass(pathname === href)}
+              >
+                <MayaIcon name={mod.icon} size={17} />
+                <span>{mod.shortTitle}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
 
       <Link
         href="/legal"
         onClick={(e) => onNavClick(e, "/legal")}
-        className="mt-4 px-2.5 text-[11px] text-muted underline underline-offset-2 hover:text-foreground"
+        className="mt-5 px-2.5 text-[11px] text-muted underline underline-offset-2 hover:text-foreground"
       >
         Документы · оферта
       </Link>
