@@ -19,6 +19,7 @@ import {
   formatDuration,
   wakeMinutesSince,
 } from "@/lib/diary-day";
+import { liveGet, liveSet } from "@/lib/live-session";
 import { useAppStore } from "@/lib/store";
 import type { JournalEntry } from "@/lib/types";
 
@@ -75,7 +76,7 @@ export function SleepTracker({ journalId = "sleep" }: { journalId?: string }) {
 
   useEffect(() => {
     try {
-      const raw = sessionStorage.getItem(storageKey);
+      const raw = liveGet(storageKey);
       setLive(raw ? (JSON.parse(raw) as SleepLive) : null);
     } catch {
       setLive(null);
@@ -84,8 +85,8 @@ export function SleepTracker({ journalId = "sleep" }: { journalId?: string }) {
 
   useEffect(() => {
     try {
-      if (!live) sessionStorage.removeItem(storageKey);
-      else sessionStorage.setItem(storageKey, JSON.stringify(live));
+      if (!live) liveSet(storageKey, null);
+      else liveSet(storageKey, JSON.stringify(live));
     } catch {
       /* */
     }

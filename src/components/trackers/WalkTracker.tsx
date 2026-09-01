@@ -18,6 +18,7 @@ import {
   formatDuration,
   todayYmd,
 } from "@/lib/diary-day";
+import { liveParse, liveSet } from "@/lib/live-session";
 import { useAppStore } from "@/lib/store";
 import type { JournalEntry } from "@/lib/types";
 
@@ -31,15 +32,7 @@ type LiveSession = {
 };
 
 function loadSession(): LiveSession | null {
-  try {
-    const raw = sessionStorage.getItem(SS_KEY);
-    if (!raw) return null;
-    const s = JSON.parse(raw) as LiveSession;
-    if (typeof s?.startMs === "number") return s;
-  } catch {
-    /* */
-  }
-  return null;
+  return liveParse<LiveSession>(SS_KEY);
 }
 
 function entryTotalSec(e: JournalEntry): number {
@@ -79,8 +72,8 @@ export function WalkTracker() {
 
   useEffect(() => {
     try {
-      if (!live) sessionStorage.removeItem(SS_KEY);
-      else sessionStorage.setItem(SS_KEY, JSON.stringify(live));
+      if (!live) liveSet(SS_KEY, null);
+      else liveSet(SS_KEY, JSON.stringify(live));
     } catch {
       /* */
     }
@@ -137,7 +130,7 @@ export function WalkTracker() {
     const endMs = Date.now();
     const totalSec = Math.floor((endMs - live.startMs) / 1000);
     if (totalSec < MIN_SEC) {
-      sessionStorage.removeItem(SS_KEY);
+      liveSet(SS_KEY, null);
       setLive(null);
       return;
     }
@@ -159,7 +152,7 @@ export function WalkTracker() {
         ...(toLabel ? { to: toLabel } : {}),
       },
     });
-    sessionStorage.removeItem(SS_KEY);
+    liveSet(SS_KEY, null);
     setLive(null);
   }
 

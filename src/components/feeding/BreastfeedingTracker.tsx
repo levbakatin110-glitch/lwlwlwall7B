@@ -17,6 +17,7 @@ import {
   formatClock,
   formatDuration,
 } from "@/lib/diary-day";
+import { liveGet, liveSet } from "@/lib/live-session";
 import { useAppStore } from "@/lib/store";
 import type { JournalEntry } from "@/lib/types";
 
@@ -36,7 +37,7 @@ function loadSession(): LiveSession {
     return { leftSec: 0, rightSec: 0, active: null, tickAt: null };
   }
   try {
-    const raw = sessionStorage.getItem(STORAGE_KEY);
+    const raw = liveGet(STORAGE_KEY);
     if (!raw) return { leftSec: 0, rightSec: 0, active: null, tickAt: null };
     return JSON.parse(raw) as LiveSession;
   } catch {
@@ -46,18 +47,14 @@ function loadSession(): LiveSession {
 
 function saveSession(s: LiveSession) {
   try {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+    liveSet(STORAGE_KEY, JSON.stringify(s));
   } catch {
     /* ignore */
   }
 }
 
 function clearSession() {
-  try {
-    sessionStorage.removeItem(STORAGE_KEY);
-  } catch {
-    /* ignore */
-  }
+  liveSet(STORAGE_KEY, null);
 }
 
 function settle(s: LiveSession, now = Date.now()): LiveSession {

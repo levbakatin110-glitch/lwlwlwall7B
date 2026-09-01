@@ -15,6 +15,7 @@ import {
 } from "@/components/diary/DiaryShell";
 import { localToday } from "@/lib/local-date";
 import { formatSec } from "@/lib/pregnancy";
+import { liveGet, liveSet } from "@/lib/live-session";
 import { getJournalEntries, useAppStore } from "@/lib/store";
 import type { JournalEntry } from "@/lib/types";
 
@@ -119,7 +120,7 @@ export function ContractionsTracker() {
 
   useEffect(() => {
     try {
-      const raw = sessionStorage.getItem(SESSION_KEY);
+      const raw = liveGet(SESSION_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as LiveRow;
         if (parsed?.startMs) setLive(parsed);
@@ -131,8 +132,8 @@ export function ContractionsTracker() {
 
   useEffect(() => {
     try {
-      if (!live) sessionStorage.removeItem(SESSION_KEY);
-      else sessionStorage.setItem(SESSION_KEY, JSON.stringify(live));
+      if (!live) liveSet(SESSION_KEY, null);
+      else liveSet(SESSION_KEY, JSON.stringify(live));
     } catch {
       /* */
     }

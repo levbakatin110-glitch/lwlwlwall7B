@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { ChatChart } from "@/components/ChatChart";
 import { ChatNewsFeed } from "@/components/ChatNewsFeed";
 import { SiteFeedbackBox } from "@/components/SiteFeedbackBox";
+import { TodayPulse } from "@/components/TodayPulse";
 import { JournalEntryChip } from "@/components/JournalEntryChip";
 import { LogPreviewSheet, type LogPreviewData } from "@/components/LogPreviewSheet";
 import { KitchenCarousel } from "@/components/KitchenCarousel";
@@ -1294,6 +1295,8 @@ export function ChatView() {
             </div>
           ) : null}
 
+          <TodayPulse variant="bar" />
+
           <form
             className="flex shrink-0 gap-2 border-t border-line p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
             onSubmit={(e) => {
@@ -1353,6 +1356,8 @@ export function ChatView() {
         </div>
 
         <div className="mt-1 space-y-4 pb-2">
+          <TodayPulse variant="card" />
+
           {/* Кухня — отдельно по цвету от ленты малыша */}
           <section
             id="noise"

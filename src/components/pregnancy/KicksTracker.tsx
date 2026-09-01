@@ -18,6 +18,7 @@ import {
   formatDuration,
   todayYmd,
 } from "@/lib/diary-day";
+import { liveGet, liveSet } from "@/lib/live-session";
 import { getJournalEntries, useAppStore } from "@/lib/store";
 import type { JournalEntry } from "@/lib/types";
 
@@ -31,7 +32,7 @@ type KickSession = {
 
 function loadSession(): KickSession | null {
   try {
-    const raw = sessionStorage.getItem(SESSION_KEY);
+    const raw = liveGet(SESSION_KEY);
     if (!raw) return null;
     const s = JSON.parse(raw) as KickSession;
     if (typeof s?.startMs === "number" && s.count > 0) return s;
@@ -80,9 +81,9 @@ export function KicksTracker() {
   useEffect(() => {
     try {
       if (startMs == null || count <= 0) {
-        sessionStorage.removeItem(SESSION_KEY);
+        liveSet(SESSION_KEY, null);
       } else {
-        sessionStorage.setItem(
+        liveSet(
           SESSION_KEY,
           JSON.stringify({ count, startMs } satisfies KickSession),
         );
@@ -128,7 +129,7 @@ export function KicksTracker() {
   function reset() {
     setCount(0);
     setStartMs(null);
-    sessionStorage.removeItem(SESSION_KEY);
+    liveSet(SESSION_KEY, null);
   }
 
   function save() {
