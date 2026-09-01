@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Fraunces, Nunito } from "next/font/google";
 import { AppErrorBoundary } from "@/components/AppErrorBoundary";
 import { AppShell } from "@/components/AppShell";
+import { BetterStackInit } from "@/components/BetterStackInit";
 import { MobileKeyboardFix } from "@/components/MobileKeyboardFix";
 import { PwaRegister } from "@/components/PwaRegister";
 import "./globals.css";
@@ -114,6 +115,7 @@ export default function RootLayout({
         <AppErrorBoundary>
           <AppShell>{children}</AppShell>
         </AppErrorBoundary>
+        <BetterStackInit />
         <MobileKeyboardFix />
         <PwaRegister />
       </body>

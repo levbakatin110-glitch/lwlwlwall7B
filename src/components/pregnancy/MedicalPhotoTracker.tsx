@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import {
+  DiaryCoach,
   DiaryPage,
   DiaryPrimaryButton,
   DiarySectionTitle,
@@ -148,6 +149,25 @@ export function MedicalPhotoTracker({
           { label: "Сегодня", value: todayCount },
         ]}
       />
+
+      <DiaryCoach
+        tone={result ? "ok" : preview ? "watch" : "tip"}
+        title={
+          result
+            ? "Проверьте текст, потом сохраняйте"
+            : preview
+              ? "Ровно, без блика"
+              : moduleId === "preg_labs"
+                ? "Снимок бланка — не заключение врача"
+                : "Документ в карман телефона"
+        }
+      >
+        {result
+          ? "ИИ может ошибиться в цифрах. Сверьте с бумагой. Для решений по лечению — только врач."
+          : preview
+            ? "Дальше — «Распознать». Если каша из букв, переснимите крупнее."
+            : "Фото ОАК, УЗИ, выписки. Хранится у вас в дневнике. Не заменяет расшифровку в ЖК."}
+      </DiaryCoach>
 
       <input
         ref={fileRef}

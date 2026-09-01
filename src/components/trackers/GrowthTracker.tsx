@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import {
+  DiaryCoach,
   DiaryEmpty,
   DiaryPage,
   DiaryPrimaryButton,
@@ -121,6 +122,19 @@ export function GrowthTracker() {
           { label: "записей", value: sorted.length },
         ]}
       />
+
+      <DiaryCoach
+        tone={sorted.length >= 2 ? "ok" : "tip"}
+        title={
+          sorted.length >= 2
+            ? "Смотрим тренд, не одну точку"
+            : "Вес и рост — якоря для педиатра"
+        }
+      >
+        {sorted.length >= 2
+          ? "Две–три точки за месяц важнее «идеальной цифры». Скачок или плато обсуждайте на приёме, не по чужому графику из интернета."
+          : "Взвешивайте в одно время, без одежды. Рост — лёжа до года, стоя потом. Нормы ВОЗ — ориентир, не приговор."}
+      </DiaryCoach>
 
       <div className="mt-5 grid grid-cols-2 gap-3">
         <div className="flex flex-col items-center rounded-3xl border border-line bg-gradient-to-b from-card to-[color-mix(in_oklab,var(--accent)_6%,var(--card))] py-8 shadow-sm">

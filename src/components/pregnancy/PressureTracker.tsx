@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import {
   DiaryChip,
+  DiaryCoach,
   DiaryEmpty,
   DiaryPage,
   DiaryPrimaryButton,
@@ -135,6 +136,33 @@ export function PressureTracker() {
           },
         ]}
       />
+
+      <DiaryCoach
+        tone={
+          lastAll && (lastAll.sys >= 140 || lastAll.dia >= 90)
+            ? "go"
+            : lastAll && (lastAll.sys < 90 || lastAll.dia < 60)
+              ? "watch"
+              : lastAll
+                ? "ok"
+                : "tip"
+        }
+        title={
+          lastAll && (lastAll.sys >= 140 || lastAll.dia >= 90)
+            ? "Давление повышено"
+            : lastAll && (lastAll.sys < 90 || lastAll.dia < 60)
+              ? "Давление низковато"
+              : lastAll
+                ? "Цифры в привычном коридоре"
+                : "Утро и вечер, одна рука"
+        }
+      >
+        {lastAll && (lastAll.sys >= 140 || lastAll.dia >= 90)
+          ? "140/90 и выше в беременности — не «просто нервы». Перемерьте через 5 минут сидя. Головная боль, мушки, отёки — сразу к врачу / скорой. Это не диагноз в приложении."
+          : lastAll && (lastAll.sys < 90 || lastAll.dia < 60)
+            ? "Головокружение, слабость — прилягте, попейте. Если обмороки — к врачу. Низкое без симптомов часто бывает, но фиксируйте."
+            : "Сидя, рука на столе, манжета на уровне сердца. Три измерения подряд в карточке врача ценнее одного «с порога»."}
+      </DiaryCoach>
 
       <div className="mt-5 rounded-2xl border border-line bg-card p-4">
         <p className="text-[11px] font-medium text-muted">Быстрый выбор</p>

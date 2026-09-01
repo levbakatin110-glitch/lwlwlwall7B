@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import {
   DiaryChip,
+  DiaryCoach,
   DiaryEmpty,
   DiaryPage,
   DiaryPrimaryButton,
@@ -139,6 +140,33 @@ export function HealthTracker() {
           { label: "симптомов", value: stats.symptomCount },
         ]}
       />
+
+      <DiaryCoach
+        tone={
+          stats.lastTemp != null && stats.lastTemp >= 38
+            ? "go"
+            : stats.lastTemp != null && stats.lastTemp >= 37.5
+              ? "watch"
+              : stats.total === 0
+                ? "tip"
+                : "ok"
+        }
+        title={
+          stats.lastTemp != null && stats.lastTemp >= 38
+            ? "Температура высокая"
+            : stats.lastTemp != null && stats.lastTemp >= 37.5
+              ? "Субфебрильная"
+              : stats.total === 0
+                ? "Один замер — уже история"
+                : "Держим руку на пульсе"
+        }
+      >
+        {stats.lastTemp != null && stats.lastTemp >= 38
+          ? "38° и выше у малыша — повод связаться с педиатром, особенно до 3 месяцев. Это не диагноз, а сигнал не ждать «само пройдёт»."
+          : stats.lastTemp != null && stats.lastTemp >= 37.5
+            ? "Перемерьте через 30–40 минут в покое. Пейте, не кутайте. Если растёт или появилась вялость — к врачу."
+            : "Записывайте t° и симптом в одно время суток — так видно динамику, а не разовое «ну вроде тепло»."}
+      </DiaryCoach>
 
       <div className="mt-5 rounded-2xl border border-line bg-card p-4">
         <p className="text-[11px] font-medium text-muted">Температура</p>

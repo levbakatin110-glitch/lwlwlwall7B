@@ -1,6 +1,7 @@
 "use client";
 
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import { captureBetterStackException } from "@/lib/betterstack-sentry";
 
 type Props = { children: ReactNode };
 type State = { error: Error | null };
@@ -18,6 +19,7 @@ export class AppErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error("[maya] AppErrorBoundary", error, info.componentStack);
+    captureBetterStackException(error);
     const msg = `${error?.name ?? ""} ${error?.message ?? ""}`;
     if (
       !/ChunkLoadError|Loading chunk|Failed to fetch dynamically imported module/i.test(

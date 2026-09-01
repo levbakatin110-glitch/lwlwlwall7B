@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import {
+  DiaryCoach,
   DiaryEmpty,
   DiaryPage,
   DiaryPrimaryButton,
@@ -87,6 +88,29 @@ export function PregWeightTracker() {
           { label: "Записей", value: sorted.length },
         ]}
       />
+
+      <DiaryCoach
+        tone={
+          delta != null && Math.abs(delta) >= 2
+            ? "watch"
+            : sorted.length === 0
+              ? "tip"
+              : "ok"
+        }
+        title={
+          delta != null && delta >= 2
+            ? "Скачок за измерение"
+            : delta != null && delta <= -2
+              ? "Минус за измерение"
+              : sorted.length === 0
+                ? "Раз в неделю, одно и то же утро"
+                : "Набор — не гонка"
+        }
+      >
+        {delta != null && Math.abs(delta) >= 2
+          ? "Резкий плюс или минус — повод спросить врача: отёки, питание, тошнота. Не садитесь на диету сами."
+          : "Ориентир часто 0,3–0,5 кг в неделю во II–III триместре, но норма у всех своя. Главное — тренд и самочувствие, не «идеальная цифра» из таблицы."}
+      </DiaryCoach>
 
       <div className="mt-5 flex flex-col items-center rounded-3xl border border-line bg-gradient-to-b from-card to-[color-mix(in_oklab,var(--accent)_6%,var(--card))] py-10 shadow-sm">
         <input

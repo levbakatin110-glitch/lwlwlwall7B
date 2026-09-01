@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  DiaryCoach,
   DiaryEmpty,
   DiaryPage,
   DiaryPrimaryButton,
@@ -174,6 +175,23 @@ export function WalkTracker() {
           { label: "Последняя", value: stats.last },
         ]}
       />
+
+      <DiaryCoach
+        tone={live ? "watch" : stats.totalMin >= 30 ? "ok" : "tip"}
+        title={
+          live
+            ? "Прогулка идёт"
+            : stats.totalMin >= 30
+              ? "Норма на сегодня"
+              : "Свежий воздух — тоже уход"
+        }
+      >
+        {live
+          ? "Не закрывайте вкладку. Когда закончите — «Закончить», запись сохранится. Короче 30 сек не пишем."
+          : stats.totalMin >= 30
+            ? "Для малыша после выписки часто хватает 20–40 минут на улице, если нет ветра и жары. Слушайте его, не шагомер."
+            : "Старт — кнопка внизу. Можно указать маршрут. Воздух помогает и маме: меньше отёков, лучше сон вечером."}
+      </DiaryCoach>
 
       {!live ? (
         <div className="mt-4 grid gap-3 sm:grid-cols-2">

@@ -11,6 +11,7 @@ import {
   ovulationDate,
   type CycleSettings,
 } from "@/lib/cycle";
+import { DiaryCoach } from "@/components/diary/DiaryShell";
 import { localToday } from "@/lib/local-date";
 import { getJournalEntries, useAppStore } from "@/lib/store";
 
@@ -102,6 +103,20 @@ export function CycleTracker() {
 
   return (
     <div className="space-y-4">
+      <DiaryCoach
+        tone={lastStart ? "ok" : "tip"}
+        title={
+          lastStart
+            ? nextP
+              ? `Следующие ≈ ${nextP}`
+              : "Цикл считается"
+            : "Отметьте 1-й день"
+        }
+      >
+        {lastStart
+          ? `Овуляция ≈ ${ovu ?? "—"}. Это календарный прогноз, не тест на овуляцию и не контрацепция. Сбой цикла, боль, очень обильные — к гинекологу.`
+          : "Тап по дате → «1-й день цикла». Через 2–3 цикла прогноз станет ближе к вам, а не к «стандартным 28»."}
+      </DiaryCoach>
       <div className="rounded-2xl border border-line bg-card/60 p-4">
         <div className="flex items-center justify-between gap-2">
           <button

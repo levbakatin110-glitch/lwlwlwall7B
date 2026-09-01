@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAppStore } from "@/lib/store";
 import {
   DiaryChip,
+  DiaryCoach,
   DiaryEmpty,
   DiaryPage,
   DiaryPrimaryButton,
@@ -140,6 +141,29 @@ export function BottleTracker() {
             ]}
           />
         </div>
+
+        <DiaryCoach
+          tone={
+            stats.count === 0
+              ? "tip"
+              : stats.totalMl >= 800
+                ? "watch"
+                : "ok"
+          }
+          title={
+            stats.count === 0
+              ? "Порция, не гонка за мл"
+              : stats.totalMl >= 800
+                ? "Объём за день уже большой"
+                : `Сегодня ${stats.totalMl} мл`
+          }
+        >
+          {stats.count === 0
+            ? "Объём смеси считает педиатр по весу и возрасту. Здесь — чтобы видеть паузы между бутылками и не кормить «на всякий случай» каждый час."
+            : stats.totalMl >= 800
+              ? "Если это не смесь по схеме врача — сверьтесь с нормой. Перекорм даёт срыгивания и плохой сон, недокорм — беспокойство."
+              : "Интервал часто 2,5–3,5 часа днём. Ночью новорождённого не «тренируют голодом» без рекомендации врача."}
+        </DiaryCoach>
 
         <div className="mt-4 flex items-end justify-center gap-6">
           <svg

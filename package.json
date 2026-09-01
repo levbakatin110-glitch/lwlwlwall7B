@@ -10,6 +10,8 @@
     "bot": "node scripts/telegram-bot.mjs"
   },
   "dependencies": {
+    "@sentry/browser": "^10.73.0",
+    "@sentry/node": "^10.73.0",
     "@types/pdfkit": "^0.17.6",
     "dejavu-fonts-ttf": "^2.37.3",
     "next": "16.2.12",

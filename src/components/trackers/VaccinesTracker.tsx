@@ -14,6 +14,7 @@ import {
   type VaccineDose,
   type VaccineInfo,
 } from "@/lib/vaccines-catalog";
+import { DiaryCoach } from "@/components/diary/DiaryShell";
 import { localToday } from "@/lib/local-date";
 import { useAppStore } from "@/lib/store";
 import type { JournalEntry } from "@/lib/types";
@@ -283,6 +284,18 @@ function CalendarGrid({
             className="h-full rounded-full bg-accent transition-[width] duration-500"
             style={{ width: `${pct}%` }}
           />
+        </div>
+        <div className="mt-3">
+          <DiaryCoach
+            tone={pct >= 70 ? "ok" : "tip"}
+            title={
+              pct === 0
+                ? "Календарь, не гонка"
+                : `${pct}% доз отмечено`
+            }
+          >
+            Тап по клетке — отметить прививку. Это ориентир календаря РФ, схему и отводы подтверждает педиатр. Жёлтые клетки — по возрасту, сиреневые — группы риска.
+          </DiaryCoach>
         </div>
       </div>
 

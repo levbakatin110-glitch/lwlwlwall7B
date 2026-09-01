@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   DiaryChip,
+  DiaryCoach,
   DiaryEmpty,
   DiaryPage,
   DiarySectionTitle,
@@ -101,6 +102,21 @@ export function WaterTracker() {
           { label: "Осталось", value: left > 0 ? `${left} мл` : "✓" },
         ]}
       />
+
+      <DiaryCoach
+        tone={pct >= 100 ? "ok" : pct < 30 && todayEntries.length > 0 ? "watch" : "tip"}
+        title={
+          pct >= 100
+            ? "Норма на сегодня"
+            : left > 0
+              ? `Ещё ${left} мл`
+              : "Глоток"
+        }
+      >
+        {pct >= 100
+          ? "Цель закрыта. Дальше — по жажде, без гонки за литрами."
+          : "Грудное вскармливание и жара требуют больше. Стакан у кровати срабатывает лучше напоминалок."}
+      </DiaryCoach>
 
       <div className="mt-5 flex flex-col items-center">
         <div className="relative h-36 w-36">

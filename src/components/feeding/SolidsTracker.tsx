@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useAppStore } from "@/lib/store";
 import {
   DiaryChip,
+  DiaryCoach,
   DiaryEmpty,
   DiaryPage,
   DiaryPrimaryButton,
@@ -202,6 +203,33 @@ export function SolidsTracker() {
             ]}
           />
         </div>
+
+        <DiaryCoach
+          tone={
+            stats.rashCount > 0
+              ? "watch"
+              : isFirstTime && foodLabel
+                ? "tip"
+                : stats.uniqueAll === 0
+                  ? "tip"
+                  : "ok"
+          }
+          title={
+            stats.rashCount > 0
+              ? "Была реакция — не забывайте"
+              : isFirstTime && foodLabel
+                ? "Новый продукт"
+                : stats.uniqueAll === 0
+                  ? "Один продукт за раз"
+                  : "Дневник прикорма"
+          }
+        >
+          {stats.rashCount > 0
+            ? "Сыпь, рвота, отёк — продукт в чёрный список и к педиатру. Не давайте его снова «на пробу» сами."
+            : isFirstTime && foodLabel
+              ? "Новинку дают утром, 1–2 дня подряд, без смеси с другими новыми. Так проще понять, на что реакция."
+              : "С 4–6 месяцев по рекомендации врача. Овощ или каша — база. Мёд, цельное коровье молоко, соль — не для первого года."}
+        </DiaryCoach>
 
         {recentFoods.length > 0 && (
           <div className="mt-4">

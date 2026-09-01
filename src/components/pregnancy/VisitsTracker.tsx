@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import {
   DiaryChip,
+  DiaryCoach,
   DiaryEmpty,
   DiaryPage,
   DiaryPrimaryButton,
@@ -147,6 +148,19 @@ export function VisitsTracker() {
           { label: "прошедших", value: stats.past },
         ]}
       />
+
+      <DiaryCoach
+        tone={upcoming.length > 0 ? "ok" : "tip"}
+        title={
+          upcoming[0]
+            ? `Следующее: ${upcoming[0].kind}`
+            : "Календарь ЖК в одном месте"
+        }
+      >
+        {upcoming[0]
+          ? `${upcoming[0].whenMs != null ? formatVisitWhen(upcoming[0].whenMs) : "без точного времени"}${upcoming[0].place ? ` · ${upcoming[0].place}` : ""}. Возьмите паспорт, полис, обменку.`
+          : "УЗИ, анализы, явка — с датой, чтобы не держать в голове. После визита фото результатов можно в «анализы»."}
+      </DiaryCoach>
 
       <div className="mt-5 rounded-2xl border border-line bg-card p-4">
         <p className="text-[11px] font-medium text-muted">Тип визита</p>

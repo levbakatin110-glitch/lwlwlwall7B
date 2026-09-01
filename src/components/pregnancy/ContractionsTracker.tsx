@@ -1,14 +1,38 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import {
+  DiaryChip,
+  DiaryCoach,
+  DiaryEmpty,
+  DiaryHourStrip,
+  DiaryPage,
+  DiaryPrimaryButton,
+  DiarySectionTitle,
+  DiaryStats,
+  DiaryStickyCta,
+  DiaryTimeline,
+  DiaryTimelineRow,
+} from "@/components/diary/DiaryShell";
 import { localToday } from "@/lib/local-date";
-import { formatSec } from "@/lib/pregnancy";
+import {
+  assessContractions,
+  formatSec,
+  type ContractionSample,
+} from "@/lib/pregnancy";
 import { getJournalEntries, useAppStore } from "@/lib/store";
 import type { JournalEntry } from "@/lib/types";
 
 type LiveRow = { startMs: number };
+type Pending = {
+  startMs: number;
+  endMs: number;
+  durationSec: number;
+  intervalSec: number | null;
+};
 
 const SESSION_KEY = "maya-contractions-session";
+const INTENSITY = [1, 2, 3, 4, 5] as const;
 
 type TimelineItem = {
   id: string;
@@ -16,6 +40,7 @@ type TimelineItem = {
   endMs: number;
   durationSec: number;
   intervalSec: number | null;
+  intensity: number | null;
   number: number;
 };
 
@@ -61,6 +86,8 @@ function buildTimeline(entries: JournalEntry[]): TimelineItem[] {
       startMs: entryStartMs(e),
       endMs: entryEndMs(e),
       durationSec: entryDurationSec(e),
+      intensity:
+        typeof e.fields?.intensity === "number" ? e.fields.intensity : null,
     }))
     .sort((a, b) => a.startMs - b.startMs);
 
@@ -79,11 +106,20 @@ function buildTimeline(entries: JournalEntry[]): TimelineItem[] {
     .reverse();
 }
 
+function breathLabel(sec: number): { title: string; hint: string } {
+  const beat = sec % 10;
+  if (beat < 4) return { title: "Вдох", hint: "медленно через нос" };
+  if (beat < 6) return { title: "Пауза", hint: "мягко, без напряжения" };
+  return { title: "Выдох", hint: "длиннее, чем вдох" };
+}
+
 export function ContractionsTracker() {
   const addJournalEntry = useAppStore((s) => s.addJournalEntry);
   const removeJournalEntry = useAppStore((s) => s.removeJournalEntry);
   const entries = useAppStore((s) => getJournalEntries(s, "contractions"));
   const [live, setLive] = useState<LiveRow | null>(null);
+  const [pending, setPending] = useState<Pending | null>(null);
+  const [intensity, setIntensity] = useState<number>(3);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -114,16 +150,20 @@ export function ContractionsTracker() {
   }, [live]);
 
   const timeline = useMemo(() => buildTimeline(entries), [entries]);
+  const chronological = useMemo(
+    () => [...timeline].reverse(),
+    [timeline],
+  );
 
   const liveDurationSec = live
     ? Math.max(0, Math.floor((now - live.startMs) / 1000))
     : 0;
 
   const stats = useMemo(() => {
-    const hourAgo = Date.now() - 60 * 60 * 1000;
-    const inHour = timeline.filter((t) => t.startMs >= hourAgo).length;
-    const durations = timeline.map((t) => t.durationSec);
-    const intervals = timeline
+    const hourAgo = now - 60 * 60 * 1000;
+    const inHour = chronological.filter((t) => t.startMs >= hourAgo).length;
+    const durations = chronological.map((t) => t.durationSec);
+    const intervals = chronological
       .map((t) => t.intervalSec)
       .filter((x): x is number => x != null && x > 0);
     const avgDur =
@@ -135,27 +175,55 @@ export function ContractionsTracker() {
         ? Math.round(intervals.reduce((a, b) => a + b, 0) / intervals.length)
         : 0;
     return { inHour, avgDur, avgInt };
-  }, [timeline]);
+  }, [chronological, now]);
+
+  const coach = useMemo(() => {
+    const samples: ContractionSample[] = chronological.map((t) => ({
+      startMs: t.startMs,
+      durationSec: t.durationSec,
+      intervalSec: t.intervalSec,
+    }));
+    return assessContractions(samples, now);
+  }, [chronological, now]);
+
+  const breath = breathLabel(liveDurationSec);
+  const wave = live
+    ? Math.min(1, 0.25 + 0.75 * Math.sin((liveDurationSec / 8) * Math.PI) ** 2)
+    : 0;
 
   function start() {
+    setPending(null);
     setLive({ startMs: Date.now() });
     setNow(Date.now());
   }
 
-  function stopAndSave() {
+  function stopToPending() {
     if (!live) return;
     const endMs = Date.now();
     const startMs = live.startMs;
     const dur = Math.max(1, Math.floor((endMs - startMs) / 1000));
-    const prevStart = timeline[0]?.startMs ?? null;
+    const prevStart = chronological.at(-1)?.startMs ?? null;
     const interval =
       prevStart != null
         ? Math.max(0, Math.floor((startMs - prevStart) / 1000))
         : null;
+    setPending({
+      startMs,
+      endMs,
+      durationSec: dur,
+      intervalSec: interval,
+    });
+    setIntensity(3);
+    setLive(null);
+  }
+
+  function commitPending() {
+    if (!pending) return;
+    const { durationSec: dur, intervalSec: interval, startMs, endMs } = pending;
     const value =
       interval != null
-        ? `${formatSec(dur)} · интервал ${formatSec(interval)}`
-        : formatSec(dur);
+        ? `${formatSec(dur)} · интервал ${formatSec(interval)} · сила ${intensity}/5`
+        : `${formatSec(dur)} · сила ${intensity}/5`;
     addJournalEntry("contractions", {
       date: localToday(),
       value,
@@ -165,141 +233,198 @@ export function ContractionsTracker() {
         ...(interval != null ? { intervalSec: interval } : {}),
         startMs,
         endMs,
+        intensity,
       },
     });
-    setLive(null);
+    setPending(null);
   }
 
   function cancel() {
     setLive(null);
+    setPending(null);
+  }
+
+  const hourSpans = chronological
+    .filter((t) => t.startMs >= now - 60 * 60 * 1000)
+    .map((t) => ({ startMs: t.startMs, endMs: t.endMs }));
+  if (live) {
+    hourSpans.push({ startMs: live.startMs, endMs: now });
   }
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-2xl border border-line bg-card px-3 py-4 shadow-sm">
-        <div className="grid grid-cols-3 gap-2 text-center">
-          <div>
-            <p className="text-[10px] leading-tight text-muted">Кол-во в час</p>
-            <p className="mt-1.5 font-display text-2xl font-semibold tabular-nums tracking-tight">
-              {stats.inHour}
-            </p>
-          </div>
-          <div className="border-x border-line">
-            <p className="text-[10px] leading-tight text-muted">Ср. длительность</p>
-            <p className="mt-1.5 font-display text-2xl font-semibold tabular-nums tracking-tight">
-              {formatSec(stats.avgDur)}
-            </p>
-          </div>
-          <div>
-            <p className="text-[10px] leading-tight text-muted">Ср. интервал</p>
-            <p className="mt-1.5 font-display text-2xl font-semibold tabular-nums tracking-tight">
-              {stats.avgInt > 0 ? formatSec(stats.avgInt) : "—"}
-            </p>
-          </div>
-        </div>
-      </div>
+    <DiaryPage stickyPad>
+      <DiaryStats
+        items={[
+          { label: "за час", value: stats.inHour, hint: "схваток" },
+          { label: "длит.", value: formatSec(stats.avgDur) },
+          {
+            label: "интервал",
+            value: stats.avgInt > 0 ? formatSec(stats.avgInt) : "—",
+          },
+        ]}
+      />
 
-      {/* Кнопка в потоке — не fixed (у .maya-page transform ломает fixed) */}
-      <div className="rounded-2xl border border-line bg-card p-3 shadow-sm">
+      <DiaryHourStrip now={now} spans={hourSpans} />
+
+      <DiaryCoach tone={coach.tone} title={coach.title}>
+        {coach.body}
+      </DiaryCoach>
+
+      {live ? (
+        <div className="overflow-hidden rounded-[1.5rem] border border-accent/40 bg-gradient-to-b from-accent-soft via-card to-card px-4 py-6 text-center">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-accent">
+            Волна идёт
+          </p>
+          <p className="font-display mt-2 text-6xl font-semibold tabular-nums tracking-tight text-accent">
+            {formatSec(liveDurationSec)}
+          </p>
+          <div className="mx-auto mt-4 h-3 max-w-xs overflow-hidden rounded-full bg-background">
+            <div
+              className="h-full rounded-full bg-accent transition-[width] duration-200"
+              style={{ width: `${Math.round(wave * 100)}%` }}
+            />
+          </div>
+          <p className="mt-4 font-display text-2xl font-semibold">{breath.title}</p>
+          <p className="mt-1 text-sm text-muted">{breath.hint}</p>
+        </div>
+      ) : null}
+
+      {pending ? (
+        <div className="rounded-[1.5rem] border border-line bg-card p-4">
+          <p className="font-display text-lg font-semibold">
+            Схватка {formatSec(pending.durationSec)}
+          </p>
+          <p className="mt-1 text-sm text-muted">
+            Насколько сильная была волна? Это поможет отличить тренировочные.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {INTENSITY.map((n) => (
+              <DiaryChip
+                key={n}
+                active={intensity === n}
+                tone={n >= 4 ? "hot" : n >= 3 ? "warn" : "default"}
+                onClick={() => setIntensity(n)}
+              >
+                {n}
+              </DiaryChip>
+            ))}
+          </div>
+          <p className="mt-2 text-[11px] text-muted">
+            1 — чуть тянет · 5 — не проговариваешь фразу
+          </p>
+        </div>
+      ) : null}
+
+      {timeline.length === 0 && !live && !pending ? (
+        <DiaryEmpty>
+          Нажмите в начале волны и ещё раз, когда отпустит. Мая посчитает
+          интервал и подскажет правило 5-1-1 — это ориентир, не диагноз.
+        </DiaryEmpty>
+      ) : (
+        <div>
+          <DiarySectionTitle left="Сегодня" right={`${timeline.length}`} />
+          <DiaryTimeline>
+            {live ? (
+              <li>
+                <DiaryTimelineRow
+                  accent
+                  mark={timeline.length + 1}
+                  left={
+                    <div>
+                      <p className="text-[11px] tabular-nums text-muted">
+                        сейчас · с {formatClock(live.startMs)}
+                      </p>
+                      <p className="font-display text-lg font-semibold tabular-nums text-accent">
+                        {formatSec(liveDurationSec)}
+                      </p>
+                    </div>
+                  }
+                  right={<span className="text-xs text-muted">идёт</span>}
+                />
+              </li>
+            ) : null}
+            {timeline.map((item) => (
+              <li key={item.id}>
+                <DiaryTimelineRow
+                  mark={item.number}
+                  left={
+                    <div>
+                      <p className="text-[11px] tabular-nums text-muted">
+                        {formatClock(item.startMs)}
+                        {item.intervalSec != null
+                          ? ` · через ${formatSec(item.intervalSec)}`
+                          : ""}
+                      </p>
+                      <p className="font-display text-lg font-semibold tabular-nums">
+                        {formatSec(item.durationSec)}
+                      </p>
+                    </div>
+                  }
+                  right={
+                    <div className="text-right">
+                      {item.intensity != null ? (
+                        <p className="text-sm font-semibold">
+                          сила {item.intensity}/5
+                        </p>
+                      ) : null}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (
+                            window.confirm("Удалить эту схватку из дневника?")
+                          ) {
+                            removeJournalEntry("contractions", item.id);
+                          }
+                        }}
+                        className="text-xs text-muted hover:text-foreground"
+                      >
+                        Удалить
+                      </button>
+                    </div>
+                  }
+                />
+              </li>
+            ))}
+          </DiaryTimeline>
+        </div>
+      )}
+
+      <DiaryStickyCta>
         {live ? (
-          <div className="space-y-3">
-            <p className="text-center text-sm text-muted">
-              Идёт схватка ·{" "}
-              <span className="font-display text-lg font-semibold tabular-nums text-accent">
-                {formatSec(liveDurationSec)}
-              </span>
-            </p>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={stopAndSave}
-                className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-accent px-5 py-3.5 text-base font-semibold text-[var(--on-accent,#fff)]"
-              >
-                <span className="tabular-nums">{formatSec(liveDurationSec)}</span>
-                <span>· закончилась</span>
-              </button>
-              <button
-                type="button"
-                onClick={cancel}
-                className="shrink-0 rounded-2xl border border-line bg-background px-4 py-3.5 text-sm font-medium text-muted"
-              >
-                Отмена
-              </button>
-            </div>
+          <div className="flex gap-2">
+            <DiaryPrimaryButton onClick={stopToPending}>
+              <span className="tabular-nums">{formatSec(liveDurationSec)}</span>
+              <span>· закончилась</span>
+            </DiaryPrimaryButton>
+            <button
+              type="button"
+              onClick={cancel}
+              className="shrink-0 rounded-2xl border border-line bg-background px-4 py-3.5 text-sm font-medium text-muted"
+            >
+              Отмена
+            </button>
+          </div>
+        ) : pending ? (
+          <div className="flex gap-2">
+            <DiaryPrimaryButton onClick={commitPending}>
+              Сохранить схватку
+            </DiaryPrimaryButton>
+            <button
+              type="button"
+              onClick={cancel}
+              className="shrink-0 rounded-2xl border border-line bg-background px-4 py-3.5 text-sm font-medium text-muted"
+            >
+              ×
+            </button>
           </div>
         ) : (
-          <button
-            type="button"
-            onClick={start}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-accent px-5 py-3.5 text-base font-semibold text-[var(--on-accent,#fff)] transition active:scale-[0.99]"
-          >
-            Схватка началась
-          </button>
+          <DiaryPrimaryButton onClick={start}>Схватка началась</DiaryPrimaryButton>
         )}
-        <p className="mt-2 text-center text-[11px] text-muted">
-          Это не замена врачу. При тревоге — в роддом / скорую.
+        <p className="text-center text-[11px] text-muted">
+          Не замена врачу. Воды, кровь, сильная боль, меньше шевелений — скорая /
+          роддом.
         </p>
-      </div>
-
-      {timeline.length === 0 && !live ? (
-        <p className="rounded-2xl border border-dashed border-line bg-card/50 px-4 py-8 text-center text-sm text-muted">
-          Пока пусто
-        </p>
-      ) : (
-        <ul className="space-y-2">
-          {live ? (
-            <li className="flex items-center gap-3 rounded-2xl border border-accent/35 bg-accent-soft/60 px-3 py-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-sm font-bold text-[var(--on-accent,#fff)]">
-                {timeline.length + 1}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-[11px] tabular-nums text-muted">
-                  сейчас · с {formatClock(live.startMs)}
-                </p>
-                <p className="font-display text-lg font-semibold tabular-nums text-accent">
-                  {formatSec(liveDurationSec)}
-                </p>
-              </div>
-              <p className="shrink-0 text-right text-[11px] text-muted">
-                идёт…
-              </p>
-            </li>
-          ) : null}
-
-          {timeline.map((item) => (
-            <li
-              key={item.id}
-              className="flex items-center gap-3 rounded-2xl border border-line bg-card px-3 py-3 shadow-sm"
-            >
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent to-[color-mix(in_oklab,var(--accent)_65%,#fb7185)] text-sm font-bold text-[var(--on-accent,#fff)]">
-                {item.number}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-[11px] tabular-nums text-muted">
-                  {formatClock(item.startMs)}
-                  {item.intervalSec != null
-                    ? ` · интервал ${formatSec(item.intervalSec)}`
-                    : ""}
-                </p>
-                <p className="font-display text-lg font-semibold tabular-nums">
-                  {formatSec(item.durationSec)}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  if (window.confirm("Удалить эту схватку из дневника?")) {
-                    removeJournalEntry("contractions", item.id);
-                  }
-                }}
-                className="shrink-0 rounded-xl px-2 py-1.5 text-xs text-muted hover:bg-background hover:text-foreground"
-              >
-                Удалить
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+      </DiaryStickyCta>
+    </DiaryPage>
   );
 }

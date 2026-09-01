@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
   DiaryChip,
+  DiaryCoach,
   DiaryEmpty,
   DiaryPage,
   DiarySectionTitle,
@@ -97,6 +98,17 @@ export function BirthPlanTracker() {
           { label: "Сегодня", value: todayCount },
         ]}
       />
+
+      <DiaryCoach
+        tone={sorted.length >= 3 ? "ok" : "tip"}
+        title={
+          sorted.length >= 3
+            ? "План есть — обсудите в роддоме"
+            : "Пожелания, не договор"
+        }
+      >
+        Роддом не обязан выполнить каждый пункт, если есть медпоказания. Запишите важное сюда и распечатайте из медкарты — так партнёр и акушерка видят одно и то же.
+      </DiaryCoach>
 
       <p className="mt-3 text-center text-xs text-muted">
         PDF и полный план — в{" "}

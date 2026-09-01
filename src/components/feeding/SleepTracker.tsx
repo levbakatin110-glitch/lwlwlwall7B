@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  DiaryCoach,
+  DiaryDayStrip,
   DiaryEmpty,
   DiaryPage,
   DiaryPrimaryButton,
@@ -114,8 +116,40 @@ export function SleepTracker({ journalId = "sleep" }: { journalId?: string }) {
       totalSec,
       count: todayEntries.length,
       wakeLabel: wake != null ? `${wake} мин` : "—",
+      wakeMin: wake,
     };
   }, [todayEntries, entries]);
+
+  const sleepSpans = useMemo(() => {
+    const spans = todayEntries.map((e) => ({
+      startMs: sleepStartMs(e),
+      endMs: sleepEndMs(e),
+    }));
+    if (live) {
+      spans.push({ startMs: live.startedAt, endMs: now });
+    }
+    return spans;
+  }, [todayEntries, live, now]);
+
+  const sleepCoach = live
+    ? {
+        tone: "tip" as const,
+        title: "Тихо считаем",
+        body: isMomSleep
+          ? "Даже 20 минут — уже отдых. Не обесценивайте короткий сон."
+          : "Не смотрите в экран каждые 2 минуты. Кнопка подождёт, когда проснётся.",
+      }
+    : stats.wakeMin != null && stats.wakeMin > 150 && !isMomSleep
+      ? {
+          tone: "watch" as const,
+          title: "Долгое окно бодрствования",
+          body: `Уже ${stats.wakeMin} мин без сна. Если малыш трёт глаза — ловите окно, не «ещё одну серию».`,
+        }
+      : {
+          tone: "tip" as const,
+          title: "Карта суток",
+          body: "Полоска ниже — когда спали сегодня. Так видно дырки лучше, чем по списку «ещё одна запись».",
+        };
 
   function start(kind: Kind) {
     setLive({ kind, startedAt: Date.now() });
@@ -163,6 +197,12 @@ export function SleepTracker({ journalId = "sleep" }: { journalId?: string }) {
           { label: "Бодрств.", value: stats.wakeLabel },
         ]}
       />
+
+      <DiaryDayStrip now={now} spans={sleepSpans} />
+
+      <DiaryCoach tone={sleepCoach.tone} title={sleepCoach.title}>
+        {sleepCoach.body}
+      </DiaryCoach>
 
       {live ? (
         <div className="mt-6 text-center">
@@ -255,7 +295,9 @@ export function SleepTracker({ journalId = "sleep" }: { journalId?: string }) {
         </div>
       ) : (
         <DiaryEmpty>
-          {isMomSleep ? "Засеките отдых" : "Засеките сон"}
+          {isMomSleep
+            ? "Засеките отдых — даже короткий. Полоска суток покажет дырки."
+            : "Засеките сон. Полоска суток — как у Huckleberry, только без подписки."}
         </DiaryEmpty>
       )}
 

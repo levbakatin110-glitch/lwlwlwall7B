@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import {
   DiaryChip,
+  DiaryCoach,
   DiaryEmpty,
   DiaryPage,
   DiaryPrimaryButton,
@@ -101,6 +102,19 @@ export function MedsTracker() {
           { label: "Всего", value: entries.length },
         ]}
       />
+
+      <DiaryCoach
+        tone={upcoming.length > 0 ? "ok" : "tip"}
+        title={
+          upcoming.length > 0
+            ? `Следующий приём: ${upcoming[0].label}`
+            : "Курс, а не «когда вспомню»"
+        }
+      >
+        {upcoming.length > 0
+          ? "Тап по строке = приняла. Железо часто с едой, фолиевая — как сказал врач. Не смешивайте новые БАДы без консультации."
+          : "Выберите витамин, время и число дней — появятся напоминания. Это не назначение: схему даёт гинеколог."}
+      </DiaryCoach>
 
       <div className="mt-4 rounded-2xl border border-line bg-card p-3">
         <div className="mb-2 flex flex-wrap gap-1.5">

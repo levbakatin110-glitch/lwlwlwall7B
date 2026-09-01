@@ -10,6 +10,7 @@ import {
   validateCurrentWeight,
 } from "@/lib/children";
 import { compressImageFile } from "@/lib/image";
+import { authFetchErrorMessage } from "@/lib/auth-fetch-error";
 import { trackEvent } from "@/lib/analytics-client";
 import {
   markOnboardingDoneSticky,
@@ -463,7 +464,7 @@ export function OnboardingFlow({
       if (!res.ok) throw new Error(data.error || "Не удалось отправить код");
       setCodeSent(true);
     } catch (e) {
-      setEmailError(e instanceof Error ? e.message : "Ошибка отправки");
+      setEmailError(authFetchErrorMessage(e, "Ошибка отправки"));
     } finally {
       setEmailBusy(false);
     }

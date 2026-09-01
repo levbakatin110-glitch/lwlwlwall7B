@@ -2,6 +2,7 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import {
+  DiaryCoach,
   DiarySectionTitle,
   DiaryStats,
   DiaryTimeline,
@@ -341,6 +342,27 @@ export function DietTracker({ journalId = "diet" }: { journalId?: string }) {
               { label: "Приёмов", value: todayEntries.length },
             ]}
           />
+
+          <DiaryCoach
+            tone={
+              over > 200
+                ? "watch"
+                : progress >= 0.85 && progress <= 1.05
+                  ? "ok"
+                  : "tip"
+            }
+            title={
+              over > 200
+                ? `Выше цели на ${over} ккал`
+                : left > 0
+                  ? `Ещё ${left} ккал`
+                  : "Цель закрыта"
+            }
+          >
+            {over > 200
+              ? "Один день перебора не ломает неделю. Завтра без «наказания голодом». При ГВ и беременности цель считает врач, не калькулятор."
+              : "Миффлин–Сан Жеор — оценка, не приговор. Белок и овощи сытее «пустых» калорий. Кормящим обычно нужно больше, чем в калькуляторе."}
+          </DiaryCoach>
 
           <div className="mt-4 flex items-end justify-between gap-3">
             <div>

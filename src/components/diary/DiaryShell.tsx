@@ -176,6 +176,115 @@ export function DiaryEmpty({ children }: { children: ReactNode }) {
   );
 }
 
+export function DiaryCoach({
+  tone,
+  title,
+  children,
+}: {
+  tone: "ok" | "watch" | "go" | "tip";
+  title: string;
+  children: ReactNode;
+}) {
+  const wrap =
+    tone === "go"
+      ? "border-blush/45 bg-blush-soft"
+      : tone === "watch"
+        ? "border-amber-400/40 bg-amber-400/10"
+        : tone === "ok"
+          ? "border-emerald-500/30 bg-emerald-500/8"
+          : "border-accent/25 bg-accent-soft/50";
+  return (
+    <div className={`rounded-2xl border px-4 py-3.5 ${wrap}`}>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+        Мая подсказывает
+      </p>
+      <p className="mt-1 font-display text-lg font-semibold leading-tight tracking-tight">
+        {title}
+      </p>
+      <div className="mt-1.5 text-sm leading-relaxed text-foreground/85">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/** Полоска последнего часа: занятые минуты подсвечены. */
+export function DiaryHourStrip({
+  now,
+  spans,
+}: {
+  now: number;
+  spans: { startMs: number; endMs: number }[];
+}) {
+  const windowMs = 60 * 60 * 1000;
+  const from = now - windowMs;
+  const cells = 30;
+  const cellMs = windowMs / cells;
+  return (
+    <div>
+      <div className="flex h-8 overflow-hidden rounded-xl border border-line bg-background">
+        {Array.from({ length: cells }, (_, i) => {
+          const a = from + i * cellMs;
+          const b = a + cellMs;
+          const hit = spans.some((s) => s.startMs < b && s.endMs > a);
+          return (
+            <span
+              key={i}
+              className={`h-full flex-1 ${
+                hit ? "bg-accent" : "bg-transparent"
+              } ${i > 0 ? "border-l border-line/40" : ""}`}
+            />
+          );
+        })}
+      </div>
+      <div className="mt-1 flex justify-between text-[10px] text-muted">
+        <span>час назад</span>
+        <span>сейчас</span>
+      </div>
+    </div>
+  );
+}
+
+/** 24 часа: когда спали (для сна малыша / мамы). */
+export function DiaryDayStrip({
+  now,
+  spans,
+}: {
+  now: number;
+  spans: { startMs: number; endMs: number }[];
+}) {
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+  const from = start.getTime();
+  const windowMs = 24 * 60 * 60 * 1000;
+  const cells = 48;
+  const cellMs = windowMs / cells;
+  return (
+    <div>
+      <div className="flex h-7 overflow-hidden rounded-xl border border-line bg-background">
+        {Array.from({ length: cells }, (_, i) => {
+          const a = from + i * cellMs;
+          const b = a + cellMs;
+          const hit = spans.some((s) => s.startMs < b && s.endMs > a);
+          return (
+            <span
+              key={i}
+              className={`h-full flex-1 ${hit ? "bg-accent/85" : ""} ${
+                i > 0 ? "border-l border-line/30" : ""
+              }`}
+            />
+          );
+        })}
+      </div>
+      <div className="mt-1 flex justify-between text-[10px] text-muted">
+        <span>00:00</span>
+        <span>12:00</span>
+        <span>24:00</span>
+      </div>
+    </div>
+  );
+}
+
 export function DiaryPage({
   children,
   stickyPad: _stickyPad,

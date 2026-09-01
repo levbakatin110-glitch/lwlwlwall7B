@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import {
+  DiaryCoach,
   DiaryEmpty,
   DiaryPage,
   DiaryPrimaryButton,
@@ -87,6 +88,21 @@ export function BellyTracker() {
           { label: "Записей", value: sorted.length },
         ]}
       />
+
+      <DiaryCoach
+        tone={sorted.length >= 2 ? "ok" : "tip"}
+        title={
+          delta != null && delta <= -2
+            ? "Окружность уменьшилась"
+            : sorted.length === 0
+              ? "Сантиметр на уровне пупка"
+              : "Рост живота — ориентир"
+        }
+      >
+        {delta != null && delta <= -2
+          ? "Падение на пару см — перемерьте стоя, утром. Если живот «опал» и шевелений мало — к врачу, не ждите планового."
+          : "Лента горизонтально, на одном уровне, после туалета. Врач смотрит ВДМ, не только «обхват». Скачок без веса бывает из‑за положения малыша."}
+      </DiaryCoach>
 
       <div className="mt-5 flex flex-col items-center rounded-3xl border border-line bg-gradient-to-b from-card to-[color-mix(in_oklab,var(--accent)_6%,var(--card))] py-10 shadow-sm">
         <input

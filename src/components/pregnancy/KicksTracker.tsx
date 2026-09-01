@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  DiaryCoach,
   DiaryEmpty,
   DiaryPage,
   DiaryPrimaryButton,
@@ -117,6 +118,31 @@ export function KicksTracker() {
   const toGoal = Math.max(0, GOAL - count);
   const goalReached = count >= GOAL;
   const active = count > 0 && startMs != null;
+  const slow = active && elapsed > 60 * 60 && count < 6;
+
+  const kickCoach = !active
+    ? {
+        tone: "tip" as const,
+        title: "Счёт до 10",
+        body: "Лягте на бок, рука на живот. Каждый толчок, переворот, икота — нажмите. Обычно 10 шевелений укладываются в 1–2 часа. Если за два часа меньше 10 — позвоните врачу.",
+      }
+    : goalReached
+      ? {
+          tone: "ok" as const,
+          title: "Десять есть",
+          body: "Малыш активен. Сохраните сессию — завтра удобно сравнить, сколько заняло.",
+        }
+      : slow
+        ? {
+            tone: "watch" as const,
+            title: "Пока маловато",
+            body: "Выпейте воды, перекусите, полежите на левом боку ещё. Если за 2 часа так и не наберётся 10 — не ждите утра, звоните врачу.",
+          }
+        : {
+            tone: "tip" as const,
+            title: `Ещё ${toGoal}`,
+            body: "Не считайте икоту отдельно, если уже жмёте на каждое движение. Главное — ритм именно этого малыша.",
+          };
 
   function tap() {
     const t = Date.now();
@@ -154,11 +180,24 @@ export function KicksTracker() {
             value: startMs ? formatDuration(elapsed) : "—",
           },
           {
-            label: "До цели",
+            label: "До 10",
             value: active ? (toGoal > 0 ? toGoal : "✓") : GOAL,
           },
         ]}
       />
+
+      {active ? (
+        <div className="h-2 overflow-hidden rounded-full bg-background">
+          <div
+            className="h-full rounded-full bg-accent transition-[width]"
+            style={{ width: `${Math.min(100, (count / GOAL) * 100)}%` }}
+          />
+        </div>
+      ) : null}
+
+      <DiaryCoach tone={kickCoach.tone} title={kickCoach.title}>
+        {kickCoach.body}
+      </DiaryCoach>
 
       <button
         type="button"
@@ -206,7 +245,10 @@ export function KicksTracker() {
           </DiaryTimeline>
         </div>
       ) : !active ? (
-        <DiaryEmpty>Отслеживайте шевеления до 10 толчков</DiaryEmpty>
+        <DiaryEmpty>
+          Счёт до 10: удобно вечером, после еды, на боку. Не сравнивайте с чужими
+          нормами — ориентир ваш вчерашний.
+        </DiaryEmpty>
       ) : null}
 
       {active ? (

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { ChatChart } from "@/components/ChatChart";
 import { ChatNewsFeed } from "@/components/ChatNewsFeed";
+import { SiteFeedbackBox } from "@/components/SiteFeedbackBox";
 import { JournalEntryChip } from "@/components/JournalEntryChip";
 import { LogPreviewSheet, type LogPreviewData } from "@/components/LogPreviewSheet";
 import { KitchenCarousel } from "@/components/KitchenCarousel";
@@ -1384,6 +1385,8 @@ export function ChatView() {
               window.setTimeout(() => inputRef.current?.focus(), 350);
             }}
           />
+
+          <SiteFeedbackBox />
         </div>
       </div>
 

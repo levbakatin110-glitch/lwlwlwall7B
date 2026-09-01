@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import {
   DiaryChip,
+  DiaryCoach,
   DiaryEmpty,
   DiaryPage,
   DiaryPrimaryButton,
@@ -115,6 +116,19 @@ export function NotesTracker() {
           },
         ]}
       />
+
+      <DiaryCoach
+        tone={upcoming.length > 0 ? "ok" : "tip"}
+        title={
+          upcoming.length > 0
+            ? `Ближайшее: ${formatRemind(String(upcoming[0].fields?.remindAt))}`
+            : "Карман для головы"
+        }
+      >
+        {upcoming.length > 0
+          ? "Напоминание сработает на этом устройстве, если разрешите уведомления. Тап по строке — удалить."
+          : "Сюда — приём, вопрос врачу, «не забыть витамин». Чип «завтра 18:00» ставит будильник без календаря."}
+      </DiaryCoach>
 
       <div className="mt-4 rounded-2xl border border-line bg-card p-3">
         <textarea

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { captureBetterStackException } from "@/lib/betterstack-sentry";
 
 function isChunkLoadError(error: Error) {
   const msg = `${error.name} ${error.message}`;
@@ -17,6 +18,7 @@ export default function Error({
 }) {
   useEffect(() => {
     console.error("[maya] route error", error);
+    captureBetterStackException(error);
     if (!isChunkLoadError(error)) return;
     const key = "maya-chunk-reload";
     if (sessionStorage.getItem(key)) return;

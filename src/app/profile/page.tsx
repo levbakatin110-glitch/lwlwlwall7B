@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { InstallAppCard } from "@/components/InstallAppCard";
 import { OnboardingFlow } from "@/components/OnboardingFlow";
+import { authFetchErrorMessage } from "@/lib/auth-fetch-error";
 import { childDisplayName } from "@/lib/children";
 import { compressImageFile } from "@/lib/image";
 import { useAppStore } from "@/lib/store";
@@ -89,7 +90,7 @@ export default function ProfilePage() {
       setCodeSent(true);
       setEmailMsg("Код отправлен — проверьте почту");
     } catch (e) {
-      setEmailError(e instanceof Error ? e.message : "Ошибка");
+      setEmailError(authFetchErrorMessage(e, "Ошибка"));
     } finally {
       setEmailBusy(false);
     }
@@ -116,7 +117,7 @@ export default function ProfilePage() {
       setCodeSent(false);
       setCode("");
     } catch (e) {
-      setEmailError(e instanceof Error ? e.message : "Ошибка");
+      setEmailError(authFetchErrorMessage(e, "Ошибка"));
     } finally {
       setEmailBusy(false);
     }

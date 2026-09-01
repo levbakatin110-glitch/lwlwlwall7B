@@ -1,5 +1,6 @@
 "use client";
 
+import { authFetchErrorMessage } from "@/lib/auth-fetch-error";
 import Link from "next/link";
 import { useState } from "react";
 import { trackEvent } from "@/lib/analytics-client";
@@ -74,7 +75,7 @@ export function EmailGate({ children }: { children: React.ReactNode }) {
       if (!res.ok) throw new Error(data.error || "Не удалось отправить");
       setCodeSent(true);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Ошибка");
+      setError(authFetchErrorMessage(e, "Ошибка"));
     } finally {
       setBusy(false);
     }
@@ -104,7 +105,7 @@ export function EmailGate({ children }: { children: React.ReactNode }) {
       setAccountEmail(data.email || trimmed);
       trackEvent("login");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Ошибка");
+      setError(authFetchErrorMessage(e, "Ошибка"));
     } finally {
       setBusy(false);
     }
@@ -139,7 +140,7 @@ export function EmailGate({ children }: { children: React.ReactNode }) {
         });
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Ошибка");
+      setError(authFetchErrorMessage(e, "Ошибка"));
     } finally {
       setBusy(false);
     }

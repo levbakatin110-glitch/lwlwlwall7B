@@ -160,3 +160,68 @@ export function formatSec(sec: number): string {
   const s = sec % 60;
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
+
+export type ContractionSample = {
+  startMs: number;
+  durationSec: number;
+  intervalSec: number | null;
+};
+
+export type ContractionCoach = {
+  tone: "ok" | "watch" | "go";
+  title: string;
+  body: string;
+};
+
+/** Правило 5-1-1: каждые ~5 мин, ~1 мин, около часа. Не диагноз. */
+export function assessContractions(
+  samples: ContractionSample[],
+  now = Date.now(),
+): ContractionCoach {
+  const hour = samples.filter((s) => s.startMs >= now - 60 * 60 * 1000);
+  if (hour.length < 2) {
+    return {
+      tone: "ok",
+      title: "Пока наблюдаем",
+      body: "Тренировочные часто нерегулярны и слабеют, если лечь или походить. Истинные — нарастают. Мая считает длительность и интервал — вы решаете со врачом.",
+    };
+  }
+
+  const last3 = hour.slice(-3);
+  const intervals = last3
+    .map((s) => s.intervalSec)
+    .filter((x): x is number => x != null && x > 0);
+  const avgInt =
+    intervals.length > 0
+      ? intervals.reduce((a, b) => a + b, 0) / intervals.length
+      : 0;
+  const avgDur =
+    last3.reduce((a, s) => a + s.durationSec, 0) / Math.max(1, last3.length);
+  const tight =
+    intervals.length >= 2 &&
+    intervals.every((i) => i <= 5 * 60) &&
+    avgDur >= 45;
+  const hourPacked = hour.length >= 6 && avgInt > 0 && avgInt <= 6 * 60 && avgDur >= 40;
+
+  if (tight || hourPacked) {
+    return {
+      tone: "go",
+      title: "Похоже на правило 5-1-1",
+      body: "Схватки примерно каждые 5 минут, около минуты, уже не первый час. Позвоните врачу / в роддом. Если воды отошли, кровь или малыш меньше шевелится — не ждите.",
+    };
+  }
+
+  if (avgInt > 0 && avgInt <= 8 * 60 && hour.length >= 3) {
+    return {
+      tone: "watch",
+      title: "Интервал сокращается",
+      body: `Сейчас в среднем ${formatSec(Math.round(avgInt))} между схватками, длительность ~${formatSec(Math.round(avgDur))}. Если станет чаще и сильнее — собирайтесь. Если затихнет — скорее тренировочные.`,
+    };
+  }
+
+  return {
+    tone: "ok",
+    title: "Ещё не ритм родов",
+    body: "Интервалы пока широкие. Продолжайте отмечать. Душ, смена позы, вода. Если боль резкая и не «волной» — сразу к врачу.",
+  };
+}

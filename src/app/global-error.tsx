@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { captureBetterStackException } from "@/lib/betterstack-sentry";
 
 /**
  * Падение root layout. Часто это не «баг страницы», а старый JS после деплоя
@@ -45,6 +46,7 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     console.error("[maya] global error", error);
+    captureBetterStackException(error);
     if (isStaleBuildError(error)) hardReloadOnce();
   }, [error]);
 
