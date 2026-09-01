@@ -34,7 +34,6 @@ const CORE: { href: string; label: string; icon: IconName }[] = [
   { href: "/summary", label: "Итоги дня", icon: "list" },
   { href: "/med", label: "Мед. карта", icon: "health" },
   { href: "/pricing", label: "Подписка", icon: "spark" },
-  { href: "/profile", label: "Профиль", icon: "profile" },
 ];
 
 const PINNED_DIARIES: {
@@ -158,12 +157,13 @@ export function Sidebar({
         className="pointer-events-none absolute -bottom-1 -left-1 h-14 w-14 opacity-70"
       />
       <div className="relative z-[1]">
-        <SidebarHeader />
+        <SidebarHeader onNavigate={close} />
       </div>
     </div>
   );
   const brandMobile = (
     <SidebarHeader
+      onNavigate={close}
       trailing={
         <button
           type="button"
