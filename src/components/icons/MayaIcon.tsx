@@ -189,6 +189,12 @@ const paths: Record<IconName, ReactNode> = {
       <path d="M12 6v12M6 12h12" />
     </>
   ),
+  bell: (
+    <>
+      <path d="M6.2 16.5h11.6c-.6-1-1.3-2.2-1.3-4.2V10a4.5 4.5 0 1 0-9 0v2.3c0 2-.7 3.2-1.3 4.2Z" />
+      <path d="M10 16.5v.7a2 2 0 0 0 4 0v-.7" />
+    </>
+  ),
 };
 
 type Props = SVGProps<SVGSVGElement> & {

@@ -6,6 +6,10 @@ export async function register() {
       "./lib/betterstack-sentry-server"
     );
     await initBetterStackServer();
+    if (!process.env.NEXT_PHASE) {
+      const { startPushTickLoop } = await import("./lib/push-tick");
+      startPushTickLoop();
+    }
   }
 }
 

@@ -88,6 +88,26 @@ function migrateSchema(db: DatabaseSync) {
       order_id TEXT,
       updated_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS push_schedule (
+      id TEXT PRIMARY KEY,
+      email TEXT NOT NULL,
+      title TEXT NOT NULL,
+      body TEXT NOT NULL,
+      url TEXT NOT NULL,
+      tag TEXT NOT NULL,
+      next_at INTEGER NOT NULL,
+      mode TEXT NOT NULL,
+      interval_min INTEGER,
+      times_json TEXT,
+      quiet_from TEXT,
+      quiet_to TEXT,
+      tz_offset_min INTEGER NOT NULL DEFAULT 0,
+      last_sent_at INTEGER,
+      updated_at INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_push_schedule_email ON push_schedule(email);
+    CREATE INDEX IF NOT EXISTS idx_push_schedule_next ON push_schedule(next_at);
   `);
   const cols = db.prepare("PRAGMA table_info(plan_orders)").all() as {
     name: string;

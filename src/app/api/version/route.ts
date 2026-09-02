@@ -18,6 +18,6 @@ export async function GET() {
     app: "maya",
     buildId: readBuildId(),
     betterstack: Boolean(process.env.NEXT_PUBLIC_BETTERSTACK_DSN?.trim()),
-    features: ["email-register", "feedback", "betterstack", "chat"],
+    features: ["email-register", "feedback", "betterstack", "chat", "push"],
   });
 }

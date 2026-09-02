@@ -6,6 +6,7 @@ import { DiaryHowTo } from "@/components/DiaryHowTo";
 import { DiaryQuickActions } from "@/components/DiaryQuickActions";
 import { CustomSmartPanel } from "@/components/CustomSmartPanel";
 import { ModuleRepairBanner } from "@/components/ModuleRepairBanner";
+import { CareReminderNudge } from "@/components/CareReminderNudge";
 import { BottleTracker } from "@/components/feeding/BottleTracker";
 import { BreastfeedingTracker } from "@/components/feeding/BreastfeedingTracker";
 import { SleepTracker } from "@/components/feeding/SleepTracker";
@@ -545,6 +546,8 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
           <PlanOfferBanner moduleId={moduleId} />
         </div>
       )}
+
+      <CareReminderNudge moduleId={moduleId} />
 
       {/* Подсказка только в пустом «простом» дневнике — трекерам не нужна */}
       {entries.length === 0 &&

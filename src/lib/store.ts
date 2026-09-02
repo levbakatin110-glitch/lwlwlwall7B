@@ -177,6 +177,9 @@ type AppState = {
   addChild: (profile: ChildProfile, opts?: { seedGrowth?: { heightCm?: number; weightKg?: number } }) => void;
   removeChild: (id: string) => void;
   completeOnboarding: () => void;
+  setCareReminders: (next: import("./care-reminders").CareReminder[]) => void;
+  upsertCareReminder: (row: import("./care-reminders").CareReminder) => void;
+  removeCareReminder: (id: string) => void;
 };
 
 function spaceSlice(space: ChildSpace) {
@@ -227,6 +230,12 @@ export function getJournalEntries(
   return state.journals?.[moduleId] ?? [];
 }
 
+export function getCareReminders(
+  state: Pick<AppState, "childSpaces" | "activeChildId">,
+) {
+  return ensureChildSpace(state.childSpaces?.[state.activeChildId]).careReminders;
+}
+
 /** После hydrate / бэкапа — зеркало journals снова с momJournals */
 export function remirrorJournalsFromSpaces() {
   const s = useAppStore.getState();
@@ -260,6 +269,9 @@ function withActiveSpace(
     messages: (patch.messages as ChatMessage[]) ?? prev.messages,
     demoWardrobeSeeded:
       (patch.demoWardrobeSeeded as boolean) ?? prev.demoWardrobeSeeded,
+    careReminders: Array.isArray(patch.careReminders)
+      ? patch.careReminders
+      : prev.careReminders,
   });
   const mirrored = {
     ...spaceSlice(nextSpace),
@@ -268,6 +280,22 @@ function withActiveSpace(
   set({
     ...mirrored,
     childSpaces: { ...get().childSpaces, [id]: nextSpace },
+  });
+}
+
+function snapshotActiveSpace(get: () => AppState): ChildSpace {
+  const id = get().activeChildId;
+  const prev = ensureChildSpace(get().childSpaces[id]);
+  return ensureChildSpace({
+    ...prev,
+    enabledModules: get().enabledModules,
+    customModules: get().customModules,
+    wardrobe: get().wardrobe,
+    memories: get().memories,
+    memoryStory: get().memoryStory,
+    journals: stripMomJournals(get().journals),
+    messages: get().messages,
+    demoWardrobeSeeded: get().demoWardrobeSeeded,
   });
 }
 
@@ -758,16 +786,7 @@ export const useAppStore = create<AppState>()(
         // сохранить текущее зеркало в spaces (на всякий)
         const curId = get().activeChildId;
         saveChatMessages(curId, get().messages);
-        const curSpace: ChildSpace = {
-          enabledModules: get().enabledModules,
-          customModules: get().customModules,
-          wardrobe: get().wardrobe,
-          memories: get().memories,
-          memoryStory: get().memoryStory,
-          journals: stripMomJournals(get().journals),
-          messages: get().messages,
-          demoWardrobeSeeded: get().demoWardrobeSeeded,
-        };
+        const curSpace: ChildSpace = snapshotActiveSpace(get);
         const nextSlice = spaceSlice(space);
         set({
           childSpaces: { ...get().childSpaces, [curId]: curSpace, [id]: space },
@@ -794,16 +813,7 @@ export const useAppStore = create<AppState>()(
         }
         // сохранить текущий
         const curId = get().activeChildId;
-        const curSpace: ChildSpace = {
-          enabledModules: get().enabledModules,
-          customModules: get().customModules,
-          wardrobe: get().wardrobe,
-          memories: get().memories,
-          memoryStory: get().memoryStory,
-          journals: stripMomJournals(get().journals),
-          messages: get().messages,
-          demoWardrobeSeeded: get().demoWardrobeSeeded,
-        };
+        const curSpace: ChildSpace = snapshotActiveSpace(get);
         set({
           children: [...get().children, child],
           childSpaces: {
@@ -847,6 +857,27 @@ export const useAppStore = create<AppState>()(
           email: get().accountEmail,
           emailVerified: get().emailVerified,
           childName: get().profile?.name,
+        });
+      },
+
+      setCareReminders: (next) => {
+        withActiveSpace(get, set, { careReminders: next });
+      },
+
+      upsertCareReminder: (row) => {
+        const id = get().activeChildId;
+        const prev = ensureChildSpace(get().childSpaces[id]).careReminders ?? [];
+        const next = prev.some((r) => r.id === row.id)
+          ? prev.map((r) => (r.id === row.id ? row : r))
+          : [...prev, row];
+        withActiveSpace(get, set, { careReminders: next });
+      },
+
+      removeCareReminder: (rid) => {
+        const id = get().activeChildId;
+        const prev = ensureChildSpace(get().childSpaces[id]).careReminders ?? [];
+        withActiveSpace(get, set, {
+          careReminders: prev.filter((r) => r.id !== rid),
         });
       },
     }),
@@ -948,6 +979,7 @@ export const useAppStore = create<AppState>()(
             journals: legacy.journals ?? emptyJournals(),
             messages: legacy.messages ?? [],
             demoWardrobeSeeded: legacy.demoWardrobeSeeded ?? false,
+            careReminders: [],
           };
           state.children = [profile];
           state.activeChildId = id;

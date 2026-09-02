@@ -10,6 +10,7 @@ import { OnboardingGate } from "./OnboardingFlow";
 import { PremiumGate } from "./PremiumGate";
 import { QuickNavCarousel } from "./QuickNavCarousel";
 import { PushReminders } from "./PushReminders";
+import { CareRemindersSync } from "./CareRemindersSync";
 import { RemindersHost } from "./RemindersHost";
 import { SubscriptionSync } from "./SubscriptionSync";
 import { Sidebar } from "./Sidebar";
@@ -81,6 +82,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <SubscriptionSync />
       <CookieBanner />
       <PushReminders />
+      <CareRemindersSync />
       <div className="flex h-dvh max-h-dvh overflow-hidden overscroll-none bg-background pt-[env(safe-area-inset-top)] text-foreground">
         {!isCommunity && !isPlanFlow && (
           <Sidebar

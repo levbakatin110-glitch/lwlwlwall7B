@@ -15,7 +15,7 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "12mb",
     },
   },
-  serverExternalPackages: ["pdfkit"],
+  serverExternalPackages: ["pdfkit", "web-push"],
   async redirects() {
     return [
       // Кириллические URL → ASCII (Next.js ломает static export на /документы)

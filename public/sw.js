@@ -1,5 +1,5 @@
 /* PWA: сеть всегда свежая + push / локальные напоминания */
-const CACHE = "maya-shell-v11";
+const CACHE = "maya-shell-v12";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
@@ -27,11 +27,13 @@ self.addEventListener("push", (event) => {
   let title = "Мая";
   let body = "Напоминание";
   let url = "/";
+  let tag = "maya";
   try {
     const data = event.data ? event.data.json() : {};
     title = data.title || title;
     body = data.body || body;
     url = data.url || url;
+    tag = data.tag || tag;
   } catch {
     try {
       body = event.data ? event.data.text() : body;
@@ -44,6 +46,7 @@ self.addEventListener("push", (event) => {
       body,
       icon: "/icons/icon-192.png",
       badge: "/icons/icon-192.png",
+      tag,
       data: { url },
     }),
   );
@@ -56,7 +59,15 @@ self.addEventListener("notificationclick", (event) => {
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
       for (const client of list) {
         if (client.url.includes(self.location.origin) && "focus" in client) {
-          return client.focus();
+          client.focus();
+          if ("navigate" in client && url) {
+            try {
+              client.navigate(url);
+            } catch {
+              /* ignore */
+            }
+          }
+          return;
         }
       }
       if (self.clients.openWindow) return self.clients.openWindow(url);

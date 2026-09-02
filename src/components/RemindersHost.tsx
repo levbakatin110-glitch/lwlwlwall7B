@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useAppStore } from "@/lib/store";
 import { MayaIcon } from "@/components/icons/MayaIcon";
+import { collectScheduledPushes } from "@/components/CareRemindersSync";
 import { notifyViaSw } from "@/components/PushReminders";
+import { useAppStore } from "@/lib/store";
 
 const FIRED_KEY = "maya-reminders-fired-v1";
 
@@ -20,7 +21,7 @@ function loadFired(): Set<string> {
 
 function saveFired(set: Set<string>) {
   try {
-    localStorage.setItem(FIRED_KEY, JSON.stringify([...set].slice(-120)));
+    localStorage.setItem(FIRED_KEY, JSON.stringify([...set].slice(-160)));
   } catch {
     /* ignore */
   }
@@ -29,89 +30,53 @@ function saveFired(set: Set<string>) {
 type DueItem = {
   id: string;
   text: string;
-  at: string;
   href: string;
 };
 
-function collectFromJournal(
-  entries: {
-    id: string;
-    value: string;
-    note: string;
-    fields?: Record<string, string | number>;
-  }[],
-  href: string,
-): { id: string; text: string; at: string; t: number; href: string }[] {
-  return entries
-    .map((e) => {
-      if (e.fields?.taken) return null;
-      const at = String(e.fields?.remindAt || "");
-      if (!at) return null;
-      const t = new Date(at).getTime();
-      if (!Number.isFinite(t)) return null;
-      return {
-        id: `${href}-${e.id}`,
-        text: String(e.fields?.text || e.note || e.value),
-        at,
-        t,
-        href,
-      };
-    })
-    .filter(Boolean) as {
-    id: string;
-    text: string;
-    at: string;
-    t: number;
-    href: string;
-  }[];
-}
-
 export function RemindersHost() {
-  const notes = useAppStore((s) => s.journals?.notes ?? []);
-  const meds = useAppStore((s) => s.journals?.preg_meds ?? []);
+  const childSpaces = useAppStore((s) => s.childSpaces);
+  const journals = useAppStore((s) => s.journals);
+  const momJournals = useAppStore((s) => s.momJournals);
   const [due, setDue] = useState<DueItem[]>([]);
 
-  const candidates = useMemo(() => {
-    return [
-      ...collectFromJournal(notes, "/m/notes"),
-      ...collectFromJournal(meds, "/m/preg_meds"),
-    ];
-  }, [notes, meds]);
+  const tickKey = useMemo(() => {
+    return `${Object.keys(childSpaces ?? {}).length}:${journals?.notes?.length ?? 0}:${momJournals?.preg_meds?.length ?? 0}`;
+  }, [childSpaces, journals, momJournals]);
 
   useEffect(() => {
     function check() {
       const fired = loadFired();
       const now = Date.now();
       const fresh: DueItem[] = [];
-      const sorted = [...candidates].sort((a, b) => a.t - b.t);
-      for (const c of sorted) {
-        if (c.t > now) continue;
-        if (c.t < now - 24 * 60 * 60 * 1000) continue;
-        if (fired.has(c.id)) continue;
-        // Не больше 5 тостов за раз — остальные дожмутся на следующем тике
+      const items = collectScheduledPushes(now).sort((a, b) => a.nextAt - b.nextAt);
+      for (const c of items) {
+        if (c.nextAt > now) continue;
+        if (c.nextAt < now - 24 * 60 * 60 * 1000) continue;
+        const slot = `${c.id}:${Math.floor(c.nextAt / 60_000)}`;
+        if (fired.has(c.id) || fired.has(slot)) continue;
         if (fresh.length >= 5) break;
-        fired.add(c.id);
-        fresh.push({ id: c.id, text: c.text, at: c.at, href: c.href });
+        fired.add(slot);
+        if (c.mode === "once") fired.add(c.id);
+        fresh.push({ id: slot, text: c.body, href: c.url });
         notifyViaSw({
-          title: "Мая · напоминание",
-          body: c.text,
-          tag: c.id,
-          url: c.href,
+          title: c.title,
+          body: c.body,
+          tag: c.tag,
+          url: c.url,
         });
       }
       if (fresh.length) {
         saveFired(fired);
         setDue((prev) => {
           const ids = new Set(prev.map((p) => p.id));
-          const merged = [...fresh.filter((f) => !ids.has(f.id)), ...prev];
-          return merged.slice(0, 5);
+          return [...fresh.filter((f) => !ids.has(f.id)), ...prev].slice(0, 5);
         });
       }
     }
     check();
     const id = window.setInterval(check, 20_000);
     return () => window.clearInterval(id);
-  }, [candidates]);
+  }, [tickKey]);
 
   if (due.length === 0) return null;
 

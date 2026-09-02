@@ -1,3 +1,4 @@
+import type { CareReminder } from "./care-reminders";
 import type {
   ChatMessage,
   ChildProfile,
@@ -47,6 +48,8 @@ export type ChildSpace = {
   journals: Record<string, JournalEntry[]>;
   messages: ChatMessage[];
   demoWardrobeSeeded: boolean;
+  /** Напоминания по режиму (кормление, сон…) */
+  careReminders: CareReminder[];
 };
 
 export function emptyChildSpace(): ChildSpace {
@@ -59,6 +62,7 @@ export function emptyChildSpace(): ChildSpace {
     journals: emptyJournals(),
     messages: [],
     demoWardrobeSeeded: false,
+    careReminders: [],
   };
 }
 
@@ -88,6 +92,7 @@ export function ensureChildSpace(
     journals: { ...emptyJournals(), ...journalsIn },
     messages: Array.isArray(sp.messages) ? sp.messages : [],
     demoWardrobeSeeded: Boolean(sp.demoWardrobeSeeded),
+    careReminders: Array.isArray(sp.careReminders) ? sp.careReminders : [],
   };
 }
 
