@@ -1,14 +1,40 @@
 "use client";
 
-import { useState } from "react";
-import { useAppStore } from "@/lib/store";
+import { useEffect, useState } from "react";
+
+const SENT_AT_KEY = "maya-feedback-sent-at";
+const RATE_MS = 24 * 60 * 60 * 1000;
+
+function isWithinRateWindow(sentAt: number): boolean {
+  return Date.now() - sentAt < RATE_MS;
+}
+
+function readSentAt(): number | null {
+  if (typeof window === "undefined") return null;
+  const raw = localStorage.getItem(SENT_AT_KEY);
+  if (!raw) return null;
+  const ts = Number(raw);
+  if (!Number.isFinite(ts)) return null;
+  if (!isWithinRateWindow(ts)) {
+    localStorage.removeItem(SENT_AT_KEY);
+    return null;
+  }
+  return ts;
+}
+
+function markSentLocally() {
+  localStorage.setItem(SENT_AT_KEY, String(Date.now()));
+}
 
 export function SiteFeedbackBox() {
-  const accountEmail = useAppStore((s) => s.accountEmail);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
+
+  useEffect(() => {
+    if (readSentAt()) setSent(true);
+  }, []);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -35,6 +61,7 @@ export function SiteFeedbackBox() {
       const data = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(data.error || "Не удалось отправить");
       setMessage("");
+      markSentLocally();
       setSent(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка отправки");
@@ -53,15 +80,9 @@ export function SiteFeedbackBox() {
           Запрос отправлен разработчику
         </p>
         <p className="mt-2 text-sm leading-relaxed text-muted">
-          Спасибо — мы читаем каждое сообщение и постараемся учесть.
+          Спасибо — мы читаем каждое сообщение и постараемся учесть. Следующее можно
+          отправить через 24 часа.
         </p>
-        <button
-          type="button"
-          onClick={() => setSent(false)}
-          className="mt-4 text-sm font-medium text-accent underline decoration-accent/30 underline-offset-2"
-        >
-          Написать ещё
-        </button>
       </section>
     );
   }
@@ -96,13 +117,6 @@ export function SiteFeedbackBox() {
             className="w-full resize-none rounded-2xl border border-line bg-background/80 px-4 py-3 text-sm leading-relaxed text-foreground outline-none transition focus:border-accent/45"
           />
         </label>
-
-        {accountEmail ? (
-          <p className="text-xs text-muted">
-            Ответ придёт на почту аккаунта, если понадобится:{" "}
-            <span className="font-medium text-foreground">{accountEmail}</span>
-          </p>
-        ) : null}
 
         {error ? (
           <p className="text-sm text-[color-mix(in_oklab,var(--blush)_80%,#900)]">

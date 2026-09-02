@@ -1,6 +1,5 @@
-import { appendFileSync, existsSync, mkdirSync } from "fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
-import { adminNotifyEmail } from "@/lib/admin-notify";
 import { getResend, resendFromAddress } from "@/lib/resend";
 
 const DATA_DIR = join(process.cwd(), "data");
@@ -23,8 +22,72 @@ export function feedbackNotifyEmail(): string {
   return (
     process.env.FEEDBACK_NOTIFY_EMAIL?.trim() ||
     process.env.ADMIN_NOTIFY_EMAIL?.trim() ||
-    adminNotifyEmail()
+    "levprogrammist@gmail.com"
   );
+}
+
+const RATE_FILE = join(DATA_DIR, "feedback-rate.json");
+const RATE_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+type RateStore = Record<string, number>;
+
+function readRateStore(): RateStore {
+  if (!existsSync(RATE_FILE)) return {};
+  try {
+    return JSON.parse(readFileSync(RATE_FILE, "utf8")) as RateStore;
+  } catch {
+    return {};
+  }
+}
+
+function writeRateStore(store: RateStore) {
+  if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
+  const cutoff = Date.now() - RATE_WINDOW_MS;
+  const pruned: RateStore = {};
+  for (const [k, t] of Object.entries(store)) {
+    if (typeof t === "number" && t > cutoff) pruned[k] = t;
+  }
+  writeFileSync(RATE_FILE, JSON.stringify(pruned), "utf8");
+}
+
+export function feedbackRateLimitKey(opts: {
+  email?: string;
+  ip?: string;
+}): string | null {
+  const email = opts.email?.trim().toLowerCase();
+  if (email) return `e:${email}`;
+  const ip = opts.ip?.trim();
+  if (ip && ip !== "unknown") return `ip:${ip}`;
+  return null;
+}
+
+export function checkFeedbackRateLimit(key: string):
+  | { ok: true }
+  | { ok: false; retryAfterSec: number } {
+  const store = readRateStore();
+  const last = store[key];
+  if (typeof last !== "number") return { ok: true };
+  const elapsed = Date.now() - last;
+  if (elapsed >= RATE_WINDOW_MS) return { ok: true };
+  return {
+    ok: false,
+    retryAfterSec: Math.ceil((RATE_WINDOW_MS - elapsed) / 1000),
+  };
+}
+
+export function markFeedbackSent(key: string) {
+  const store = readRateStore();
+  store[key] = Date.now();
+  writeRateStore(store);
+}
+
+export function clientIpFromRequest(req: Request): string {
+  const xf = req.headers.get("x-forwarded-for");
+  if (xf) {
+    const first = xf.split(",")[0]?.trim();
+    if (first) return first;
+  }
+  return req.headers.get("x-real-ip")?.trim() || "unknown";
 }
 
 export async function sendSiteFeedback(opts: {

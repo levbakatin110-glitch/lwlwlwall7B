@@ -1,7 +1,22 @@
 import { readSessionFromRequest } from "@/lib/session";
-import { sendSiteFeedback } from "@/lib/site-feedback";
+import {
+  checkFeedbackRateLimit,
+  clientIpFromRequest,
+  feedbackRateLimitKey,
+  markFeedbackSent,
+  sendSiteFeedback,
+} from "@/lib/site-feedback";
 
 export const runtime = "nodejs";
+
+function rateLimitMessage(retryAfterSec: number): string {
+  const hours = Math.ceil(retryAfterSec / 3600);
+  if (hours >= 2) {
+    return `Можно отправить ещё одно сообщение через ${hours} ч. Так мы защищаемся от спама.`;
+  }
+  const mins = Math.ceil(retryAfterSec / 60);
+  return `Можно отправить ещё одно сообщение через ${mins} мин. Так мы защищаемся от спама.`;
+}
 
 export async function POST(req: Request) {
   let body: { message?: string; page?: string };
@@ -23,6 +38,18 @@ export async function POST(req: Request) {
   }
 
   const session = readSessionFromRequest(req);
+  const ip = clientIpFromRequest(req);
+  const rateKey = feedbackRateLimitKey({ email: session?.email, ip });
+  if (rateKey) {
+    const limited = checkFeedbackRateLimit(rateKey);
+    if (!limited.ok) {
+      return Response.json(
+        { error: rateLimitMessage(limited.retryAfterSec), retryAfterSec: limited.retryAfterSec },
+        { status: 429 },
+      );
+    }
+  }
+
   const sent = await sendSiteFeedback({
     message,
     fromEmail: session?.email,
@@ -33,6 +60,8 @@ export async function POST(req: Request) {
   if (!sent.ok) {
     return Response.json({ error: sent.error }, { status: 500 });
   }
+
+  if (rateKey) markFeedbackSent(rateKey);
 
   return Response.json({ ok: true });
 }
