@@ -137,7 +137,7 @@ export default function PricingInner() {
   }
 
   return (
-    <div className="maya-page mx-auto w-full max-w-2xl px-4 py-8 pb-28">
+    <div className="maya-page mx-auto w-full max-w-2xl px-4 py-8">
       <h1 className="font-display flex items-center gap-3 text-3xl font-semibold">
         <IconBadge name="spark" />
         Выберите тариф
@@ -233,16 +233,10 @@ export default function PricingInner() {
           политику персональных данных
         </Link>
         .
-      </p>
-      <p className="mt-2 text-[11px] text-muted">
-        Все документы:{" "}
-        <Link href="/legal" className="underline">
-          /legal
-        </Link>
-        . Услуги информационные, не заменяют консультацию врача.
+        Услуги информационные, не заменяют консультацию врача.
       </p>
 
-      <div className="mt-10">
+      <div className="mt-8">
         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
           Что входит
         </p>
