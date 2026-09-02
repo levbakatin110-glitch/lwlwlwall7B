@@ -15,6 +15,13 @@ export function initBetterStackBrowser(): void {
     environment: "production",
     tracesSampleRate: 0.05,
   });
+
+  // Ручной тест из консоли: __mayaBetterStackTest()
+  if (typeof window !== "undefined") {
+    window.__mayaBetterStackTest = () => {
+      Sentry.captureException(new Error("Better Stack test hey-maya"));
+    };
+  }
 }
 
 export function captureBetterStackException(error: unknown): void {
