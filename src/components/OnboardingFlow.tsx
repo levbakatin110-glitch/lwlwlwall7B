@@ -946,20 +946,27 @@ export function OnboardingFlow({
               <h1 className="font-display mt-3 text-3xl font-semibold tracking-tight">
                 {valuePitch.title}
               </h1>
-              <p className="mt-3 text-sm leading-relaxed text-muted">
-                {valuePitch.intro}
-              </p>
-              <ul className="mt-5 space-y-2.5 text-sm text-foreground/90">
+              {valuePitch.intro ? (
+                <p className="mt-3 text-sm leading-relaxed text-muted">
+                  {valuePitch.intro}
+                </p>
+              ) : null}
+              <div className="mt-6 rounded-2xl border border-accent/35 bg-accent-soft/60 px-4 py-3.5">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-accent">
+                  Зачем Мая
+                </p>
+                <p className="mt-1.5 text-[17px] font-semibold leading-snug">
+                  {valuePitch.highlight}
+                </p>
+              </div>
+              <ul className="mt-4 space-y-2.5">
                 {valuePitch.bullets.map((t) => (
-                  <li key={t} className="flex gap-2">
+                  <li key={t} className="flex gap-2.5 text-sm text-foreground/90">
                     <span className="mt-0.5 shrink-0 text-accent">✓</span>
                     <span>{t}</span>
                   </li>
                 ))}
               </ul>
-              <p className="mt-5 text-sm leading-relaxed text-foreground/85">
-                {valuePitch.priceNote}
-              </p>
             </div>
           )}
 

@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { IconBadge } from "@/components/icons/MayaIcon";
 import {
-  BASE_MONTH_RUB,
   FAKE_PAYMENTS,
   formatExpiry,
   formatRub,
@@ -14,7 +13,6 @@ import {
   planById,
   type PaidPlanId,
 } from "@/lib/subscription";
-import { CHAT_TOPUP_RUB } from "@/lib/chat-quota";
 import { trackEvent } from "@/lib/analytics-client";
 import { getValuePitch } from "@/lib/value-pitch";
 import { useAppStore } from "@/lib/store";
@@ -144,11 +142,7 @@ export default function PricingInner() {
         <IconBadge name="spark" />
         Выберите тариф
       </h1>
-      <p className="mt-1 text-sm text-muted">{pitch.intro}</p>
-      <p className="mt-2 text-sm text-muted">
-        От {formatRub(BASE_MONTH_RUB)} в месяц. Если пакет чата кончится —
-        доплата {CHAT_TOPUP_RUB} ₽, можно писать дальше.
-      </p>
+      <p className="mt-1 text-sm text-muted">{pitch.intro || pitch.highlight}</p>
 
       {paidHint && (
         <p className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm">
@@ -253,6 +247,10 @@ export default function PricingInner() {
           Что входит
         </p>
         <ul className="mt-2 space-y-2 text-sm text-foreground/90">
+          <li className="flex gap-2 font-semibold">
+            <span className="text-accent">✓</span>
+            <span>{pitch.highlight}</span>
+          </li>
           {pitch.bullets.map((t) => (
             <li key={t} className="flex gap-2">
               <span className="text-accent">✓</span>
@@ -260,7 +258,6 @@ export default function PricingInner() {
             </li>
           ))}
         </ul>
-        <p className="mt-3 text-xs text-muted">{pitch.priceNote}</p>
       </div>
     </div>
   );
