@@ -203,8 +203,7 @@ export default function ProfilePage() {
               Привязана: <span className="font-medium">{accountEmail}</span>
             </p>
             <p className="text-xs text-muted">
-              Пароль — чтобы входить без кода. Mail.ru — без кода, если это
-              почта @mail.ru / @bk.ru / @inbox.ru.
+              Пароль — чтобы входить без кода с почты.
             </p>
             <div className="flex flex-wrap gap-2">
               <input

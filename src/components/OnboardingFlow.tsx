@@ -22,7 +22,6 @@ import type { ChildProfile, Sex } from "@/lib/types";
 import {
   SketchMaya,
 } from "@/components/illustrations/MayaSketch";
-import { OAuthButtons } from "@/components/OAuthButtons";
 import {
   dueDateFromLmp,
 } from "@/lib/pregnancy";
@@ -991,9 +990,9 @@ export function OnboardingFlow({
               </h1>
               <p className="mt-3 text-sm leading-relaxed text-muted">
                 {authMode === "register"
-                  ? "Только российская почта (Mail.ru, Яндекс, .ru). Или быстрый вход через Mail.ru."
+                  ? "Только российская почта (Mail.ru, Яндекс, .ru). Пришлём код в письме."
                   : authMode === "login"
-                    ? "Пароль, если задавали. Или код на почту. Или Mail.ru — без кода."
+                    ? "Пароль, если задавали. Или код на почту."
                     : "Код на почту, затем новый пароль."}
               </p>
 
@@ -1114,29 +1113,6 @@ export function OnboardingFlow({
                     </div>
                   )}
 
-                  {!codeSent && authMode !== "recover" && (
-                    <OAuthButtons
-                      mode={authMode === "register" ? "register" : "login"}
-                      returnTo="/"
-                      onError={(msg) => setEmailError(msg || null)}
-                      onBeforeRedirect={() => {
-                        // На всякий случай сохранить прямо перед уходом на Mail.ru
-                        saveOnboardingProgress({
-                          v: 1,
-                          mode,
-                          step: "email",
-                          isPregnant,
-                          hasChild,
-                          trackCycle,
-                          pregDue,
-                          pregLmp,
-                          pregStartWeight,
-                          draft,
-                          updatedAt: Date.now(),
-                        });
-                      }}
-                    />
-                  )}
 
                   <div className="flex flex-col gap-2 pt-2 text-center text-sm">
                     {authMode === "register" ? (
