@@ -9,7 +9,7 @@ export type DiaryHint = {
 };
 
 export const WARDROBE_HINT: DiaryHint = {
-  body: "Фото вещей → в чате спросите, что надеть.",
+  body: "Сохраните фото вещей здесь — в чате спросите «что надеть», и Мая подберёт по погоде из вашего списка.",
   examples: [
     {
       label: "Что надеть?",

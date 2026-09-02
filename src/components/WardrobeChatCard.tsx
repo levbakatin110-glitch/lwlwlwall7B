@@ -55,7 +55,7 @@ export function WardrobeChatCard({
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-[11px] font-medium uppercase tracking-wide text-white/80">
-            Гардероб
+            Одежда
           </p>
           <p className="mt-0.5 text-[15px] font-semibold leading-snug">{title}</p>
           <p className="mt-1 text-[12px] leading-snug text-white/90">{body}</p>

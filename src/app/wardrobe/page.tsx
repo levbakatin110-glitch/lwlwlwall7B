@@ -244,7 +244,15 @@ export default function WardrobePage() {
 
   return (
     <div className="maya-page mx-auto w-full max-w-2xl px-4 py-8">
-      <h1 className="font-display text-3xl font-semibold">Гардероб малыша</h1>
+      <h1 className="font-display text-3xl font-semibold">Одежда малыша</h1>
+
+      <div className="mt-4 rounded-2xl border border-accent/20 bg-accent-soft/35 px-4 py-3.5">
+        <p className="text-[13px] leading-relaxed text-foreground/90">
+          Когда в чате спросите,{" "}
+          <span className="font-medium text-foreground">что надеть на прогулку</span>, Мая
+          подберёт подходящую одежду по погоде из того, что вы сохраните здесь.
+        </p>
+      </div>
 
       {wardrobe.length === 0 && (
         <DiaryHowTo hintId="wardrobe" hint={WARDROBE_HINT} />
@@ -383,7 +391,7 @@ export default function WardrobePage() {
           disabled={analyzing}
           className="rounded-xl bg-accent px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
         >
-          {analyzing ? "Анализирую…" : "Сохранить в гардероб"}
+          {analyzing ? "Анализирую…" : "Сохранить одежду"}
         </button>
       </form>
 

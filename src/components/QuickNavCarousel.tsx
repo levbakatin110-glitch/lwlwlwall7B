@@ -128,7 +128,7 @@ function buildQuickItems(
     });
   }
 
-  items.push({ href: "/wardrobe", label: "Гардероб", icon: "wardrobe" });
+  items.push({ href: "/wardrobe", label: "Одежда", icon: "wardrobe" });
 
   const seen = new Set<string>();
   return items.filter((it) => {

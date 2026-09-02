@@ -69,7 +69,7 @@ const PINNED_DIARIES: {
   { href: "/m/diaper", label: "Подгузник", icon: "diaper", moduleId: "diaper" },
   { href: "/m/notes", label: "Заметки", icon: "notes", moduleId: "notes" },
   { href: "/m/diet", label: "Диета", icon: "diet", moduleId: "diet" },
-  { href: "/wardrobe", label: "Гардероб", icon: "wardrobe" },
+  { href: "/wardrobe", label: "Одежда", icon: "wardrobe" },
 ];
 
 export function Sidebar({
