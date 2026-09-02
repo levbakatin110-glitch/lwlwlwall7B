@@ -351,7 +351,7 @@ export function OnboardingFlow({
       photoData: draft.photoData,
       birthDate: draft.birthDate,
       sex: draft.sex,
-      city: draft.city.trim(),
+      city: "",
       birthHeightCm: parseRuNumber(draft.birthHeight) ?? undefined,
       birthWeightKg: parseRuNumber(draft.birthWeight) ?? undefined,
     });
@@ -892,8 +892,7 @@ export function OnboardingFlow({
                   Ещё чуть-чуть
                 </h1>
                 <p className="mt-1.5 text-sm text-muted">
-                  Дата рождения — для норм роста. Город — для погоды (если VPN,
-                  GPS может показать чужую страну).
+                  Дата рождения — для норм роста. Погоду Мая берёт по геолокации.
                 </p>
               </div>
 
@@ -905,20 +904,6 @@ export function OnboardingFlow({
                   type="date"
                   value={draft.birthDate}
                   onChange={(e) => patch({ birthDate: e.target.value })}
-                  className="mt-2 w-full rounded-xl border border-line bg-card/70 px-3 py-3 text-sm"
-                />
-              </div>
-
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
-                  Город
-                </p>
-                <input
-                  type="text"
-                  value={draft.city}
-                  onChange={(e) => patch({ city: e.target.value })}
-                  placeholder="например Волгоград"
-                  autoComplete="address-level2"
                   className="mt-2 w-full rounded-xl border border-line bg-card/70 px-3 py-3 text-sm"
                 />
               </div>
