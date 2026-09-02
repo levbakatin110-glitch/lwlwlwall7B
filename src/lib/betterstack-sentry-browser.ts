@@ -5,8 +5,8 @@ import { betterStackDsn, betterStackEnabled } from "@/lib/betterstack-sentry";
 
 let ready = false;
 
-export function initBetterStackBrowser(): void {
-  if (ready || !betterStackEnabled()) return;
+function ensureInit(): void {
+  if (ready || typeof window === "undefined" || !betterStackEnabled()) return;
   const dsn = betterStackDsn();
   if (!dsn) return;
   ready = true;
@@ -15,17 +15,18 @@ export function initBetterStackBrowser(): void {
     environment: "production",
     tracesSampleRate: 0.05,
   });
+}
 
-  // Ручной тест из консоли: __mayaBetterStackTest()
-  if (typeof window !== "undefined") {
-    window.__mayaBetterStackTest = () => {
-      Sentry.captureException(new Error("Better Stack test hey-maya"));
-    };
-  }
+// Сразу при загрузке страницы — не ждём useEffect
+ensureInit();
+
+export function initBetterStackBrowser(): void {
+  ensureInit();
 }
 
 export function captureBetterStackException(error: unknown): void {
   if (!betterStackEnabled()) return;
-  if (!ready) initBetterStackBrowser();
+  ensureInit();
+  if (!ready) return;
   Sentry.captureException(error);
 }
