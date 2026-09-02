@@ -4,6 +4,12 @@ import {
   detectBuiltinSuggestion,
   normalizeBlueprint,
 } from "@/lib/module-schema";
+import {
+  isRecipesCatalogModule,
+  isRecipesCatalogTopic,
+  RECIPES_BUILTIN_SUGGEST,
+  RECIPES_CATALOG_LABEL,
+} from "@/lib/recipes";
 import { pushServerOpsError } from "@/lib/ops-log";
 import type { ModuleBlueprint } from "@/lib/types";
 
@@ -32,12 +38,16 @@ export async function POST(req: Request) {
     return Response.json({ error: "Опишите, что хотите отслеживать" }, { status: 400 });
   }
 
-  const builtin = detectBuiltinSuggestion(`${titleHint} ${description}`);
+  const topic = `${titleHint} ${description}`;
+  const builtin = detectBuiltinSuggestion(topic);
   if (builtin) {
+    const isRecipes = builtin === RECIPES_BUILTIN_SUGGEST;
     return Response.json({
-      title: "",
-      description: "",
-      icon: "spark",
+      title: isRecipes ? RECIPES_CATALOG_LABEL : "",
+      description: isRecipes
+        ? "Каталог блюд — смотрите и готовьте, без записей в дневник."
+        : "",
+      icon: isRecipes ? "diet" : "spark",
       fields: [],
       suggestBuiltin: builtin,
     } satisfies Partial<ModuleBlueprint>);
@@ -52,6 +62,7 @@ export async function POST(req: Request) {
         {
           role: "system",
           content: `Ты — продуктовый дизайнер дневников в приложении «Мая» для мам.
+НЕ создавай дневники про рецепты, кулинарию и «что приготовить» — для этого уже есть каталог рецептов без записей.
 Каждый дневник ОБЯЗАН иметь живой виджет (smart), а не только форму полей.
 Виджет — то, с чем мама взаимодействует пальцем: таймер, шкала, вехи, серия, цель.
 
@@ -112,10 +123,20 @@ export async function POST(req: Request) {
 
     const raw = completion.choices[0]?.message?.content ?? "{}";
     const parsed = JSON.parse(raw) as Partial<ModuleBlueprint>;
-    const blueprint = normalizeBlueprint(
-      parsed,
-      `${titleHint} ${description}`,
-    );
+    const blueprint = normalizeBlueprint(parsed, topic);
+    if (
+      isRecipesCatalogTopic(topic) ||
+      isRecipesCatalogModule(blueprint)
+    ) {
+      return Response.json({
+        title: RECIPES_CATALOG_LABEL,
+        description:
+          "Каталог блюд — смотрите и готовьте, без записей в дневник.",
+        icon: "diet",
+        fields: [],
+        suggestBuiltin: RECIPES_BUILTIN_SUGGEST,
+      } satisfies Partial<ModuleBlueprint>);
+    }
     const health = validateBlueprint(blueprint);
     return Response.json({ ...blueprint, health });
   } catch (e) {

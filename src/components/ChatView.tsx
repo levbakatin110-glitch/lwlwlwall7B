@@ -22,6 +22,10 @@ import { MayaIcon } from "@/components/icons/MayaIcon";
 import { stripSuggestMarker, wardrobeForChat, resolveDiaryId, wardrobeFitsWeather } from "@/lib/ai-context";
 import { inferDiaryOffer } from "@/lib/diary-offer";
 import { inferLogDraftsFromUserText, looksLikeDiaryFact, mergeDiaryDrafts } from "@/lib/log-fallback";
+import {
+  RECIPES_BUILTIN_SUGGEST,
+  RECIPES_CATALOG_LABEL,
+} from "@/lib/recipes";
 import { MODULE_BY_ID } from "@/lib/modules";
 import { summarizeEntryFields } from "@/lib/module-schema";
 import {
@@ -843,6 +847,18 @@ export function ChatView() {
       });
       const data = (await res.json()) as ModuleBlueprint & { error?: string };
       if (!res.ok) throw new Error(data.error || "Не удалось создать раздел");
+      if (data.suggestBuiltin === RECIPES_BUILTIN_SUGGEST) {
+        updateMessage(messageId, {
+          createModulePrompt: undefined,
+          createModuleTitle: undefined,
+        });
+        router.push("/recipes");
+        addMessage({
+          role: "assistant",
+          content: `Открыла каталог «${RECIPES_CATALOG_LABEL}» — просто смотрите блюда и готовьте. Записи вести не нужно; в чате можно спросить про замены и прикорм.`,
+        });
+        return;
+      }
       if (data.suggestBuiltin) {
         enableModule(data.suggestBuiltin as ModuleId);
         updateMessage(messageId, {
@@ -1362,13 +1378,16 @@ export function ChatView() {
           <section
             id="noise"
             className="rounded-[1.5rem] border border-amber-500/25 bg-gradient-to-br from-amber-50/90 via-[#fff8ee] to-orange-50/50 px-3.5 py-4 dark:border-amber-400/20 dark:from-amber-950/40 dark:via-card dark:to-orange-950/20"
-            aria-label="На кухне"
+            aria-label="Рецепты"
           >
             <div className="mb-3 flex items-end justify-between gap-2 px-0.5">
               <div>
                 <h2 className="font-display text-xl font-semibold tracking-tight text-foreground">
-                  На кухне
+                  Рецепты
                 </h2>
+                <p className="mt-0.5 text-xs text-muted">
+                  Каталог — без записей в дневник
+                </p>
               </div>
               <Link
                 href="/recipes"

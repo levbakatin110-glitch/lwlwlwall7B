@@ -52,9 +52,13 @@ export default function RecipesPage() {
   return (
     <div className="maya-page mx-auto w-full max-w-2xl px-4 py-8 pb-28">
       <h1 className="font-display flex items-center gap-3 text-3xl font-semibold">
-        <IconBadge name="spark" />
-        На кухне
+        <IconBadge name="diet" />
+        Рецепты
       </h1>
+      <p className="mt-2 text-sm text-muted">
+        Каталог блюд для мамы и семьи — просто смотрите и готовьте. Записи вести не
+        нужно; в чате можно спросить Маю про замены и прикорм.
+      </p>
 
       <div className="mt-6">
         <RecipeOfDayCard />

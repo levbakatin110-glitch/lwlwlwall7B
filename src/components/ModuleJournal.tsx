@@ -45,6 +45,7 @@ import {
 } from "@/lib/growth-norms";
 import { WhoGrowthChart } from "@/components/WhoGrowthChart";
 import { isBuiltinModuleId, resolveModule } from "@/lib/modules";
+import { isRecipesCatalogModule, RECIPES_CATALOG_LABEL } from "@/lib/recipes";
 import { summarizeEntryFields } from "@/lib/module-schema";
 import {
   isFreeModuleId,
@@ -289,6 +290,39 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
   const removeJournalEntry = useAppStore((s) => s.removeJournalEntry);
   const enableModule = useAppStore((s) => s.enableModule);
   const removeCustomModule = useAppStore((s) => s.removeCustomModule);
+
+  if (mod?.custom && isRecipesCatalogModule(mod)) {
+    return (
+      <div className="maya-page mx-auto w-full max-w-2xl px-4 py-8">
+        <h1 className="font-display flex items-center gap-2.5 text-[1.55rem] font-semibold tracking-tight sm:text-2xl">
+          <IconBadge name="diet" />
+          {RECIPES_CATALOG_LABEL}
+        </h1>
+        <p className="mt-3 text-sm text-muted">
+          Рецепты — это каталог блюд для просмотра, не дневник с записями. Откройте
+          каталог или удалите старый раздел «{mod.title}».
+        </p>
+        <div className="mt-5 flex flex-wrap gap-2">
+          <Link
+            href="/recipes"
+            className="rounded-xl bg-accent px-4 py-2 text-sm font-medium text-[var(--on-accent)]"
+          >
+            Открыть каталог
+          </Link>
+          <button
+            type="button"
+            onClick={() => {
+              removeCustomModule(moduleId);
+              window.location.href = "/recipes";
+            }}
+            className="rounded-xl border border-line bg-card px-4 py-2 text-sm"
+          >
+            Удалить дневник
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const schemaFields = custom?.fields;
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));

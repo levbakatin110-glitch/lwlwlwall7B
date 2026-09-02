@@ -6,6 +6,10 @@ import { useRouter } from "next/navigation";
 import { IconBadge, MayaIcon } from "@/components/icons/MayaIcon";
 import { OPTIONAL_MODULES, MODULE_BY_ID } from "@/lib/modules";
 import {
+  RECIPES_BUILTIN_SUGGEST,
+  RECIPES_CATALOG_LABEL,
+} from "@/lib/recipes";
+import {
   isFreeModuleId,
   isSubscriptionActive,
 } from "@/lib/subscription";
@@ -56,8 +60,20 @@ export default function ModulesPage() {
     }
   }
 
+  function suggestBuiltinLabel(id: string) {
+    if (id === RECIPES_BUILTIN_SUGGEST) return RECIPES_CATALOG_LABEL;
+    return MODULE_BY_ID[id as ModuleId]?.title ?? id;
+  }
+
   function confirmCreate() {
     if (!blueprint) return;
+    if (blueprint.suggestBuiltin === RECIPES_BUILTIN_SUGGEST) {
+      setPrompt("");
+      setBlueprint(null);
+      setShowForm(false);
+      router.push("/recipes");
+      return;
+    }
     if (blueprint.suggestBuiltin) {
       const id = blueprint.suggestBuiltin as ModuleId;
       enableModule(id);
@@ -89,8 +105,9 @@ export default function ModulesPage() {
           <MayaIcon name="spark" size={18} />
         </span>
         <p className="font-display min-w-0 flex-1 text-base font-semibold leading-snug">
-          На кухне
+          Рецепты
         </p>
+        <span className="text-xs text-muted">каталог</span>
         <span className="text-sm font-semibold text-accent">→</span>
       </Link>
 
@@ -179,17 +196,19 @@ export default function ModulesPage() {
                       Уже есть готовый раздел
                     </p>
                     <p className="mt-1 text-sm text-muted">
-                      «{MODULE_BY_ID[blueprint.suggestBuiltin as ModuleId]?.title ||
-                        blueprint.suggestBuiltin}
-                      » — с умным инструментом внутри. Не нужно создавать пустую
-                      анкету.
+                      «{suggestBuiltinLabel(blueprint.suggestBuiltin)}»
+                      {blueprint.suggestBuiltin === RECIPES_BUILTIN_SUGGEST
+                        ? " — каталог блюд без записей."
+                        : " — с умным инструментом внутри. Не нужно создавать пустую анкету."}
                     </p>
                     <button
                       type="button"
                       onClick={confirmCreate}
                       className="mt-4 rounded-xl bg-accent px-4 py-2 text-sm font-medium text-[var(--on-accent)]"
                     >
-                      Открыть готовый
+                      {blueprint.suggestBuiltin === RECIPES_BUILTIN_SUGGEST
+                        ? "Открыть каталог"
+                        : "Открыть готовый"}
                     </button>
                   </>
                 ) : (

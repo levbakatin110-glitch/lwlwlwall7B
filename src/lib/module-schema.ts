@@ -1,5 +1,9 @@
 import { normalizeIconName } from "@/lib/icons";
 import { isBuiltinModuleId } from "@/lib/modules";
+import {
+  isRecipesCatalogTopic,
+  RECIPES_BUILTIN_SUGGEST,
+} from "@/lib/recipes";
 import type {
   ModuleBlueprint,
   ModuleField,
@@ -173,6 +177,7 @@ export function fallbackSmartForTopic(text: string): SmartPanel | undefined {
 /** Если тема уже закрыта готовым разделом */
 export function detectBuiltinSuggestion(text: string): string | undefined {
   const t = text.toLowerCase();
+  if (isRecipesCatalogTopic(text)) return RECIPES_BUILTIN_SUGGEST;
   if (/диет|калор|похуд|ккал|похудеть/i.test(t)) return "diet";
   if (/груд(?:ь|ного)|кормлен|\bгв\b/i.test(t) && !/смес|бутыл/i.test(t))
     return "breastfeeding";
@@ -265,6 +270,7 @@ export function normalizeBlueprint(
 
   const suggestRaw = raw.suggestBuiltin ? String(raw.suggestBuiltin) : undefined;
   const suggestBuiltin =
+    (suggestRaw === RECIPES_BUILTIN_SUGGEST && RECIPES_BUILTIN_SUGGEST) ||
     (suggestRaw && isBuiltinModuleId(suggestRaw) && suggestRaw) ||
     detectBuiltinSuggestion(topic) ||
     undefined;

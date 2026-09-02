@@ -333,3 +333,26 @@ export function formatTime(min: number): string {
   const m = min % 60;
   return m ? `${h} ч ${m} мин` : `${h} ч`;
 }
+
+/** Не ModuleId — отдельный каталог, не дневник */
+export const RECIPES_BUILTIN_SUGGEST = "recipes" as const;
+
+export const RECIPES_CATALOG_LABEL = "Рецепты";
+
+export function isRecipesCatalogTopic(text: string): boolean {
+  const t = text.toLowerCase();
+  if (/диет|калор|похуд|ккал|похудеть/i.test(t)) return false;
+  return /рецепт|recipe|cookbook|кулинар|что\s*готовить|на\s*кухн|блюд\s*для|меню\s*на/i.test(
+    t,
+  );
+}
+
+export function isRecipesCatalogModule(mod: {
+  title?: string;
+  description?: string;
+  id?: string;
+}): boolean {
+  return isRecipesCatalogTopic(
+    `${mod.title ?? ""} ${mod.description ?? ""} ${mod.id ?? ""}`,
+  );
+}

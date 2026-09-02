@@ -10,6 +10,7 @@ import { SketchCorner, SketchSprig } from "@/components/illustrations/MayaSketch
 import { childDisplayName } from "@/lib/children";
 import { LEGAL_OPERATOR } from "@/lib/legal";
 import { MODULE_BY_ID, customToDef } from "@/lib/modules";
+import { isRecipesCatalogModule } from "@/lib/recipes";
 import { isSubscriptionActive, PAID_ONLY } from "@/lib/subscription";
 import { useAppStore } from "@/lib/store";
 import type { ModuleId } from "@/lib/types";
@@ -70,6 +71,7 @@ const PINNED_DIARIES: {
   { href: "/m/notes", label: "Заметки", icon: "notes", moduleId: "notes" },
   { href: "/m/diet", label: "Диета", icon: "diet", moduleId: "diet" },
   { href: "/wardrobe", label: "Одежда", icon: "wardrobe" },
+  { href: "/recipes", label: "Рецепты", icon: "diet" },
 ];
 
 export function Sidebar({
@@ -138,7 +140,9 @@ export function Sidebar({
       .filter((id) => !pinnedIds.has(id))
       .map((id) => MODULE_BY_ID[id])
       .filter(Boolean),
-    ...customModules.map(customToDef),
+    ...customModules
+      .map(customToDef)
+      .filter((mod) => !isRecipesCatalogModule(mod)),
   ];
 
   const linkClass = (active: boolean) =>
