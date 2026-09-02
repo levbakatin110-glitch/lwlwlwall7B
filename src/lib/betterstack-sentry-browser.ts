@@ -15,6 +15,17 @@ function ensureInit(): void {
     environment: "production",
     tracesSampleRate: 0.05,
   });
+
+  // Один ping за сессию — чтобы в Network был POST (фильтр: 2726260)
+  try {
+    if (!sessionStorage.getItem("maya-betterstack-ping")) {
+      sessionStorage.setItem("maya-betterstack-ping", "1");
+      Sentry.captureMessage("hey-maya · клиент", "info");
+      void Sentry.flush(5000);
+    }
+  } catch {
+    /* private mode / sessionStorage blocked */
+  }
 }
 
 // Сразу при загрузке страницы — не ждём useEffect

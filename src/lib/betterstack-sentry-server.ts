@@ -13,13 +13,14 @@ export function initBetterStackServer(): Promise<void> {
   }
 
   initPromise = import("@sentry/node")
-    .then((Sentry) => {
+    .then(async (Sentry) => {
       Sentry.init({
         dsn: betterStackDsn(),
         environment: "production",
         tracesSampleRate: 0.05,
       });
       Sentry.captureMessage("hey-maya · сервер запущен", "info");
+      await Sentry.flush(5000);
     })
     .catch(() => {
       /* telemetry optional */
