@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { captureBetterStackException } from "@/lib/betterstack-sentry";
+import { captureBetterStackException } from "@/lib/betterstack-sentry-browser";
 
 function isChunkLoadError(error: Error) {
   const msg = `${error.name} ${error.message}`;

@@ -1,4 +1,4 @@
-/** Better Stack — только браузер. @sentry/node сюда не импортировать (webpack). */
+/** Better Stack — DSN и флаги (без @sentry/* — безопасно для server imports). */
 
 export function betterStackDsn(): string | undefined {
   const dsn =
@@ -10,33 +10,4 @@ export function betterStackDsn(): string | undefined {
 
 export function betterStackEnabled(): boolean {
   return Boolean(betterStackDsn()) && process.env.NODE_ENV === "production";
-}
-
-let browserReady = false;
-
-export function initBetterStackBrowser(): void {
-  if (typeof window === "undefined" || browserReady || !betterStackEnabled()) {
-    return;
-  }
-  browserReady = true;
-  void import("@sentry/browser")
-    .then((Sentry) => {
-      Sentry.init({
-        dsn: betterStackDsn(),
-        environment: "production",
-        tracesSampleRate: 0.05,
-      });
-    })
-    .catch(() => {
-      /* ignore */
-    });
-}
-
-export function captureBetterStackException(error: unknown): void {
-  if (typeof window === "undefined" || !betterStackEnabled()) return;
-  void import("@sentry/browser")
-    .then((Sentry) => Sentry.captureException(error))
-    .catch(() => {
-      /* ignore telemetry failures */
-    });
 }

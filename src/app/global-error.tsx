@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { captureBetterStackException } from "@/lib/betterstack-sentry";
+import { captureBetterStackException } from "@/lib/betterstack-sentry-browser";
 
 /**
  * Падение root layout. Часто это не «баг страницы», а старый JS после деплоя

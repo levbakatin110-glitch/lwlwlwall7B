@@ -1,7 +1,7 @@
 "use client";
 
 import { Component, type ErrorInfo, type ReactNode } from "react";
-import { captureBetterStackException } from "@/lib/betterstack-sentry";
+import { captureBetterStackException } from "@/lib/betterstack-sentry-browser";
 
 type Props = { children: ReactNode };
 type State = { error: Error | null };

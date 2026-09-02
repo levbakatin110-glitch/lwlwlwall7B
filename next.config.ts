@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Явно прокидываем DSN в клиентский бандл при сборке на VPS
+  env: {
+    NEXT_PUBLIC_BETTERSTACK_DSN: process.env.NEXT_PUBLIC_BETTERSTACK_DSN ?? "",
+  },
   // Скрыть английскую панель разработчика поверх сайта
   devIndicators: false,
   // Не standalone: на VPS pm2 запускает `next start` (см. pm2 logs).
