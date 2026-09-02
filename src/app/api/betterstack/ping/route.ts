@@ -24,14 +24,16 @@ export async function GET(req: Request) {
 
   await initBetterStackServer();
   const Sentry = await import("@sentry/node");
-  const eventId = Sentry.captureMessage("hey-maya · ручная проверка", "info");
+  const eventId = Sentry.captureException(
+    new Error("hey-maya · тест мониторинга (можно закрыть)"),
+  );
   const flushed = await Sentry.flush(5000);
 
   return Response.json({
     ok: flushed,
     eventId,
     message: flushed
-      ? "Отправлено. Через 1–2 мин открой errors.betterstack.com → hey-maya"
+      ? "Ошибка-тест отправлена. Через 1–2 мин → errors.betterstack.com → hey-maya → Issues"
       : "Не удалось отправить (сеть VPS или DSN). Проверь pm2 logs maya",
   });
 }
