@@ -3,10 +3,10 @@
 import { CHAT_TOPUP_RUB } from "@/lib/chat-quota";
 
 /**
- * ВРЕМЕННО было: полный Premium всем.
- * Выключено: доступ только после оплаты.
+ * Полный Premium всем — как будто подписка уже куплена.
+ * Дневники, чат и разделы не кидают на тарифы.
  */
-export const TEMP_UNLOCK_ALL = false;
+export const TEMP_UNLOCK_ALL = true;
 
 /**
  * ВРЕМЕННО: кнопка «Оплатить» сразу выдаёт Premium (без Prodamus).

@@ -108,6 +108,8 @@ type AppState = {
   modulesDefaultsSeededV1?: boolean;
   /** одноразовая: вода / прогулка / подгузник / заметки */
   modulesCareTrackersV1?: boolean;
+  /** одноразовая: досеять 11 популярных дневников без сброса выбора мамы */
+  modulesPopular11V1?: boolean;
   /** План диеты мамы (общий) */
   dietPlan: DietPlan | null;
   /** Лог ошибок чата / API для админки */
@@ -411,6 +413,7 @@ export const useAppStore = create<AppState>()(
           emailVerified: false,
           modulesDefaultsSeededV1: true,
           modulesCareTrackersV1: true,
+          modulesPopular11V1: true,
           demoWardrobeSeeded: false,
         });
       },
@@ -905,6 +908,7 @@ export const useAppStore = create<AppState>()(
         themeDefaultV2: state.themeDefaultV2,
         modulesDefaultsSeededV1: state.modulesDefaultsSeededV1,
         modulesCareTrackersV1: state.modulesCareTrackersV1,
+        modulesPopular11V1: state.modulesPopular11V1,
         dietPlan: state.dietPlan,
         opsErrors: (state.opsErrors ?? []).slice(0, 30),
         pregnancy: state.pregnancy,
@@ -1182,6 +1186,32 @@ export const useAppStore = create<AppState>()(
         // Старый сид care-трекеров больше не раздувает бесплатный тариф
         if (!state.modulesCareTrackersV1) {
           state.modulesCareTrackersV1 = true;
+        }
+
+        // Один раз: к трём стартовым дневникам добавить ещё популярные
+        if (!state.modulesPopular11V1) {
+          const have = new Set(next);
+          for (const id of defaults) {
+            if (!have.has(id)) {
+              next.push(id);
+              have.add(id);
+            }
+          }
+          for (const sid of Object.keys(state.childSpaces ?? {})) {
+            const space = state.childSpaces[sid];
+            if (!space) continue;
+            const list = [...(space.enabledModules ?? [])];
+            const seen = new Set(list);
+            for (const id of defaults) {
+              if (!seen.has(id)) {
+                list.push(id);
+                seen.add(id);
+              }
+            }
+            space.enabledModules = list;
+          }
+          state.modulesPopular11V1 = true;
+          seededDefaults = true;
         }
 
         // Бесплатный тариф: только разрешённые дневники

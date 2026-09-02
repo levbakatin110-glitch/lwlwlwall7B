@@ -31,7 +31,7 @@ import {
   loadOnboardingProgress,
   saveOnboardingProgress,
 } from "@/lib/onboarding-progress";
-import { PAID_ONLY } from "@/lib/subscription";
+import { PAID_ONLY, TEMP_UNLOCK_ALL } from "@/lib/subscription";
 import { getValuePitch } from "@/lib/value-pitch";
 import { useRouter } from "next/navigation";
 
@@ -569,7 +569,7 @@ export function OnboardingFlow({
         clearOnboardingProgress();
         completeOnboarding();
         onClose?.();
-        if (mode === "first" && PAID_ONLY) {
+        if (mode === "first" && PAID_ONLY && !TEMP_UNLOCK_ALL) {
           router.replace("/pricing");
         }
       }
@@ -1203,7 +1203,7 @@ export function OnboardingFlow({
               <p className="mt-3 text-sm leading-relaxed text-muted">
                 {mode === "add"
                   ? "Ребёнок сохранён. Можно сразу добавить ещё одного или вернуться в Маю."
-                  : PAID_ONLY
+                  : PAID_ONLY && !TEMP_UNLOCK_ALL
                     ? "Анкета готова. Дальше — выбрать период доступа: после оплаты откроются Мая, дневники и общение."
                     : isPregnant && !hasChild
                     ? "Открыли мед. карту, недели, схватки и сон мамы. После родов добавите малыша в профиле."
@@ -1244,7 +1244,7 @@ export function OnboardingFlow({
               onClick={() => void finish(false)}
               className="w-full rounded-2xl bg-accent py-3.5 text-sm font-semibold text-[#ffffff] hover:bg-accent-hot disabled:opacity-50"
             >
-              Выбрать тариф
+              {TEMP_UNLOCK_ALL ? "Начать с Маей" : "Выбрать тариф"}
             </button>
           ) : null}
 
