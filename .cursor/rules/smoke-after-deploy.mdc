@@ -1,0 +1,15 @@
+---
+description: Smoke checklist after deploy to hey-maya.ru
+alwaysApply: false
+---
+
+# Post-deploy smoke (2 min)
+
+1. https://hey-maya.ru loads, sidebar works
+2. https://hey-maya.ru/api/version → `ok:true`, fresh `buildId`
+3. Login: Mail.ru OAuth or send-code (no Load failed)
+4. Chat: send one message, get reply
+5. Feedback form at bottom of feed — submit once
+6. errors.betterstack.com → hey-maya — no new unresolved server errors (optional ping: `/api/betterstack/ping?key=…`)
+
+If build fails on VPS: `pm2 logs maya --lines 80`

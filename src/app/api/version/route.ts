@@ -1,12 +1,23 @@
+import { readFileSync } from "fs";
+import { join } from "path";
+
 export const runtime = "nodejs";
 
-/** Открой в браузере: если видишь emailGate:true — на сервере новая Мая */
+function readBuildId(): string | null {
+  try {
+    return readFileSync(join(process.cwd(), ".next", "BUILD_ID"), "utf8").trim();
+  } catch {
+    return null;
+  }
+}
+
+/** Smoke: /api/version — жив ли сервер и какой билд */
 export async function GET() {
   return Response.json({
     ok: true,
     app: "maya",
-    build: "2026-08-09-email-geo-v5",
-    emailGate: true,
-    features: ["email-register", "summary", "pricing", "geo-ip"],
+    buildId: readBuildId(),
+    betterstack: Boolean(process.env.NEXT_PUBLIC_BETTERSTACK_DSN?.trim()),
+    features: ["email-register", "feedback", "betterstack", "chat"],
   });
 }

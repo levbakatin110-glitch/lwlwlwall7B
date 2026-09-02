@@ -9,7 +9,7 @@ import { JournalEntryChip } from "@/components/JournalEntryChip";
 import { LogPreviewSheet, type LogPreviewData } from "@/components/LogPreviewSheet";
 import { KitchenCarousel } from "@/components/KitchenCarousel";
 import { MayaChatText } from "@/components/MayaChatText";
-import { CHAT_PROMPTS } from "@/components/TipsCarousel";
+import { CHAT_PROMPTS } from "@/lib/chat-prompts";
 import { VpnHintBanner } from "@/components/VpnHintBanner";
 import { WeatherWidget } from "@/components/WeatherWidget";
 import { WardrobeChatCard } from "@/components/WardrobeChatCard";

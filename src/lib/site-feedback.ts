@@ -1,7 +1,7 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { adminTelegramChatId } from "@/lib/admin-notify";
-import { getResend, resendFromAddress } from "@/lib/resend";
+import { getResend, sendResendEmail } from "@/lib/resend";
 import { sendMessage } from "@/lib/telegram";
 
 const DATA_DIR = join(process.cwd(), "data");
@@ -129,14 +129,6 @@ async function sendFeedbackEmail(opts: {
   page: string;
   at: string;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
-  const resend = getResend();
-  if (!resend) {
-    return {
-      ok: false,
-      error: "RESEND_API_KEY не задан на сервере",
-    };
-  }
-
   const to = feedbackNotifyEmail();
   const subject = "Мая · отзыв с сайта";
   const text = [
@@ -159,34 +151,23 @@ async function sendFeedbackEmail(opts: {
     </div>
   `;
 
-  try {
-    const { data, error } = await resend.emails.send({
-      from: resendFromAddress(),
-      to: [to],
-      subject,
-      html,
-      text,
-      replyTo: opts.fromEmail.includes("@") ? opts.fromEmail : undefined,
-    });
-    if (error) {
-      console.error("[site-feedback] resend error", error);
-      const hint =
-        error.message?.includes("testing emails") ||
-        error.message?.includes("verify a domain")
-          ? " Нужен RESEND_FROM с верифицированным доменом hey-maya.ru в .env.production."
-          : "";
-      return {
-        ok: false,
-        error: `${error.message || "Resend отклонил письмо"}.${hint}`,
-      };
-    }
-    console.info("[site-feedback] email sent", { to, id: data?.id });
-    return { ok: true };
-  } catch (e) {
-    console.error("[site-feedback] send failed", e);
-    const msg = e instanceof Error ? e.message : "Ошибка Resend";
-    return { ok: false, error: msg };
+  const sent = await sendResendEmail({
+    to: [to],
+    subject,
+    html,
+    text,
+    replyTo: opts.fromEmail.includes("@") ? opts.fromEmail : undefined,
+  });
+  if (!sent.ok) {
+    console.error("[site-feedback] resend error", sent.error);
+    const hint =
+      sent.error.includes("testing emails") || sent.error.includes("verify a domain")
+        ? " Нужен RESEND_FROM с верифицированным доменом hey-maya.ru в .env.production."
+        : "";
+    return { ok: false, error: `${sent.error}.${hint}` };
   }
+  console.info("[site-feedback] email sent", { to });
+  return { ok: true };
 }
 
 export async function sendSiteFeedback(opts: {

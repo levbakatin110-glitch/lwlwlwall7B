@@ -13,6 +13,36 @@ export function resendFromAddress() {
   );
 }
 
+export async function sendResendEmail(opts: {
+  to: string | string[];
+  subject: string;
+  html: string;
+  text: string;
+  replyTo?: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const resend = getResend();
+  if (!resend) {
+    return { ok: false, error: "RESEND_API_KEY не задан" };
+  }
+  try {
+    const { error } = await resend.emails.send({
+      from: resendFromAddress(),
+      to: opts.to,
+      subject: opts.subject,
+      html: opts.html,
+      text: opts.text,
+      replyTo: opts.replyTo,
+    });
+    if (error) {
+      return { ok: false, error: error.message || "Resend отклонил письмо" };
+    }
+    return { ok: true };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Ошибка Resend";
+    return { ok: false, error: msg };
+  }
+}
+
 export async function sendRegistrationCodeEmail(opts: {
   to: string;
   code: string;

@@ -1,0 +1,31 @@
+---
+description: Guardrails for AI edits — small diffs, no surprise refactors
+alwaysApply: true
+---
+
+# AI guardrails (Maya / hey-maya.ru)
+
+## Scope
+- One task → minimal diff. Do not refactor unrelated files.
+- Do not touch `.env*`, payment (Prodamus), auth secrets, or VPS deploy scripts unless the task says so.
+- Do not delete large features (plan orders, community) without explicit ask.
+
+## Before push
+- Run `npm run check` locally when changing TS/TSX (test + build).
+- List 3–5 manual smoke checks for the owner (home, login, chat, feedback, pay).
+
+## Critical paths — extra care
+- `src/app/api/auth/**` — registration, OAuth, session
+- `src/app/api/payments/**` — Prodamus, subscriptions
+- `src/lib/store.ts` — client state / persist
+- `src/lib/site-feedback.ts` — feedback + rate limit
+
+## Duplicates
+- Email: use `sendResendEmail` from `src/lib/resend.ts`, do not add a fourth mail wrapper.
+- Admin alerts: email via `admin-notify.ts`, Telegram via `sendMessage` — keep both for orders/feedback.
+
+## Telegram bot
+- Production uses **webhook** (`/api/telegram/webhook`). Do not run `scripts/telegram-bot.mjs` polling on the same bot — it deletes webhook.
+
+## Deploy
+- After live fixes: commit → push `main` → owner runs `bash scripts/deploy-vps.sh` on VPS.

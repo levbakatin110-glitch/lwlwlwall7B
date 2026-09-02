@@ -2,6 +2,9 @@
  * Мая · Малыш — long polling бот (как «просто код», без Cloudflare).
  * Сервер сам ходит в Telegram getUpdates — входящий webhook не нужен.
  *
+ * ⚠️ НЕ запускай вместе с webhook на hey-maya.ru — polling вызывает deleteWebhook
+ *    и ломает /notify для заказов. На VPS используй только webhook (maya pm2).
+ *
  * Запуск: pm2 start scripts/telegram-bot.mjs --name maya-bot
  * Нужен TELEGRAM_BOT_TOKEN в окружении / .env
  */
