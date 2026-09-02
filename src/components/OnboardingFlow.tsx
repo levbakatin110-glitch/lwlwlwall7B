@@ -79,7 +79,7 @@ function buildFlow(
   const steps: FlowStep[] = ["who"];
   if (pregnant) steps.push("preg");
   if (hasChild) steps.push("baby1", "baby2");
-  steps.push("email", "value", "finish");
+  steps.push("email", "value");
   return steps;
 }
 
@@ -219,6 +219,9 @@ export function OnboardingFlow({
     const key = restoredStep.current;
     if (key) {
       let idx = flow.indexOf(key as FlowStep);
+      if (key === "finish") {
+        idx = flow.indexOf("value");
+      }
       if (idx < 0) idx = 0;
       if (flow[idx] === "email" && emailVerified) {
         idx = Math.min(idx + 1, flow.length - 1);
@@ -1224,17 +1227,24 @@ export function OnboardingFlow({
         </div>
 
         <div className="shrink-0 space-y-2 pt-2">
-          {flowStep !== "finish" && flowStep !== "email" ? (
+          {flowStep !== "finish" && flowStep !== "email" && flowStep !== "value" ? (
             <button
               type="button"
               onClick={goNext}
               className="w-full rounded-2xl bg-accent py-3.5 text-sm font-semibold text-[#ffffff] hover:bg-accent-hot"
             >
-              {flowStep === "who"
-                ? "Продолжить"
-                : flowStep === "value"
-                  ? "Дальше — выбрать тариф"
-                  : "Далее"}
+              {flowStep === "who" ? "Продолжить" : "Далее"}
+            </button>
+          ) : null}
+
+          {flowStep === "value" ? (
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() => void finish(false)}
+              className="w-full rounded-2xl bg-accent py-3.5 text-sm font-semibold text-[#ffffff] hover:bg-accent-hot disabled:opacity-50"
+            >
+              Выбрать тариф
             </button>
           ) : null}
 
@@ -1262,9 +1272,7 @@ export function OnboardingFlow({
               >
                 {mode === "add"
                   ? "Сохранить ребёнка"
-                  : PAID_ONLY
-                    ? "Выбрать тариф"
-                    : "Начать с Маей"}
+                  : "Начать с Маей"}
               </button>
               {mode === "add" && (
                 <button
