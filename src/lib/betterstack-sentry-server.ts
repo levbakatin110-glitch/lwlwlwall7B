@@ -19,8 +19,6 @@ export function initBetterStackServer(): Promise<void> {
         environment: "production",
         tracesSampleRate: 0.05,
       });
-      Sentry.captureMessage("hey-maya · сервер запущен", "info");
-      await Sentry.flush(5000);
     })
     .catch(() => {
       /* telemetry optional */
