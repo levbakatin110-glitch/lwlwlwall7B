@@ -74,7 +74,7 @@
   --color-on-accent: var(--on-accent);
   --color-surface-elevated: var(--surface-elevated);
   --font-sans: var(--font-nunito);
-  --font-display: var(--font-fraunces);
+  --font-display: var(--font-fraunces), var(--font-nunito);
 }
 
 html {

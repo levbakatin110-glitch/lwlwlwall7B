@@ -7,19 +7,19 @@ import { MobileKeyboardFix } from "@/components/MobileKeyboardFix";
 import { PwaRegister } from "@/components/PwaRegister";
 import "./globals.css";
 
-/** Не кэшировать HTML-оболочку на год — иначе вечный «Мая…» после старого билда */
-export const dynamic = "force-dynamic";
-
 const fraunces = Fraunces({
   variable: "--font-fraunces",
-  subsets: ["latin", "latin-ext"],
-  weight: ["400", "500", "600", "700"],
+  subsets: ["latin"],
+  weight: ["600"],
+  display: "swap",
+  preload: false,
 });
 
 const nunito = Nunito({
   variable: "--font-nunito",
-  subsets: ["latin", "cyrillic"],
-  weight: ["400", "500", "600", "700"],
+  subsets: ["cyrillic", "latin"],
+  weight: ["400", "600"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {

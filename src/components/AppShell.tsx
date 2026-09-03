@@ -1,24 +1,67 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
-import { InstallHint } from "./InstallHint";
-import { AnalyticsVisitBeacon } from "./AnalyticsVisitBeacon";
 import { AuthSessionSync } from "./AuthSessionSync";
-import { CloudBackupSync } from "./CloudBackupSync";
-import { OnboardingGate } from "./OnboardingFlow";
+import { OnboardingGate } from "./OnboardingGate";
 import { PremiumGate } from "./PremiumGate";
 import { QuickNavCarousel } from "./QuickNavCarousel";
-import { PushReminders } from "./PushReminders";
-import { CareRemindersSync } from "./CareRemindersSync";
-import { RemindersHost } from "./RemindersHost";
-import { SubscriptionSync } from "./SubscriptionSync";
 import { Sidebar } from "./Sidebar";
 import { ThemeSync } from "./ThemeSync";
-import { WhiteNoisePlayer } from "./WhiteNoisePlayer";
-import { CookieBanner } from "./legal/CookieBanner";
 import { MayaIcon } from "@/components/icons/MayaIcon";
 import { PaywallHintHost } from "./PaywallHint";
+
+const AnalyticsVisitBeacon = dynamic(
+  () =>
+    import("./AnalyticsVisitBeacon").then((m) => ({
+      default: m.AnalyticsVisitBeacon,
+    })),
+  { ssr: false },
+);
+const CloudBackupSync = dynamic(
+  () =>
+    import("./CloudBackupSync").then((m) => ({ default: m.CloudBackupSync })),
+  { ssr: false },
+);
+const CookieBanner = dynamic(
+  () =>
+    import("./legal/CookieBanner").then((m) => ({ default: m.CookieBanner })),
+  { ssr: false },
+);
+const PushReminders = dynamic(
+  () => import("./PushReminders").then((m) => ({ default: m.PushReminders })),
+  { ssr: false },
+);
+const CareRemindersSync = dynamic(
+  () =>
+    import("./CareRemindersSync").then((m) => ({
+      default: m.CareRemindersSync,
+    })),
+  { ssr: false },
+);
+const RemindersHost = dynamic(
+  () => import("./RemindersHost").then((m) => ({ default: m.RemindersHost })),
+  { ssr: false },
+);
+const SubscriptionSync = dynamic(
+  () =>
+    import("./SubscriptionSync").then((m) => ({
+      default: m.SubscriptionSync,
+    })),
+  { ssr: false },
+);
+const WhiteNoisePlayer = dynamic(
+  () =>
+    import("./WhiteNoisePlayer").then((m) => ({
+      default: m.WhiteNoisePlayer,
+    })),
+  { ssr: false },
+);
+const InstallHint = dynamic(
+  () => import("./InstallHint").then((m) => ({ default: m.InstallHint })),
+  { ssr: false },
+);
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? "";
@@ -29,7 +72,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isHome = pathname === "/";
   const isPlanFlow =
     pathname.startsWith("/plan/") || pathname.startsWith("/plan/order");
-  const isPlanChat = pathname.startsWith("/plan/") && !pathname.startsWith("/plan/order");
+  const isPlanChat =
+    pathname.startsWith("/plan/") && !pathname.startsWith("/plan/order");
   const [menuOpen, setMenuOpen] = useState(false);
 
   const globalSync = (
@@ -41,7 +85,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const isAdminOrders = pathname.startsWith("/admin/orders");
 
-  // Служебная страница — без меню мамского приложения
   if (isOpsPage) {
     return (
       <>
@@ -60,13 +103,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Регистрация / юр. документы — на весь экран, без сайдбара и онбординга
   if (pathname === "/register" || isLegalPage) {
     return (
       <>
         <ThemeSync />
         {globalSync}
-        <div className="h-dvh overflow-y-auto overscroll-y-auto bg-background text-foreground">{children}</div>
+        <div className="h-dvh overflow-y-auto overscroll-y-auto bg-background text-foreground">
+          {children}
+        </div>
         {isLegalPage ? <CookieBanner /> : null}
       </>
     );

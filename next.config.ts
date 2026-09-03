@@ -7,9 +7,16 @@ const nextConfig: NextConfig = {
   },
   // Скрыть английскую панель разработчика поверх сайта
   devIndicators: false,
+  compiler: {
+    removeConsole:
+      process.env.NODE_ENV === "production"
+        ? { exclude: ["error", "warn"] }
+        : false,
+  },
   // Не standalone: на VPS pm2 запускает `next start` (см. pm2 logs).
   // standalone ломает next start → 500 / required-server-files.json
   experimental: {
+    optimizePackageImports: ["@sentry/browser"],
     // кружки/видео в community и прочие формы
     serverActions: {
       bodySizeLimit: "12mb",
@@ -72,6 +79,15 @@ const nextConfig: NextConfig = {
             value: "public, max-age=0, must-revalidate",
           },
           { key: "Service-Worker-Allowed", value: "/" },
+        ],
+      },
+      {
+        source: "/((?!_next/|icons/|avatars/|banners/|sw\\.js).*)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "private, no-cache",
+          },
         ],
       },
       {

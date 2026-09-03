@@ -3,10 +3,11 @@
 import { useEffect } from "react";
 import { initBetterStackBrowser } from "@/lib/betterstack-sentry-browser";
 
-/** Инициализация Better Stack (Sentry SDK) в браузере пользователя. */
+/** Sentry после первого кадра — не тормозит открытие на телефоне. */
 export function BetterStackInit() {
   useEffect(() => {
-    initBetterStackBrowser();
+    const t = window.setTimeout(() => initBetterStackBrowser(), 2000);
+    return () => window.clearTimeout(t);
   }, []);
   return null;
 }

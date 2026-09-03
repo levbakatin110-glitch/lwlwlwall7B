@@ -12,11 +12,6 @@ import {
 import { compressImageFile } from "@/lib/image";
 import { authFetchErrorMessage } from "@/lib/auth-fetch-error";
 import { trackEvent } from "@/lib/analytics-client";
-import {
-  markOnboardingDoneSticky,
-  readIdentityBackup,
-  readOnboardingDoneSticky,
-} from "@/lib/identity-backup";
 import { useAppStore } from "@/lib/store";
 import type { ChildProfile, Sex } from "@/lib/types";
 import {
@@ -1266,106 +1261,4 @@ export function OnboardingFlow({
       </div>
     </div>
   );
-}
-
-function peekLikelyOnboarded(): boolean {
-  try {
-    if (readOnboardingDoneSticky()) return true;
-  } catch {
-    /* ignore */
-  }
-  try {
-    const raw = localStorage.getItem("maya-mom-ai");
-    if (raw) {
-      const parsed = JSON.parse(raw) as {
-        state?: { onboardingDone?: boolean };
-        onboardingDone?: boolean;
-      };
-      const done = parsed?.state?.onboardingDone ?? parsed?.onboardingDone;
-      if (done) return true;
-    }
-  } catch {
-    /* ignore */
-  }
-  try {
-    const id = readIdentityBackup();
-    if (id?.onboardingDone) return true;
-  } catch {
-    /* ignore */
-  }
-  return false;
-}
-
-/**
- * Показывает онбординг новым пользователям.
- * Sticky-флаг не даёт снова кидать в анкету после сбоя/перезаписи стора.
- * sticky читаем только в effect — иначе SSR≠клиент и кнопки «тупят» после гидрации.
- */
-export function OnboardingGate({ children }: { children: React.ReactNode }) {
-  const onboardingDone = useAppStore((s) => s.onboardingDone);
-  const [stickyDone, setStickyDone] = useState(false);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    let likely = false;
-    try {
-      likely = peekLikelyOnboarded();
-      if (likely) setStickyDone(true);
-    } catch {
-      /* ignore */
-    }
-
-    const finish = () => {
-      try {
-        if (peekLikelyOnboarded()) setStickyDone(true);
-      } catch {
-        /* ignore */
-      }
-      setReady(true);
-    };
-
-    // Уже были в приложении — сразу отпускаем UI, persist догонит
-    if (likely) {
-      setReady(true);
-    }
-
-    if (useAppStore.persist.hasHydrated()) {
-      finish();
-      return;
-    }
-    const unsub = useAppStore.persist.onFinishHydration(finish);
-    const t = window.setTimeout(finish, 600);
-    return () => {
-      unsub();
-      window.clearTimeout(t);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!onboardingDone) return;
-    markOnboardingDoneSticky();
-    setStickyDone(true);
-  }, [onboardingDone]);
-
-  if (!ready && !stickyDone && !onboardingDone) {
-    return (
-      <div className="flex min-h-dvh items-center justify-center bg-background text-sm text-muted">
-        Мая…
-      </div>
-    );
-  }
-
-  if (stickyDone || onboardingDone) {
-    return <>{children}</>;
-  }
-
-  if (!ready) {
-    return (
-      <div className="flex min-h-dvh items-center justify-center bg-background text-sm text-muted">
-        Мая…
-      </div>
-    );
-  }
-
-  return <OnboardingFlow mode="first" />;
 }
