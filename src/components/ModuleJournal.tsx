@@ -522,8 +522,8 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
 
   return (
     <div className="maya-page mx-auto w-full max-w-2xl px-4 py-5 md:py-7">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-display flex items-center gap-2.5 text-[1.55rem] font-semibold tracking-tight sm:text-2xl">
+      <div className="flex flex-wrap items-center gap-3">
+        <h1 className="font-display flex min-w-0 items-center gap-2.5 text-[1.55rem] font-semibold tracking-tight sm:text-2xl">
           <IconBadge name={mod.icon} />
           {mod.title}
         </h1>
@@ -536,7 +536,7 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
                 window.location.href = "/modules";
               }
             }}
-            className="text-xs text-muted hover:text-foreground"
+            className="ml-auto text-xs text-muted hover:text-foreground"
           >
             Удалить
           </button>
@@ -549,9 +549,7 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
         moduleId === "breastfeeding" ||
         moduleId === "formula" ||
         moduleId === "solids") && (
-        <div className="mt-4">
-          <PlanOfferBanner moduleId={moduleId} />
-        </div>
+        <PlanOfferBanner moduleId={moduleId} />
       )}
 
       {/* Подсказка только в пустом «простом» дневнике — трекерам не нужна */}

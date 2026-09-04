@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  DiaryChip,
   DiaryPage,
   DiaryPrimaryButton,
   DiarySectionTitle,
@@ -245,18 +244,6 @@ export function BreastfeedingTracker() {
 
   return (
     <DiaryPage stickyPad={total >= 5}>
-      <div className="flex items-center justify-end gap-2">
-        {suggest && !live.active && total === 0 ? (
-          <DiaryChip
-            active
-            tone="default"
-            onClick={() => start(suggest)}
-          >
-            {suggest === "left" ? "С левой" : "С правой"}
-          </DiaryChip>
-        ) : null}
-      </div>
-
       <DiaryStats
         items={[
           { label: "Кормлений", value: stats.count },
@@ -267,7 +254,7 @@ export function BreastfeedingTracker() {
 
       <DiaryInsightCard view={insight} />
 
-      <div className="mt-5 grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         {(["left", "right"] as const).map((side) => {
           const active = live.active === side;
           const sec = side === "left" ? live.leftSec : live.rightSec;
@@ -293,7 +280,7 @@ export function BreastfeedingTracker() {
                 {formatDuration(sec)}
               </p>
               <p className="mt-2 text-sm font-semibold text-accent">
-                {active ? "Пауза" : "Старт"}
+                {active ? "Пауза" : suggested ? "Старт · с этой" : "Старт"}
               </p>
               {active ? (
                 <span className="absolute right-3 top-3 h-2.5 w-2.5 animate-pulse rounded-full bg-accent" />
@@ -304,7 +291,7 @@ export function BreastfeedingTracker() {
       </div>
 
       {todayEntries.length > 0 ? (
-        <div className="mt-5">
+        <div>
           <DiarySectionTitle left="Время" right="Стороны" />
           <DiaryTimeline>
             {todayEntries.map((e, i) => {

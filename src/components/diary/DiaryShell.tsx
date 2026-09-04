@@ -8,40 +8,35 @@ export type DiaryStat = {
   hint?: string;
 };
 
-/** Сводка: крупная первая цифра + остальные рядом, без трёх одинаковых клеток. */
+/** Сводка: ровные колонки, без дыры между первой цифрой и остальными. */
 export function DiaryStats({ items }: { items: DiaryStat[] }) {
-  const [hero, ...rest] = items;
-  if (!hero) return null;
+  if (!items.length) return null;
+  const cols =
+    items.length <= 1
+      ? "grid-cols-1"
+      : items.length === 2
+        ? "grid-cols-2"
+        : items.length === 4
+          ? "grid-cols-2 sm:grid-cols-4"
+          : "grid-cols-3";
   return (
-    <div className="maya-diary-hero">
-      <div className="min-w-0">
-        <p className="text-[11px] font-medium tracking-wide text-muted">
-          {hero.label}
-        </p>
-        <p className="font-display mt-1 text-[2.15rem] font-semibold leading-none tracking-tight tabular-nums sm:text-4xl">
-          {hero.value}
-        </p>
-        {hero.hint ? (
-          <p className="mt-1.5 text-[11px] text-muted">{hero.hint}</p>
-        ) : null}
-      </div>
-      {rest.length > 0 ? (
-        <div className="flex min-w-0 flex-1 flex-wrap justify-end gap-x-6 gap-y-3 sm:gap-x-8">
-          {rest.map((it) => (
-            <div key={it.label} className="min-w-[4.5rem] text-right">
-              <p className="text-[10px] font-medium tracking-wide text-muted">
-                {it.label}
-              </p>
-              <p className="mt-1 font-display text-xl font-semibold tabular-nums tracking-tight">
-                {it.value}
-              </p>
-              {it.hint ? (
-                <p className="mt-0.5 text-[10px] text-muted">{it.hint}</p>
-              ) : null}
-            </div>
-          ))}
+    <div className={`maya-diary-hero grid ${cols} gap-2`}>
+      {items.map((it) => (
+        <div
+          key={it.label}
+          className="min-w-0 rounded-2xl border border-line bg-card/70 px-2 py-2.5 text-center"
+        >
+          <p className="text-[10px] font-medium tracking-wide text-muted">
+            {it.label}
+          </p>
+          <p className="font-display mt-1 text-xl font-semibold tabular-nums tracking-tight sm:text-2xl">
+            {it.value}
+          </p>
+          {it.hint ? (
+            <p className="mt-0.5 text-[10px] text-muted">{it.hint}</p>
+          ) : null}
         </div>
-      ) : null}
+      ))}
     </div>
   );
 }
@@ -277,6 +272,6 @@ export function DiaryPage({
   stickyPad?: boolean;
 }) {
   return (
-    <div className="relative flex flex-col gap-5">{children}</div>
+    <div className="relative flex flex-col gap-3.5">{children}</div>
   );
 }

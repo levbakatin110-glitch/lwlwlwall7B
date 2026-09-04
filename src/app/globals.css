@@ -892,12 +892,7 @@ select {
 
 /* Дневники — одна поверхность, без «коробка в коробке» */
 .maya-diary-hero {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 1rem 1.25rem;
-  padding: 0.15rem 0.15rem 0.35rem;
+  padding: 0;
 }
 
 .maya-diary-panel {
