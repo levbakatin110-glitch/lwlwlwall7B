@@ -103,7 +103,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const globalSync = (
     <>
       <AuthSessionSync />
-      {idleReady ? <CloudBackupSync /> : null}
+      <CloudBackupSync />
     </>
   );
 
@@ -152,12 +152,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   ) : null;
 
   return (
-    <OnboardingGate>
+    <>
+      {globalSync}
+      <OnboardingGate>
       <PremiumGate>
       <PaywallHintHost />
       <ThemeSync />
       {extras}
-      {globalSync}
       <div className="flex h-dvh max-h-dvh overflow-hidden overscroll-none bg-background pt-[env(safe-area-inset-top)] text-foreground">
         {loadSidebar && !isCommunity && !isPlanFlow ? (
           <Sidebar
@@ -205,6 +206,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
       </div>
       </PremiumGate>
-    </OnboardingGate>
+      </OnboardingGate>
+    </>
   );
 }

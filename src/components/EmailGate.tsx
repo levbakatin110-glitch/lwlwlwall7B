@@ -1,5 +1,6 @@
 "use client";
 
+import { restoreCloudBackup } from "@/components/CloudBackupSync";
 import { authFetchErrorMessage } from "@/lib/auth-fetch-error";
 import Link from "next/link";
 import { useState } from "react";
@@ -13,6 +14,7 @@ export function EmailGate({ children }: { children: React.ReactNode }) {
   const emailVerified = useAppStore((s) => s.emailVerified);
   const accountEmail = useAppStore((s) => s.accountEmail);
   const setAccountEmail = useAppStore((s) => s.setAccountEmail);
+  const completeOnboarding = useAppStore((s) => s.completeOnboarding);
 
   const [authMode, setAuthMode] = useState<AuthMode>("login");
   const [email, setEmail] = useState("");
@@ -103,6 +105,8 @@ export function EmailGate({ children }: { children: React.ReactNode }) {
       if (!res.ok) throw new Error(data.error || "Неверный пароль");
       setAccountEmail(data.email || trimmed);
       trackEvent("login");
+      await restoreCloudBackup({ force: true });
+      completeOnboarding();
     } catch (e) {
       setError(authFetchErrorMessage(e, "Ошибка"));
     } finally {
@@ -137,6 +141,10 @@ export function EmailGate({ children }: { children: React.ReactNode }) {
             password,
           }),
         });
+      }
+      if (authMode !== "register") {
+        await restoreCloudBackup({ force: true });
+        completeOnboarding();
       }
     } catch (e) {
       setError(authFetchErrorMessage(e, "Ошибка"));

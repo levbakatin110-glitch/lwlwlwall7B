@@ -104,8 +104,10 @@ export function writeIdentityBackup(input: {
     const value = encodeURIComponent(
       `${data.onboardingDone ? "1" : "0"}|${email}|${data.emailVerified ? "1" : "0"}`,
     );
+    const secure =
+      window.location.protocol === "https:" ? "; Secure" : "";
     // 400 дней — как «постоянный» вход на том же сайте / PWA
-    document.cookie = `${COOKIE}=${value}; path=/; max-age=34560000; SameSite=Lax`;
+    document.cookie = `${COOKIE}=${value}; path=/; max-age=34560000; SameSite=Lax${secure}`;
   } catch {
     /* ignore */
   }

@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
+import { restoreCloudBackup } from "@/components/CloudBackupSync";
 import {
   markOnboardingDoneSticky,
   readIdentityBackup,
@@ -46,12 +47,13 @@ function peekLikelyOnboarded(): boolean {
 
 /**
  * Показывает онбординг новым пользователям.
- * Сам мастер анкеты подгружается только если анкета ещё не пройдена.
+ * Если уже есть сессия (иконка на рабочем столе) — тянем бэкап, анкету не просим.
  */
 export function OnboardingGate({ children }: { children: React.ReactNode }) {
   const onboardingDone = useAppStore((s) => s.onboardingDone);
   const [stickyDone, setStickyDone] = useState(false);
   const [ready, setReady] = useState(false);
+  const [sessionProbeDone, setSessionProbeDone] = useState(false);
 
   useEffect(() => {
     let likely = false;
@@ -88,20 +90,46 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const res = await fetch("/api/auth/session", { credentials: "include" });
+        if (!cancelled && res.ok) {
+          const data = (await res.json()) as { email?: string | null };
+          if (data.email) {
+            useAppStore.getState().setAccountEmail(data.email);
+            await restoreCloudBackup();
+            if (!cancelled) {
+              if (!useAppStore.getState().onboardingDone) {
+                useAppStore.getState().completeOnboarding();
+              }
+              setStickyDone(true);
+            }
+          }
+        }
+      } catch {
+        /* offline */
+      }
+      if (!cancelled) setSessionProbeDone(true);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     if (!onboardingDone) return;
     markOnboardingDoneSticky();
     setStickyDone(true);
   }, [onboardingDone]);
 
-  if (!ready && !stickyDone && !onboardingDone) {
-    return <MayaSplash />;
-  }
-
   if (stickyDone || onboardingDone) {
     return <>{children}</>;
   }
 
-  if (!ready) {
+  if (!ready || !sessionProbeDone) {
     return <MayaSplash />;
   }
 

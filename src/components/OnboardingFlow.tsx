@@ -25,6 +25,7 @@ import {
   loadOnboardingProgress,
   saveOnboardingProgress,
 } from "@/lib/onboarding-progress";
+import { restoreCloudBackup } from "@/components/CloudBackupSync";
 import { PAID_ONLY, TEMP_UNLOCK_ALL } from "@/lib/subscription";
 import { getValuePitch } from "@/lib/value-pitch";
 import { useRouter } from "next/navigation";
@@ -491,6 +492,12 @@ export function OnboardingFlow({
           body: JSON.stringify({ action: "set", password }),
         });
       }
+      if (authMode === "login" || authMode === "recover") {
+        await restoreCloudBackup({ force: true });
+        completeOnboarding();
+        onClose?.();
+        return;
+      }
       setStepIdx((i) => Math.min(flow.length - 1, i + 1));
     } catch (e) {
       setEmailError(e instanceof Error ? e.message : "Ошибка проверки");
@@ -531,7 +538,9 @@ export function OnboardingFlow({
       setAccountEmail(data.email || trimmed);
       setEmailOk(true);
       trackEvent("login");
-      setStepIdx((i) => Math.min(flow.length - 1, i + 1));
+      await restoreCloudBackup({ force: true });
+      completeOnboarding();
+      onClose?.();
     } catch (e) {
       setEmailError(e instanceof Error ? e.message : "Ошибка");
     } finally {
@@ -703,6 +712,19 @@ export function OnboardingFlow({
               ))}
               {errors.who && (
                 <p className="text-sm text-blush">{errors.who}</p>
+              )}
+              {mode === "first" && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    switchAuthMode("login");
+                    const idx = flow.indexOf("email");
+                    if (idx >= 0) setStepIdx(idx);
+                  }}
+                  className="w-full pt-1 text-center text-sm text-accent underline underline-offset-2"
+                >
+                  Уже есть аккаунт? Войти
+                </button>
               )}
             </div>
           )}
