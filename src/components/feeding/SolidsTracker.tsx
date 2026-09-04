@@ -13,6 +13,8 @@ import {
   DiaryTimeline,
   DiaryTimelineRow,
 } from "@/components/diary/DiaryShell";
+import { DiaryInsightCard } from "@/components/diary/DiaryInsightCard";
+import { solidsInsight } from "@/lib/diary-insights";
 import {
   entriesForToday,
   entryTimeMs,
@@ -152,6 +154,8 @@ export function SolidsTracker() {
     };
   }, [todayEntries, entries, allFoodsEver]);
 
+  const insight = useMemo(() => solidsInsight(entries), [entries]);
+
   const filteredFoods = useMemo(() => {
     if (catFilter === "все") return FOODS;
     if (catFilter === "другое") return [];
@@ -192,6 +196,8 @@ export function SolidsTracker() {
           { label: "реакций", value: stats.rashCount },
         ]}
       />
+
+      <DiaryInsightCard view={insight} />
 
       {recentFoods.length > 0 && (
           <div className="mt-4">

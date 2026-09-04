@@ -11,6 +11,8 @@ import {
   DiaryTimeline,
   DiaryTimelineRow,
 } from "@/components/diary/DiaryShell";
+import { DiaryInsightCard } from "@/components/diary/DiaryInsightCard";
+import { waterInsight } from "@/lib/diary-insights";
 import {
   entriesForToday,
   entryTimeMs,
@@ -78,6 +80,7 @@ export function WaterTracker() {
 
   const pct = goal > 0 ? Math.min(100, Math.round((todayMl / goal) * 100)) : 0;
   const left = Math.max(0, goal - todayMl);
+  const insight = useMemo(() => waterInsight(entries), [entries]);
   const ringPct = Math.min(1, todayMl / goal);
   const circumference = 2 * Math.PI * 54;
   const dashOffset = circumference * (1 - ringPct);
@@ -102,6 +105,8 @@ export function WaterTracker() {
           { label: "Осталось", value: left > 0 ? `${left} мл` : "✓" },
         ]}
       />
+
+      <DiaryInsightCard view={insight} />
 
       <div className="flex flex-col items-center">
         <div className="relative h-36 w-36">

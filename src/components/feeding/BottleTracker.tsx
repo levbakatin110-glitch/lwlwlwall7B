@@ -13,6 +13,8 @@ import {
   DiaryTimeline,
   DiaryTimelineRow,
 } from "@/components/diary/DiaryShell";
+import { DiaryInsightCard } from "@/components/diary/DiaryInsightCard";
+import { formulaInsight } from "@/lib/diary-insights";
 import {
   entriesForToday,
   entryTimeMs,
@@ -99,6 +101,8 @@ export function BottleTracker() {
     };
   }, [todayEntries]);
 
+  const insight = useMemo(() => formulaInsight(entries), [entries]);
+
   function save() {
     if (ml < 10) return;
     const brandLabel =
@@ -127,6 +131,8 @@ export function BottleTracker() {
           { label: "кормлений", value: stats.count },
         ]}
       />
+
+      <DiaryInsightCard view={insight} />
 
       <div className="flex items-end justify-center gap-6">
           <svg

@@ -12,6 +12,8 @@ import {
   DiaryTimeline,
   DiaryTimelineRow,
 } from "@/components/diary/DiaryShell";
+import { DiaryInsightCard } from "@/components/diary/DiaryInsightCard";
+import { sleepInsight } from "@/lib/diary-insights";
 import {
   entriesForToday,
   entryTimeMs,
@@ -67,6 +69,7 @@ export function SleepTracker({ journalId = "sleep" }: { journalId?: string }) {
   const addJournalEntry = useAppStore((s) => s.addJournalEntry);
   const removeJournalEntry = useAppStore((s) => s.removeJournalEntry);
   const entries = useAppStore((s) => s.journals[journalId] ?? []);
+  const birthDate = useAppStore((s) => s.profile?.birthDate);
 
   const storageKey = journalId === "sleep" ? KEY : `${KEY}-${journalId}`;
   const isMomSleep = journalId === "preg_sleep";
@@ -119,6 +122,11 @@ export function SleepTracker({ journalId = "sleep" }: { journalId?: string }) {
       wakeMin: wake,
     };
   }, [todayEntries, entries]);
+
+  const insight = useMemo(
+    () => (isMomSleep ? null : sleepInsight(entries, birthDate)),
+    [isMomSleep, entries, birthDate],
+  );
 
   const sleepSpans = useMemo(() => {
     const spans = todayEntries.map((e) => ({
@@ -177,6 +185,8 @@ export function SleepTracker({ journalId = "sleep" }: { journalId?: string }) {
           { label: "Бодрств.", value: stats.wakeLabel },
         ]}
       />
+
+      {insight ? <DiaryInsightCard view={insight} /> : null}
 
       <DiaryDayStrip now={now} spans={sleepSpans} />
 

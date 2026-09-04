@@ -10,6 +10,8 @@ import {
   DiaryTimeline,
   DiaryTimelineRow,
 } from "@/components/diary/DiaryShell";
+import { DiaryInsightCard } from "@/components/diary/DiaryInsightCard";
+import { diaperInsight } from "@/lib/diary-insights";
 import {
   entriesForToday,
   entryTimeMs,
@@ -54,6 +56,7 @@ export function DiaperTracker() {
   const addJournalEntry = useAppStore((s) => s.addJournalEntry);
   const removeJournalEntry = useAppStore((s) => s.removeJournalEntry);
   const entries = useAppStore((s) => s.journals.diaper ?? []);
+  const birthDate = useAppStore((s) => s.profile?.birthDate);
   const [rashNext, setRashNext] = useState(false);
   const [flashKind, setFlashKind] = useState<KindId | null>(null);
 
@@ -79,6 +82,11 @@ export function DiaperTracker() {
   const lastMs = todayEntries[0] ? entryTimeMs(todayEntries[0]) : null;
   const minsSince =
     lastMs != null ? Math.max(0, Math.floor((Date.now() - lastMs) / 60_000)) : null;
+
+  const insight = useMemo(
+    () => diaperInsight(entries, birthDate),
+    [entries, birthDate],
+  );
 
   function log(kind: KindId) {
     const meta = KINDS.find((k) => k.id === kind)!;
@@ -116,6 +124,8 @@ export function DiaperTracker() {
           },
         ]}
       />
+
+      <DiaryInsightCard view={insight} />
 
       <button
           type="button"

@@ -11,6 +11,8 @@ import {
   DiaryTimeline,
   DiaryTimelineRow,
 } from "@/components/diary/DiaryShell";
+import { DiaryInsightCard } from "@/components/diary/DiaryInsightCard";
+import { growthSpark } from "@/lib/diary-insights";
 import { entryTimeMs, formatClock, todayYmd } from "@/lib/diary-day";
 import { parseHeightCm, parseWeightKg } from "@/lib/growth-norms";
 import { useAppStore } from "@/lib/store";
@@ -88,6 +90,8 @@ export function GrowthTracker() {
   const hasHeight = Number.isFinite(heightNum) && heightNum >= 40 && heightNum <= 130;
   const canSave = hasWeight || hasHeight;
 
+  const insight = useMemo(() => growthSpark(entries), [entries]);
+
   function save() {
     if (!canSave) return;
     const startMs = Date.now();
@@ -121,6 +125,8 @@ export function GrowthTracker() {
           { label: "записей", value: sorted.length },
         ]}
       />
+
+      <DiaryInsightCard view={insight} />
 
       <div className="mt-5 grid grid-cols-2 gap-3">
         <div className="flex flex-col items-center rounded-3xl border border-line bg-gradient-to-b from-card to-[color-mix(in_oklab,var(--accent)_6%,var(--card))] py-8 shadow-sm">

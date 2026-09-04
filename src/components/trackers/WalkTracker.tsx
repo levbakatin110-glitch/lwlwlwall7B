@@ -11,6 +11,8 @@ import {
   DiaryTimeline,
   DiaryTimelineRow,
 } from "@/components/diary/DiaryShell";
+import { DiaryInsightCard } from "@/components/diary/DiaryInsightCard";
+import { walkInsight } from "@/lib/diary-insights";
 import {
   entriesForToday,
   entryTimeMs,
@@ -110,6 +112,8 @@ export function WalkTracker() {
     };
   }, [todayItems]);
 
+  const insight = useMemo(() => walkInsight(entries), [entries]);
+
   const liveSec = live
     ? Math.max(0, Math.floor((now - live.startMs) / 1000))
     : 0;
@@ -167,6 +171,8 @@ export function WalkTracker() {
           { label: "Последняя", value: stats.last },
         ]}
       />
+
+      <DiaryInsightCard view={insight} />
 
       {!live ? (
         <div className="mt-4 grid gap-3 sm:grid-cols-2">

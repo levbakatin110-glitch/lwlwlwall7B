@@ -12,6 +12,8 @@ import {
   DiaryTimeline,
   DiaryTimelineRow,
 } from "@/components/diary/DiaryShell";
+import { DiaryInsightCard } from "@/components/diary/DiaryInsightCard";
+import { healthInsight } from "@/lib/diary-insights";
 import {
   entriesForToday,
   entryTimeMs,
@@ -98,6 +100,8 @@ export function HealthTracker() {
     };
   }, [todayEntries]);
 
+  const insight = useMemo(() => healthInsight(entries), [entries]);
+
   const resolvedSymptom =
     symptom === "другое" ? customSymptom.trim() : symptom;
   const customTempNum = Number(customTemp.replace(",", "."));
@@ -139,6 +143,8 @@ export function HealthTracker() {
           { label: "симптомов", value: stats.symptomCount },
         ]}
       />
+
+      <DiaryInsightCard view={insight} />
 
       <div className="maya-diary-panel">
         <p className="text-[11px] font-medium text-muted">Температура</p>

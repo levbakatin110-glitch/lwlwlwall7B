@@ -11,6 +11,8 @@ import {
   DiaryTimeline,
   DiaryTimelineRow,
 } from "@/components/diary/DiaryShell";
+import { DiaryInsightCard } from "@/components/diary/DiaryInsightCard";
+import { breastfeedingInsight } from "@/lib/diary-insights";
 import {
   entriesForToday,
   entryTimeMs,
@@ -115,6 +117,7 @@ export function BreastfeedingTracker() {
   const addJournalEntry = useAppStore((s) => s.addJournalEntry);
   const removeJournalEntry = useAppStore((s) => s.removeJournalEntry);
   const entries = useAppStore((s) => s.journals.breastfeeding ?? []);
+  const birthDate = useAppStore((s) => s.profile?.birthDate);
 
   const [session, setSession] = useState<LiveSession>({
     leftSec: 0,
@@ -177,6 +180,11 @@ export function BreastfeedingTracker() {
       lastLabel,
     };
   }, [todayEntries, lastSide]);
+
+  const insight = useMemo(
+    () => breastfeedingInsight(entries, birthDate),
+    [entries, birthDate],
+  );
 
   function start(side: Side) {
     setSession((prev) => {
@@ -256,6 +264,8 @@ export function BreastfeedingTracker() {
           { label: "Последняя", value: stats.lastLabel },
         ]}
       />
+
+      <DiaryInsightCard view={insight} />
 
       <div className="mt-5 grid grid-cols-2 gap-3">
         {(["left", "right"] as const).map((side) => {
