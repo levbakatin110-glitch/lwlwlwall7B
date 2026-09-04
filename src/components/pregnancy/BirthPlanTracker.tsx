@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
   DiaryChip,
@@ -97,13 +96,6 @@ export function BirthPlanTracker() {
           { label: "Сегодня", value: todayCount },
         ]}
       />
-
-      <p className="mt-3 text-center text-xs text-muted">
-        PDF и полный план — в{" "}
-        <Link href="/med" className="text-accent underline">
-          мед. карте
-        </Link>
-      </p>
 
       <div className="maya-diary-panel">
         <p className="text-[11px] font-medium text-muted">Пункты плана</p>
