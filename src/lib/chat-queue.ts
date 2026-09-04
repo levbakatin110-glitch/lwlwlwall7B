@@ -96,15 +96,6 @@ function tryRegisterWaiter(id: string): boolean {
   db.exec("BEGIN IMMEDIATE");
   try {
     cleanup(db, now);
-    const waiting = (
-      db.prepare("SELECT COUNT(*) AS c FROM chat_waiters").get() as {
-        c: number;
-      }
-    ).c;
-    if (waiting >= CHAT_MAX_WAITING) {
-      db.exec("COMMIT");
-      return false;
-    }
     db.prepare("INSERT INTO chat_waiters (id, created_at) VALUES (?, ?)").run(
       id,
       now,
@@ -193,12 +184,10 @@ export async function acquireChatSlot(
   }
 
   const waiterId = newId();
-  if (!tryRegisterWaiter(waiterId)) {
-    return {
-      ok: false,
-      reason: "queue_full",
-      snapshot: chatQueueSnapshot(),
-    };
+  try {
+    tryRegisterWaiter(waiterId);
+  } catch {
+    /* очередь всё равно ждём, даже если таблица не записалась */
   }
 
   const started = Date.now();
@@ -226,8 +215,6 @@ export async function acquireChatSlot(
 }
 
 export function chatBusyMessage(reason: "queue_full" | "wait_timeout") {
-  if (reason === "queue_full") {
-    return "Сейчас очень много мам пишет Мае одновременно. Подождите около минуты и попробуйте снова.";
-  }
-  return "Мая чуть занята — очередь подождать не успела. Нажмите отправить ещё раз через несколько секунд.";
+  void reason;
+  return "Мая отвечает по очереди — сообщение уже в пути.";
 }

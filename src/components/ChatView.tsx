@@ -108,6 +108,26 @@ function isOutfitIntent(text: string) {
   );
 }
 
+function sleepMs(ms: number) {
+  return new Promise<void>((r) => setTimeout(r, ms));
+}
+
+function isChatOverloadStatus(
+  res: Response,
+  data: { code?: string } | null,
+) {
+  if (res.status === 504 || res.status === 502) return true;
+  return res.status === 503 && (data?.code === "chat_busy" || !data?.code);
+}
+
+function isRetryableChatNetwork(e: unknown) {
+  if (!(e instanceof Error)) return false;
+  return (
+    e.name === "TimeoutError" ||
+    /aborted|timeout|failed to fetch|network/i.test(e.message)
+  );
+}
+
 type SpeechRec = {
   lang: string;
   interimResults: boolean;
@@ -575,22 +595,58 @@ export function ChatView() {
           Object.entries(journals).map(([k, v]) => [k, (v ?? []).slice(0, 40)]),
         );
 
-        const res = await fetch("/api/chat", {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            messages: history,
-            profile: liveProfile,
-            enabledModules,
-            customModules,
-            wardrobe: wardrobeForChat(wardrobe),
-            journals: journalsForChat,
-            coords: sendCoords,
-            pregnancy,
-          }),
-          signal: AbortSignal.timeout(100_000),
-        });
+        const payload = {
+          messages: history,
+          profile: liveProfile,
+          enabledModules,
+          customModules,
+          wardrobe: wardrobeForChat(wardrobe),
+          journals: journalsForChat,
+          coords: sendCoords,
+          pregnancy,
+        };
+
+        const busyUntil = Date.now() + 60 * 60 * 1000;
+        let pause = 2000;
+        let res: Response | null = null;
+        while (!res) {
+          try {
+            const attempt = await fetch("/api/chat", {
+              method: "POST",
+              credentials: "include",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+              signal: AbortSignal.timeout(100_000),
+            });
+            if (
+              !attempt.ok &&
+              (attempt.status === 502 ||
+                attempt.status === 503 ||
+                attempt.status === 504)
+            ) {
+              const data = (await attempt.clone().json().catch(() => null)) as {
+                code?: string;
+              } | null;
+              if (
+                isChatOverloadStatus(attempt, data) &&
+                Date.now() < busyUntil
+              ) {
+                await sleepMs(pause);
+                pause = Math.min(pause + 500, 4000);
+                continue;
+              }
+            }
+            res = attempt;
+          } catch (e) {
+            if (isRetryableChatNetwork(e) && Date.now() < busyUntil) {
+              await sleepMs(pause);
+              pause = Math.min(pause + 500, 4000);
+              continue;
+            }
+            throw e;
+          }
+        }
+        if (!res) throw new Error("Нет ответа чата");
 
         if (!res.ok) {
           const data = (await res.json().catch(() => null)) as {
