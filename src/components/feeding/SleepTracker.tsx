@@ -280,11 +280,7 @@ export function SleepTracker({ journalId = "sleep" }: { journalId?: string }) {
           </DiaryTimeline>
         </div>
       ) : (
-        <DiaryEmpty>
-          {isMomSleep
-            ? "Засеките отдых — даже короткий. Полоска суток покажет дырки."
-            : "Засеките сон. Полоска суток — как у Huckleberry, только без подписки."}
-        </DiaryEmpty>
+        <DiaryEmpty>Пока пусто</DiaryEmpty>
       )}
 
       <DiaryStickyCta>

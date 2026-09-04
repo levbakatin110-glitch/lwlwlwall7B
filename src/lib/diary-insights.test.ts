@@ -18,7 +18,7 @@ function entry(
 }
 
 describe("breastfeedingInsight", () => {
-  it("asks for more logs when there is only one feed", () => {
+  it("stays quiet when there is only one feed", () => {
     const now = Date.parse("2026-04-10T15:00:00");
     const view = breastfeedingInsight(
       [
@@ -31,7 +31,7 @@ describe("breastfeedingInsight", () => {
       "2026-03-01",
       now,
     );
-    expect(view.insight?.title).toMatch(/ритм/i);
+    expect(view.insight).toBeNull();
   });
 
   it("flags a long pause vs own median gap", () => {

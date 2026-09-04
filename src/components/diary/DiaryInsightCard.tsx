@@ -43,9 +43,6 @@ export function DiaryInsightCard({ view }: { view: DiaryInsightView }) {
           <p className="mt-1 text-[12px] leading-relaxed text-muted">
             {insight.detail}
           </p>
-          <p className="mt-2 text-[10px] text-muted/80">
-            Не замена педиатру. Ориентир по вашим записям.
-          </p>
         </>
       ) : null}
     </div>
