@@ -169,21 +169,6 @@ export default function ProfilePage() {
         <InstallAppCard />
       </div>
 
-      <Link
-        href="/reminders"
-        className="mt-4 flex items-start gap-3 rounded-2xl border border-line bg-card/70 px-4 py-3.5 transition hover:border-accent/40"
-      >
-        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent">
-          <MayaIcon name="bell" size={18} />
-        </span>
-        <span>
-          <span className="block text-sm font-semibold">Напоминания</span>
-          <span className="mt-0.5 block text-xs leading-relaxed text-muted">
-            Кормление, сон, подгузник — Мая напишет на телефон по вашему плану.
-          </span>
-        </span>
-      </Link>
-
       <div className="mt-6 rounded-2xl border border-line bg-card/70 p-4">
         <div className="flex items-start justify-between gap-3">
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
