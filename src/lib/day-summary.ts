@@ -6,7 +6,8 @@ export type DayEventKind =
   | "breastfeeding"
   | "formula"
   | "solids"
-  | "growth";
+  | "growth"
+  | "diaper";
 
 export type DayEvent = {
   id: string;
@@ -28,6 +29,9 @@ export type DayTotals = {
   formulaMl: number;
   formulaCount: number;
   solidsCount: number;
+  diaperCount: number;
+  diaperWet: number;
+  diaperDirty: number;
 };
 
 export type DayNormHint = {
@@ -202,6 +206,7 @@ export function buildDaySummary(input: {
   const formula = (journals.formula ?? []).filter((e) => e.date === date);
   const solids = (journals.solids ?? []).filter((e) => e.date === date);
   const growth = (journals.growth ?? []).filter((e) => e.date === date);
+  const diaper = (journals.diaper ?? []).filter((e) => e.date === date);
 
   const totals: DayTotals = {
     sleepSec: 0,
@@ -215,6 +220,9 @@ export function buildDaySummary(input: {
     formulaMl: 0,
     formulaCount: formula.length,
     solidsCount: solids.length,
+    diaperCount: diaper.length,
+    diaperWet: 0,
+    diaperDirty: 0,
   };
 
   const events: DayEvent[] = [];
@@ -285,6 +293,21 @@ export function buildDaySummary(input: {
       id: e.id,
       kind: "growth",
       title: "Рост / вес",
+      detail: e.value || "запись",
+      sortAt: sortTime(e),
+    });
+  }
+
+  for (const e of diaper) {
+    const k = String(e.fields?.kind || "");
+    if (k === "wet" || k === "both" || /мокр/i.test(e.value)) totals.diaperWet += 1;
+    if (k === "dirty" || k === "both" || /грязн/i.test(e.value)) {
+      totals.diaperDirty += 1;
+    }
+    events.push({
+      id: e.id,
+      kind: "diaper",
+      title: "Подгузник",
       detail: e.value || "запись",
       sortAt: sortTime(e),
     });
@@ -470,6 +493,7 @@ export function formatDaySummaryBrief(opts: {
     `День: ${opts.dateLabel}`,
     `Сон: ${opts.totals.sleepSec > 0 ? formatDurationRu(opts.totals.sleepSec) : "нет записей"} (${opts.totals.sleepCount} запис.)`,
     `Кормления: ГВ ${opts.totals.bfCount}, смесь ${opts.totals.formulaCount} (${opts.totals.formulaMl} мл), прикорм ${opts.totals.solidsCount}`,
+    `Подгузники: ${opts.totals.diaperCount} (мокрых ${opts.totals.diaperWet}, грязных ${opts.totals.diaperDirty})`,
   ];
   if (opts.totals.bfSec > 0) {
     lines.push(`ГВ суммарно: ${formatDurationRu(opts.totals.bfSec)}`);

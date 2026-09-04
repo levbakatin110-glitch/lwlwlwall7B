@@ -16,6 +16,7 @@ import {
   todayIso,
   type DayEventKind,
 } from "@/lib/day-summary";
+import { buildDayRhythm } from "@/lib/day-rhythm";
 import {
   canSendAiChat,
 } from "@/lib/subscription";
@@ -52,6 +53,11 @@ const KIND_META: Record<
     href: "/m/growth",
     tone: "bg-violet-500/15 text-violet-700 dark:text-violet-300",
   },
+  diaper: {
+    icon: "diaper",
+    href: "/m/diaper",
+    tone: "bg-sky-500/15 text-sky-800 dark:text-sky-200",
+  },
 };
 
 function extrasForDay(
@@ -70,7 +76,6 @@ function extrasForDay(
   };
   pick("water", "Вода");
   pick("walk", "Прогулка");
-  pick("diaper", "Подгузник");
   pick("notes", "Заметки");
   return lines;
 }
@@ -99,6 +104,10 @@ export default function SummaryPage() {
   const hints = useMemo(
     () => dayNormHints({ birthDate: profile.birthDate, totals }),
     [profile.birthDate, totals],
+  );
+  const rhythm = useMemo(
+    () => buildDayRhythm(journals),
+    [journals],
   );
 
   const name = childDisplayName(profile);
@@ -247,7 +256,37 @@ ${brief}`;
         </button>
       </div>
 
-      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+      {isToday && (rhythm.nextFeed || rhythm.nextSleep) ? (
+        <div className="mt-5 rounded-2xl border border-accent/25 bg-accent-soft/40 px-4 py-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-accent">
+            По вашему ритму
+          </p>
+          {rhythm.nextFeed ? (
+            <p className="mt-1.5 text-sm font-medium text-foreground">
+              {rhythm.nextFeed.label}
+            </p>
+          ) : null}
+          {rhythm.nextSleep ? (
+            <p className="mt-0.5 text-sm font-medium text-foreground">
+              {rhythm.nextSleep.label}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      {isToday ? (
+        <p
+          className={`mt-3 text-sm leading-relaxed ${
+            rhythm.compare.tone === "watch"
+              ? "text-amber-800 dark:text-amber-200"
+              : "text-muted"
+          }`}
+        >
+          {rhythm.compare.phrase}
+        </p>
+      ) : null}
+
+      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatTile
           label="Сон"
           value={
@@ -285,7 +324,17 @@ ${brief}`;
           }
           href="/m/formula"
           icon="formula"
-          className="col-span-2 sm:col-span-1"
+        />
+        <StatTile
+          label="Подгузник"
+          value={totals.diaperCount > 0 ? String(totals.diaperCount) : "—"}
+          hint={
+            totals.diaperCount
+              ? `мокрых ${totals.diaperWet} · грязных ${totals.diaperDirty}`
+              : "нет записей"
+          }
+          href="/m/diaper"
+          icon="diaper"
         />
       </div>
 
@@ -394,6 +443,12 @@ ${brief}`;
               className="rounded-xl border border-line bg-card px-3 py-2 text-xs font-semibold"
             >
               Смесь
+            </Link>
+            <Link
+              href="/m/diaper"
+              className="rounded-xl border border-line bg-card px-3 py-2 text-xs font-semibold"
+            >
+              Подгузник
             </Link>
           </div>
         </div>
