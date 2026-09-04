@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import type { AnalyticsSummary } from "@/lib/analytics-store";
+import { AdminLiveLoad } from "@/components/admin/AdminLiveLoad";
 
 const PASS_KEY = "maya-analytics-pass";
 
@@ -121,7 +122,7 @@ export default function AnalyticsPage() {
           </p>
           <h1 className="font-display mt-1 text-3xl font-semibold">Аналитика</h1>
           <p className="mt-1 text-sm text-muted">
-            Последние 30 дней ·{" "}
+            Последние 30 дней · живая нагрузка сверху ·{" "}
             <a href="https://hey-maya.ru/admin/stats" className="underline">
               hey-maya.ru/admin/stats
             </a>
@@ -150,6 +151,8 @@ export default function AnalyticsPage() {
           </Link>
         </div>
       </div>
+
+      <AdminLiveLoad />
 
       {t && (
         <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">

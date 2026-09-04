@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { AuthSessionSync } from "./AuthSessionSync";
+import { PresenceHeartbeat } from "./PresenceHeartbeat";
 import { OnboardingGate } from "./OnboardingGate";
 import { PremiumGate } from "./PremiumGate";
 import { ThemeSync } from "./ThemeSync";
@@ -132,6 +133,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <>
         <ThemeSync />
         {globalSync}
+        {pathname === "/register" ? <PresenceHeartbeat path={pathname} /> : null}
         <div className="h-dvh overflow-y-auto overscroll-y-auto bg-background text-foreground">
           {children}
         </div>
@@ -154,6 +156,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <>
       {globalSync}
+      <PresenceHeartbeat path={pathname} />
       <OnboardingGate>
       <PremiumGate>
       <PaywallHintHost />

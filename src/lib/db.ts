@@ -108,6 +108,21 @@ function migrateSchema(db: DatabaseSync) {
     );
     CREATE INDEX IF NOT EXISTS idx_push_schedule_email ON push_schedule(email);
     CREATE INDEX IF NOT EXISTS idx_push_schedule_next ON push_schedule(next_at);
+
+    CREATE TABLE IF NOT EXISTS presence_heartbeats (
+      visitor_id TEXT PRIMARY KEY,
+      last_seen INTEGER NOT NULL,
+      screen TEXT NOT NULL DEFAULT '',
+      path TEXT NOT NULL DEFAULT ''
+    );
+    CREATE INDEX IF NOT EXISTS idx_presence_seen ON presence_heartbeats(last_seen);
+
+    CREATE TABLE IF NOT EXISTS live_peaks (
+      day TEXT PRIMARY KEY,
+      peak_online INTEGER NOT NULL DEFAULT 0,
+      peak_chat INTEGER NOT NULL DEFAULT 0,
+      updated_at INTEGER NOT NULL
+    );
   `);
   const cols = db.prepare("PRAGMA table_info(plan_orders)").all() as {
     name: string;

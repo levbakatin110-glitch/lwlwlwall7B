@@ -30,7 +30,7 @@ describe("feedback rate limit file", () => {
     const prev = process.cwd();
     process.chdir(dir);
     try {
-      const key = "e:test@example.com";
+      const key = `e:live-load-test-${Date.now()}@example.com`;
       expect(checkFeedbackRateLimit(key)).toEqual({ ok: true });
       markFeedbackSent(key);
       const limited = checkFeedbackRateLimit(key);
