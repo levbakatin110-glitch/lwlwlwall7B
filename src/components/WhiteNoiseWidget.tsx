@@ -146,15 +146,15 @@ export function WhiteNoiseWidget({
       aria-label="Шум для сна — виджет"
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h3
-            className={`font-display font-semibold tracking-tight text-foreground ${
-              compact ? "text-base" : "text-lg"
-            }`}
-          >
-            Шум для сна
-          </h3>
-        </div>
+        {!compact ? (
+          <div className="min-w-0">
+            <h3 className="font-display text-lg font-semibold tracking-tight text-foreground">
+              Шум для сна
+            </h3>
+          </div>
+        ) : (
+          <p className="min-w-0 text-sm text-muted">Выберите звук и таймер</p>
+        )}
         <span
           className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${
             playing

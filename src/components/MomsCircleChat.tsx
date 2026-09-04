@@ -1102,9 +1102,7 @@ export function MomsCircleChat() {
                       }
                     }}
                     rows={1}
-                    placeholder={
-                      replyTo ? "Ответ" : "Сообщение или ссылка на WB / Ozon"
-                    }
+                    placeholder={replyTo ? "Ответ" : "Сообщение"}
                     className="max-h-28 min-h-[2.75rem] flex-1 resize-none rounded-2xl border border-line bg-background px-3.5 py-2.5 text-base text-foreground outline-none focus:border-accent/40"
                   />
                   <button

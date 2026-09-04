@@ -40,7 +40,6 @@ const TALK: { href: string; label: string; icon: IconName }[] = [
 
 const NAV: { href: string; label: string; icon: IconName }[] = [
   { href: "/summary", label: "Итоги дня", icon: "list" },
-  { href: "/reminders", label: "Напоминания", icon: "bell" },
   { href: "/med", label: "Мед. карта", icon: "health" },
   { href: "/pricing", label: "Подписка", icon: "spark" },
 ];
