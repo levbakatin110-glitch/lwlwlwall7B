@@ -5,6 +5,7 @@ import Link from "next/link";
 import { MayaIcon } from "@/components/icons/MayaIcon";
 import { collectScheduledPushes } from "@/components/CareRemindersSync";
 import { notifyViaSw } from "@/components/PushReminders";
+import { minGapAfterFireMs } from "@/lib/care-reminders";
 import { useAppStore } from "@/lib/store";
 
 const FIRED_KEY = "maya-reminders-fired-v1";
@@ -52,7 +53,8 @@ export function RemindersHost() {
       for (const c of items) {
         if (c.nextAt > now) continue;
         if (c.nextAt < now - 24 * 60 * 60 * 1000) continue;
-        const slot = `${c.id}:${Math.floor(c.nextAt / 60_000)}`;
+        const gapMs = minGapAfterFireMs(c);
+        const slot = `${c.id}:${Math.floor(c.nextAt / gapMs)}`;
         if (fired.has(c.id) || fired.has(slot)) continue;
         if (fresh.length >= 5) break;
         fired.add(slot);

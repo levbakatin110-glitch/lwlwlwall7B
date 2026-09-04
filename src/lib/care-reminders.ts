@@ -204,6 +204,49 @@ export function advanceAfterFire(
   );
 }
 
+/** Минимум между пушами одного напоминания: не пачка, если мама не открыла. */
+export const MIN_PUSH_GAP_MS = 60 * 60_000;
+
+export function minGapAfterFireMs(item: {
+  mode: CareReminderMode | "once";
+  intervalMin?: number;
+}): number {
+  if (item.mode === "once") return 24 * MIN_PUSH_GAP_MS;
+  if (item.mode === "times") return 10 * 60 * 60_000;
+  const intervalMs = Math.max(60, item.intervalMin ?? 180) * 60_000;
+  return Math.max(MIN_PUSH_GAP_MS, intervalMs);
+}
+
+/**
+ * Клиент каждые пару секунд заново шлёт nextAt «уже пора».
+ * Если только что отправили — не возвращаем слот в прошлое, иначе тик
+ * шлёт снова каждую минуту.
+ */
+export function resolveScheduleWrite(
+  incoming: {
+    nextAt: number;
+    mode: CareReminderMode | "once";
+    intervalMin?: number;
+  },
+  prev: { nextAt: number; lastSentAt: number | null } | null,
+  now: number,
+): { nextAt: number; lastSentAt: number | null } {
+  if (!prev?.lastSentAt) {
+    return { nextAt: incoming.nextAt, lastSentAt: null };
+  }
+  const gap = minGapAfterFireMs(incoming);
+  if (incoming.nextAt > now + 30_000) {
+    return { nextAt: incoming.nextAt, lastSentAt: prev.lastSentAt };
+  }
+  if (now - prev.lastSentAt < gap) {
+    return {
+      nextAt: Math.max(prev.nextAt, prev.lastSentAt + gap),
+      lastSentAt: prev.lastSentAt,
+    };
+  }
+  return { nextAt: incoming.nextAt, lastSentAt: prev.lastSentAt };
+}
+
 export function lastLogMs(
   journals: Record<string, { fields?: Record<string, string | number>; createdAt?: string; date?: string }[]>,
   moduleIds: string[],

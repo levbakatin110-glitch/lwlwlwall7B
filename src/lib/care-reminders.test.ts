@@ -7,6 +7,7 @@ import {
   nextIntervalAt,
   nextTimesAt,
   parseHhMm,
+  resolveScheduleWrite,
   skipQuiet,
   wallClock,
 } from "./care-reminders";
@@ -164,5 +165,32 @@ describe("computeNextAt", () => {
     );
     expect(next).toBe(last + 180 * 60_000);
     expect(next).toBeLessThan(now);
+  });
+});
+
+describe("resolveScheduleWrite", () => {
+  it("does not resend for 100 minutes after one fire", () => {
+    const sent = utc("2026-03-01T12:00:00Z");
+    const now = sent + 100 * 60_000;
+    const overdue = sent - 60_000;
+    const out = resolveScheduleWrite(
+      { nextAt: overdue, mode: "interval", intervalMin: 180 },
+      { nextAt: overdue, lastSentAt: sent },
+      now,
+    );
+    expect(out.lastSentAt).toBe(sent);
+    expect(out.nextAt).toBeGreaterThan(now);
+  });
+
+  it("accepts a new future slot after she logs", () => {
+    const sent = utc("2026-03-01T12:00:00Z");
+    const now = sent + 20 * 60_000;
+    const nextCycle = now + 180 * 60_000;
+    const out = resolveScheduleWrite(
+      { nextAt: nextCycle, mode: "interval", intervalMin: 180 },
+      { nextAt: sent + 180 * 60_000, lastSentAt: sent },
+      now,
+    );
+    expect(out.nextAt).toBe(nextCycle);
   });
 });

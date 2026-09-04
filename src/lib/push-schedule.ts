@@ -2,6 +2,8 @@ import { getDb } from "@/lib/db";
 import { normalizeEmail } from "@/lib/email-codes";
 import {
   advanceAfterFire,
+  minGapAfterFireMs,
+  resolveScheduleWrite,
   type CareReminderMode,
   type ScheduledPushItem,
 } from "@/lib/care-reminders";
@@ -47,12 +49,23 @@ export function replaceScheduleForEmail(
 ): void {
   const e = normalizeEmail(email);
   const db = getDb();
+  const prevRows = db
+    .prepare(
+      "SELECT id, next_at, last_sent_at FROM push_schedule WHERE email = ?",
+    )
+    .all(e) as { id: string; next_at: number; last_sent_at: number | null }[];
+  const prevById = new Map(
+    prevRows.map((r) => [
+      r.id,
+      { nextAt: Number(r.next_at), lastSentAt: r.last_sent_at == null ? null : Number(r.last_sent_at) },
+    ]),
+  );
   const del = db.prepare("DELETE FROM push_schedule WHERE email = ?");
   const ins = db.prepare(
     `INSERT INTO push_schedule (
       id, email, title, body, url, tag, next_at, mode, interval_min,
       times_json, quiet_from, quiet_to, tz_offset_min, last_sent_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
   db.exec("BEGIN IMMEDIATE");
   try {
@@ -60,20 +73,31 @@ export function replaceScheduleForEmail(
     const now = Date.now();
     for (const it of items.slice(0, 60)) {
       if (!it.id || !it.nextAt || !Number.isFinite(it.nextAt)) continue;
+      const id = it.id.slice(0, 120);
+      const merged = resolveScheduleWrite(
+        {
+          nextAt: Math.round(it.nextAt),
+          mode: it.mode,
+          intervalMin: it.intervalMin,
+        },
+        prevById.get(id) ?? null,
+        now,
+      );
       ins.run(
-        it.id.slice(0, 120),
+        id,
         e,
         it.title.slice(0, 80),
         it.body.slice(0, 220),
         (it.url || "/").slice(0, 160),
         (it.tag || it.id).slice(0, 120),
-        Math.round(it.nextAt),
+        merged.nextAt,
         it.mode,
         it.intervalMin ?? null,
         it.times ? JSON.stringify(it.times) : null,
         it.quietFrom ?? null,
         it.quietTo ?? null,
         Math.round(it.tzOffsetMin || 0),
+        merged.lastSentAt,
         now,
       );
     }
@@ -106,11 +130,17 @@ export function claimDuePushes(now = Date.now(), limit = 80): ScheduleRow[] {
     const del = db.prepare("DELETE FROM push_schedule WHERE id = ?");
     for (const raw of rows) {
       const row = rowFromDb(raw);
+      const gap = minGapAfterFireMs(row);
+      if (row.lastSentAt != null && now - row.lastSentAt < gap) {
+        const hold = Math.max(row.nextAt, row.lastSentAt + gap);
+        upd.run(row.lastSentAt, hold, now, row.id, now);
+        continue;
+      }
       const next = advanceAfterFire(row, now);
       if (next == null) {
         del.run(row.id);
       } else {
-        const bumped = Math.max(next, now + 5 * 60_000);
+        const bumped = Math.max(next, now + gap);
         upd.run(now, bumped, now, row.id, now);
       }
       claimed.push(row);
