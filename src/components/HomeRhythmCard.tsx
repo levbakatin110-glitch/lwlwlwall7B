@@ -41,16 +41,7 @@ export function HomeRhythmCard() {
     today.feedCount + today.diaperCount + today.sleepCount === 0 &&
     !bfOn &&
     !sleepOn;
-  if (empty && compare.tone === "info") {
-    return (
-      <Link
-        href="/summary"
-        className="block shrink-0 border-b border-line bg-card/60 px-3 py-2 text-[12px] leading-snug text-muted"
-      >
-        {compare.phrase}
-      </Link>
-    );
-  }
+  if (empty) return null;
 
   return (
     <Link

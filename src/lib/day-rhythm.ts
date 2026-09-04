@@ -211,11 +211,7 @@ function buildCompare(today: DayCounts, past: DayCounts[]): DayCompare {
   );
   if (useful.length < 3) {
     if (today.feedCount + today.diaperCount + today.sleepCount === 0) {
-      return {
-        tone: "info",
-        phrase:
-          "Отметьте кормление, сон или подгузник — здесь сложится картина дня.",
-      };
+      return { tone: "info", phrase: "" };
     }
     return {
       tone: "info",

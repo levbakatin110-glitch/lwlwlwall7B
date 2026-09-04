@@ -274,7 +274,7 @@ ${brief}`;
         </div>
       ) : null}
 
-      {isToday ? (
+      {isToday && rhythm.compare.phrase ? (
         <p
           className={`mt-3 text-sm leading-relaxed ${
             rhythm.compare.tone === "watch"

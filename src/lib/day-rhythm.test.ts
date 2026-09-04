@@ -133,6 +133,12 @@ describe("buildDayRhythm", () => {
     expect(rhythm.compare.phrase).toMatch(/Похоже на ваши дни/);
   });
 
+  it("does not nag for a day picture when nothing is logged yet", () => {
+    const now = at(2026, 4, 10, 15, 0);
+    const rhythm = buildDayRhythm({}, now);
+    expect(rhythm.compare.phrase).toBe("");
+  });
+
   it("predicts next nap from wake windows", () => {
     const sleeps: JournalEntry[] = [
       sleep("1", 2026, 4, 10, 9, 0, 40),
