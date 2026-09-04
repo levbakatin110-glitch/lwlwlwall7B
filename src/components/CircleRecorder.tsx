@@ -522,6 +522,7 @@ export function CircleRecorder({ onCancel, onReady }: Props) {
 
   const progress = phase === "recording" ? elapsedMs / CIRCLE_MAX_MS : 0;
   const secs = Math.floor(elapsedMs / 1000);
+  const selfieMirror = facing === "user" ? "-scale-x-100" : "";
 
   return (
     <div className="maya-circle-recorder fixed inset-0 z-[220] flex flex-col text-white">
@@ -585,7 +586,7 @@ export function CircleRecorder({ onCancel, onReady }: Props) {
                 muted
                 playsInline
                 autoPlay
-                className="h-full w-full object-cover"
+                className={`h-full w-full object-cover ${selfieMirror}`}
               />
             ) : (
               <video
@@ -594,7 +595,7 @@ export function CircleRecorder({ onCancel, onReady }: Props) {
                 playsInline
                 loop
                 autoPlay
-                className="h-full w-full object-cover"
+                className={`h-full w-full object-cover ${selfieMirror}`}
               />
             )}
             {(phase === "booting" || (!camReady && phase === "live")) && !error && (
