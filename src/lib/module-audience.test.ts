@@ -34,6 +34,7 @@ describe("module audience", () => {
     const ctx = { pregnant: false, hasChild: true };
     expect(shouldShowModule("sleep", ctx)).toBe(true);
     expect(shouldShowModule("growth", ctx)).toBe(true);
+    expect(shouldShowModule("notes", ctx)).toBe(false);
     expect(shouldShowModule("preg_sleep", ctx)).toBe(false);
     expect(shouldShowModule("preg_weight", ctx)).toBe(false);
     expect(shouldShowModule("pregnancy", ctx)).toBe(false);
@@ -46,12 +47,13 @@ describe("module audience", () => {
     expect(shouldShowModule("diaper", ctx)).toBe(false);
     expect(shouldShowModule("kicks", ctx)).toBe(true);
     expect(shouldShowModule("preg_weight", ctx)).toBe(false);
+    expect(shouldShowModule("preg_docs", ctx)).toBe(false);
   });
 
   it("shows both groups when pregnant and already has a child", () => {
     const ctx = { pregnant: true, hasChild: true };
     const shown = filterModulesForNav(
-      ["sleep", "kicks", "preg_weight", "growth"],
+      ["sleep", "kicks", "preg_weight", "growth", "notes", "preg_docs"],
       ctx,
     );
     expect(shown).toEqual(["sleep", "kicks", "growth"]);

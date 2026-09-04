@@ -76,7 +76,6 @@ function extrasForDay(
   };
   pick("water", "Вода");
   pick("walk", "Прогулка");
-  pick("notes", "Заметки");
   return lines;
 }
 

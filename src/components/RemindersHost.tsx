@@ -34,12 +34,11 @@ function lookingAtMaya(): boolean {
 /** Тихо шлёт системный пуш, если вкладка свёрнута. На открытом сайте ничего не рисует. */
 export function RemindersHost() {
   const childSpaces = useAppStore((s) => s.childSpaces);
-  const journals = useAppStore((s) => s.journals);
   const momJournals = useAppStore((s) => s.momJournals);
 
   const tickKey = useMemo(() => {
-    return `${Object.keys(childSpaces ?? {}).length}:${journals?.notes?.length ?? 0}:${momJournals?.preg_meds?.length ?? 0}`;
-  }, [childSpaces, journals, momJournals]);
+    return `${Object.keys(childSpaces ?? {}).length}:${momJournals?.preg_meds?.length ?? 0}`;
+  }, [childSpaces, momJournals]);
 
   useEffect(() => {
     function check() {

@@ -14,9 +14,9 @@ export function isBabyModuleId(id: string): boolean {
   return (DEFAULT_ENABLED_MODULES as readonly string[]).includes(id);
 }
 
-/** Вес мамы убрали из продукта — не показываем нигде в меню. */
+/** Вес мамы, заметки и документы убрали из продукта. */
 export function isRetiredModuleId(id: string): boolean {
-  return id === "preg_weight";
+  return id === "preg_weight" || id === "notes" || id === "preg_docs";
 }
 
 /** Какие дневники видны в меню: малыш отдельно, беременность — только если беременна. */

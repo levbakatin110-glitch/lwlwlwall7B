@@ -58,7 +58,6 @@ const PREGNANCY_PINNED: {
   { href: "/m/preg_belly", label: "Животик", icon: "outfit", moduleId: "preg_belly" },
   { href: "/m/preg_meds", label: "Лекарства", icon: "health", moduleId: "preg_meds" },
   { href: "/m/preg_labs", label: "Анализы", icon: "list", moduleId: "preg_labs" },
-  { href: "/m/preg_docs", label: "Документы", icon: "list", moduleId: "preg_docs" },
   { href: "/m/preg_sleep", label: "Сон мамы", icon: "sleep", moduleId: "preg_sleep" },
   { href: "/m/birth_plan", label: "План родов", icon: "spark", moduleId: "birth_plan" },
   { href: "/m/cycle", label: "Цикл", icon: "pulse", moduleId: "cycle" },
@@ -80,7 +79,6 @@ const BABY_PINNED: {
   { href: "/m/water", label: "Вода", icon: "water", moduleId: "water" },
   { href: "/m/walk", label: "Прогулка", icon: "walk", moduleId: "walk" },
   { href: "/m/diaper", label: "Подгузник", icon: "diaper", moduleId: "diaper" },
-  { href: "/m/notes", label: "Заметки", icon: "notes", moduleId: "notes" },
   { href: "/wardrobe", label: "Одежда", icon: "wardrobe" },
   { href: "/recipes", label: "Рецепты", icon: "diet" },
 ];

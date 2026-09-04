@@ -118,7 +118,6 @@ export function TodayPulse({
     void tick;
     const nowMs = Date.now();
     const rows = [
-      ...(has("notes") ? journals.notes ?? [] : []),
       ...(has("preg_meds") ? journals.preg_meds ?? [] : []),
     ]
       .map((e) => {
@@ -129,13 +128,13 @@ export function TodayPulse({
         return {
           t,
           text: String(e.fields?.text || e.note || e.value),
-          href: e.fields?.name ? "/m/preg_meds" : "/m/notes",
+          href: "/m/preg_meds",
         };
       })
       .filter(Boolean) as { t: number; text: string; href: string }[];
     rows.sort((a, b) => a.t - b.t);
     return rows[0] ?? null;
-  }, [journals.notes, journals.preg_meds, enabled, tick]);
+  }, [journals.preg_meds, enabled, tick]);
 
   const nextVisit = useMemo(() => {
     if (!has("preg_visits")) return null;

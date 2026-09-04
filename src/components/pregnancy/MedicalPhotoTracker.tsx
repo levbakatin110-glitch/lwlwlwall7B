@@ -22,7 +22,7 @@ import { getJournalEntries, useAppStore } from "@/lib/store";
 export function MedicalPhotoTracker({
   moduleId,
 }: {
-  moduleId: "preg_labs" | "preg_docs";
+  moduleId: "preg_labs";
 }) {
   const addJournalEntry = useAppStore((s) => s.addJournalEntry);
   const removeJournalEntry = useAppStore((s) => s.removeJournalEntry);
@@ -75,7 +75,7 @@ export function MedicalPhotoTracker({
         body: JSON.stringify({
           imageData: preview,
           hint,
-          kind: moduleId === "preg_labs" ? "lab" : "document",
+          kind: "lab",
         }),
         signal: AbortSignal.timeout(55_000),
       });

@@ -58,6 +58,7 @@ import {
   type SubscriptionState,
 } from "./subscription";
 import { localToday } from "./local-date";
+import { isRetiredModuleId } from "./module-audience";
 import {
   emptyPregnancy,
   isPregnancyModuleId,
@@ -430,6 +431,7 @@ export const useAppStore = create<AppState>()(
           const cur = spaces[sid]!;
           const next = [...cur.enabledModules];
           for (const id of PREGNANCY_MODULE_IDS) {
+            if (isRetiredModuleId(id)) continue;
             if (!next.includes(id as ModuleId)) next.push(id as ModuleId);
           }
           spaces[sid] = { ...cur, enabledModules: next };
@@ -523,12 +525,14 @@ export const useAppStore = create<AppState>()(
           return;
         }
         if (!premium && !isFreeModuleId(id)) return;
+        if (isRetiredModuleId(id)) return;
         withActiveSpace(get, set, {
           enabledModules: [...enabled, id],
         });
       },
 
       enableModule: (id) => {
+        if (isRetiredModuleId(id)) return;
         const premium = isSubscriptionActive(get().subscription);
         if (!premium && !isFreeModuleId(id)) return;
         const enabled = get().enabledModules;
@@ -1236,6 +1240,22 @@ export const useAppStore = create<AppState>()(
           }
           state.modulesAudienceV1 = true;
           seededDefaults = true;
+        }
+
+        {
+          const apply = (list: ModuleId[]) =>
+            list.filter((id) => !isRetiredModuleId(id));
+          const cleaned = apply(next);
+          if (cleaned.length !== next.length) {
+            next.length = 0;
+            next.push(...cleaned);
+            seededDefaults = true;
+          }
+          for (const sid of Object.keys(state.childSpaces ?? {})) {
+            const space = state.childSpaces[sid];
+            if (!space) continue;
+            space.enabledModules = apply(space.enabledModules ?? []);
+          }
         }
 
         // Бесплатный тариф: только разрешённые дневники

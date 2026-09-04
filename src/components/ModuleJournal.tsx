@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useMemo, useRef, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { DiaryHowTo } from "@/components/DiaryHowTo";
 import { DiaryQuickActions } from "@/components/DiaryQuickActions";
 import { CustomSmartPanel } from "@/components/CustomSmartPanel";
@@ -14,7 +15,6 @@ import { DietTracker } from "@/components/diet/DietTracker";
 import { DiaperTracker } from "@/components/trackers/DiaperTracker";
 import { GrowthTracker } from "@/components/trackers/GrowthTracker";
 import { HealthTracker } from "@/components/trackers/HealthTracker";
-import { NotesTracker } from "@/components/trackers/NotesTracker";
 import { VaccinesTracker } from "@/components/trackers/VaccinesTracker";
 import { WalkTracker } from "@/components/trackers/WalkTracker";
 import { WaterTracker } from "@/components/trackers/WaterTracker";
@@ -35,6 +35,7 @@ import { IconBadge } from "@/components/icons/MayaIcon";
 import { PlanOfferBanner } from "@/components/plan/PlanOffer";
 import { hintForDiary } from "@/lib/diary-hints";
 import { isDietLikeModule } from "@/lib/diet";
+import { isRetiredModuleId } from "@/lib/module-audience";
 import { fallbackSmartForTopic } from "@/lib/module-schema";
 import {
   assessGrowth,
@@ -268,6 +269,11 @@ function FieldInput({
 }
 
 export function ModuleJournal({ moduleId }: { moduleId: string }) {
+  const router = useRouter();
+  useEffect(() => {
+    if (isRetiredModuleId(moduleId)) router.replace("/");
+  }, [moduleId, router]);
+
   const customModules = useAppStore((s) => s.customModules);
   const profile = useAppStore((s) => s.profile);
   const subscription = useAppStore((s) => s.subscription);
@@ -420,6 +426,8 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
       label: String(y),
     }));
   }, [chartValues]);
+
+  if (isRetiredModuleId(moduleId)) return null;
 
   if (!mod) {
     return (
@@ -621,11 +629,6 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
           <VaccinesTracker />
         </div>
       )}
-      {moduleId === "notes" && (
-        <div className="mt-4">
-          <NotesTracker />
-        </div>
-      )}
       {moduleId === "health" && (
         <div className="mt-4">
           <HealthTracker />
@@ -666,9 +669,9 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
           <MedsTracker />
         </div>
       )}
-      {(moduleId === "preg_labs" || moduleId === "preg_docs") && (
+      {moduleId === "preg_labs" && (
         <div className="mt-4">
-          <MedicalPhotoTracker moduleId={moduleId} />
+          <MedicalPhotoTracker moduleId="preg_labs" />
         </div>
       )}
       {moduleId === "preg_pressure" && (

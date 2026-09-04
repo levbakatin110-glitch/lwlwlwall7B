@@ -95,10 +95,6 @@ const CHIPS: Record<string, Chip[]> = {
     { label: "УЗИ", prefill: "УЗИ" },
     { label: "Скрининг", prefill: "Скрининг" },
   ],
-  preg_docs: [
-    { label: "Обменка", prefill: "Обменная карта с собой" },
-    { label: "Направление", prefill: "Направление на анализ" },
-  ],
   birth_plan: [
     { label: "Партнёр рядом", prefill: "Партнёр рядом на родах" },
     { label: "Контакт кожа-к-коже", prefill: "Контакт кожа-к-коже сразу" },

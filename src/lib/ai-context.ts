@@ -1,4 +1,5 @@
 import { MODULE_BY_ID, customToDef } from "./modules";
+import { isRetiredModuleId } from "./module-audience";
 import { getLocalClock } from "./local-time";
 import type {
   ChatMessage,
@@ -109,8 +110,9 @@ export function buildSystemPrompt(input: {
     ? "малыш (имя ещё не выбрали)"
     : rawName || "малыш (имя пока не указано)";
 
+  const liveModules = enabledModules.filter((id) => !isRetiredModuleId(id));
   const connectedTitles = [
-    ...enabledModules.map((id) => MODULE_BY_ID[id].title),
+    ...liveModules.map((id) => MODULE_BY_ID[id].title),
     ...customModules.map((c) => c.title),
   ];
 
@@ -222,7 +224,7 @@ export function buildSystemPrompt(input: {
             pregnancy.startWeightKg != null
               ? `Вес до беременности: ${pregnancy.startWeightKg} кг`
               : "",
-            "Дневники малыша: growth, sleep, breastfeeding, formula, solids, diaper, water, walk, health, vaccines, notes. Беременность (только если беременна): pregnancy, contractions, kicks, preg_pressure, preg_symptoms, preg_visits, preg_belly, preg_meds, preg_labs, preg_docs, preg_sleep, birth_plan, cycle. Не предлагай вес мамы и не смешивай дневники мамы с дневниками ребёнка.",
+            "Дневники малыша: growth, sleep, breastfeeding, formula, solids, diaper, water, walk, health, vaccines. Беременность (только если беременна): pregnancy, contractions, kicks, preg_pressure, preg_symptoms, preg_visits, preg_belly, preg_meds, preg_labs, preg_sleep, birth_plan, cycle. Не предлагай вес мамы, заметки и документы и не смешивай дневники мамы с дневниками ребёнка.",
             "Тревожные симптомы — к врачу/скорой, не ставь диагнозы.",
           ].filter(Boolean);
         })()
@@ -252,7 +254,7 @@ export function buildSystemPrompt(input: {
     }`,
   );
 
-  for (const id of enabledModules) {
+  for (const id of liveModules) {
     const mod = MODULE_BY_ID[id];
     const entries = recent(journals[id] ?? [], 25);
     lines.push("", `=== ${mod.title} (записи) ===`);
@@ -351,7 +353,7 @@ export function buildSystemPrompt(input: {
   }
 
   const disabled = (Object.keys(MODULE_BY_ID) as ModuleId[]).filter(
-    (id) => !enabledModules.includes(id),
+    (id) => !liveModules.includes(id) && !isRetiredModuleId(id),
   );
   lines.push(
     "",
@@ -525,6 +527,7 @@ export function resolveDiaryId(
 ): string | null {
   const id = rawId.trim();
   if (!id) return null;
+  if (isRetiredModuleId(id)) return null;
   if (customModules.some((c) => c.id === id)) return id;
   if ((enabledModules as string[]).includes(id) && id in MODULE_BY_ID) return id;
   if (id in MODULE_BY_ID) return id;
@@ -539,6 +542,7 @@ export function resolveDiaryId(
   if (byTitle) return byTitle.id;
 
   const builtin = (Object.keys(MODULE_BY_ID) as ModuleId[]).find((mid) => {
+    if (isRetiredModuleId(mid)) return false;
     const t = MODULE_BY_ID[mid].title.toLowerCase();
     return t === lower || t.includes(lower) || lower.includes(t);
   });

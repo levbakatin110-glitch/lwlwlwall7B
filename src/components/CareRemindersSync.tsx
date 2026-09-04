@@ -75,7 +75,6 @@ export function collectScheduledPushes(now = Date.now()): ScheduledPushItem[] {
   }
 
   const oneShotMods: { id: string; href: string }[] = [
-    { id: "notes", href: "/m/notes" },
     { id: "preg_meds", href: "/m/preg_meds" },
   ];
   for (const mod of oneShotMods) {

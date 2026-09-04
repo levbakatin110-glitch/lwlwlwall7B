@@ -324,11 +324,7 @@ export default function RemindersPage() {
       </div>
 
       <p className="mt-6 text-xs text-muted">
-        Разовые заметки и лекарства по-прежнему задаются в{" "}
-        <Link href="/m/notes" className="text-accent">
-          заметках
-        </Link>{" "}
-        и{" "}
+        Лекарства по времени по-прежнему задаются в{" "}
         <Link href="/m/preg_meds" className="text-accent">
           лекарствах
         </Link>

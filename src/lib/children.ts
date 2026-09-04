@@ -66,7 +66,7 @@ export function emptyChildSpace(): ChildSpace {
   };
 }
 
-/** 11 популярных дневников малыша. Беременность и цикл — из анкеты. */
+/** Стартовый набор дневников малыша. Беременность и цикл — из анкеты. */
 export const DEFAULT_ENABLED_MODULES: ModuleId[] = [
   "growth",
   "sleep",
@@ -78,7 +78,6 @@ export const DEFAULT_ENABLED_MODULES: ModuleId[] = [
   "walk",
   "health",
   "vaccines",
-  "notes",
 ];
 
 /** Поднимает битый/частичный space после persist — иначе journals undefined роняет UI */
