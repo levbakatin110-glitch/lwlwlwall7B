@@ -10,22 +10,28 @@ function toneClass(tone: InsightTone): string {
 
 export function DiaryInsightCard({ view }: { view: DiaryInsightView }) {
   const { spark, sparkCaption, insight } = view;
+  const visible = spark.filter((p) => p.value > 0);
+  if (!insight && visible.length === 0) return null;
   const max = Math.max(0.001, ...spark.map((p) => p.value));
-  if (!insight && spark.every((p) => p.value === 0)) return null;
 
   return (
     <div className={`rounded-2xl border px-3.5 py-3 ${insight ? toneClass(insight.tone) : "border-line bg-card/80"}`}>
-      {spark.some((p) => p.value > 0) ? (
+      {visible.length >= 2 ? (
         <div className="mb-2.5">
           <p className="text-[10px] font-medium tracking-wide text-muted">
             {sparkCaption ?? "динамика"}
           </p>
-          <div className="mt-2 flex h-12 items-end gap-1">
+          <div className="mt-2 flex h-14 items-end gap-1">
             {spark.map((p) => (
-              <div key={p.key} className="flex min-w-0 flex-1 flex-col items-center gap-1">
+              <div
+                key={p.key}
+                className="flex h-full min-w-0 flex-1 flex-col justify-end"
+              >
                 <span
                   className="w-full rounded-sm bg-accent/80"
-                  style={{ height: `${Math.max(8, (p.value / max) * 100)}%` }}
+                  style={{
+                    height: `${p.value > 0 ? Math.max(10, (p.value / max) * 100) : 0}%`,
+                  }}
                   title={`${p.label}: ${p.value}`}
                 />
               </div>

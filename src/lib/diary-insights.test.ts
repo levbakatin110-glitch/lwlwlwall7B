@@ -3,6 +3,7 @@ import {
   addDaysIso,
   breastfeedingInsight,
   diaperInsight,
+  growthSpark,
 } from "./diary-insights";
 import type { JournalEntry } from "./types";
 
@@ -107,3 +108,22 @@ describe("addDaysIso", () => {
     expect(addDaysIso("2026-03-31", 1)).toBe("2026-04-01");
   });
 });
+
+describe("growthSpark", () => {
+  it("hides the week chart until there are two weigh-ins", () => {
+    const now = Date.parse("2026-04-10T12:00:00");
+    const view = growthSpark(
+      [
+        entry({
+          id: "1",
+          date: "2026-04-10",
+          fields: { weightKg: 8.2, startMs: now },
+        }),
+      ],
+      now,
+    );
+    expect(view.spark).toEqual([]);
+    expect(view.insight).toBeNull();
+  });
+});
+

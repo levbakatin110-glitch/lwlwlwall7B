@@ -583,19 +583,11 @@ export function growthSpark(
     };
   });
   const sparkCaption = "вес, кг";
-  const vals = spark.map((p) => p.value).filter((n) => n > 0);
-  if (vals.length < 2) {
-    return {
-      spark: vals.length ? spark : [],
-      sparkCaption,
-      insight: {
-        tone: "info",
-        title: "Рост смотрят по точкам, не по одной цифре",
-        detail:
-          "Одно взвешивание мало что значит. Две–три точки с разницей в дни — и видно, идёт ли набор, а не «нормально ли 8 кг вообще».",
-      },
-    };
+  const measuredDays = days.filter((d) => lastWeight.has(d));
+  if (measuredDays.length < 2) {
+    return { spark: [], insight: null };
   }
+  const vals = spark.map((p) => p.value).filter((n) => n > 0);
   const first = vals[0]!;
   const last = vals[vals.length - 1]!;
   const d = last - first;
