@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Деплой на VPS: cluster pm2 + webpack-сборка
+# Деплой на VPS: tarball с GitHub (без git pull / логина) + webpack-сборка
 set -euo pipefail
 cd /var/www/maya
 
@@ -23,8 +23,20 @@ if [ -f .env.production ]; then
   set +a
 fi
 
-git checkout -- package-lock.json 2>/dev/null || true
-git pull
+# Репозиторий закрытый для git pull — качаем публичный tarball ветки main
+rm -rf /tmp/lwlwlwall7B-main /tmp/main.tar.gz
+curl -fsSL -o /tmp/main.tar.gz https://github.com/levbakatin110-glitch/lwlwlwall7B/archive/refs/heads/main.tar.gz
+tar xzf /tmp/main.tar.gz -C /tmp
+rsync -a \
+  --exclude '.git' \
+  --exclude '.env' \
+  --exclude '.env.local' \
+  --exclude '.env.production' \
+  --exclude 'node_modules' \
+  --exclude '.next' \
+  --exclude 'data' \
+  /tmp/lwlwlwall7B-main/ /var/www/maya/
+
 npm install
 
 pm2 stop maya 2>/dev/null || true
@@ -50,4 +62,4 @@ if [ -x scripts/apply-nginx-chat-timeouts.sh ]; then
   bash scripts/apply-nginx-chat-timeouts.sh || true
 fi
 
-echo "OK: $(git log -1 --oneline) · BUILD_ID=$(cat .next/BUILD_ID) · pm2×${CHAT_PM2_INSTANCES}"
+echo "OK: BUILD_ID=$(cat .next/BUILD_ID) · pm2×${CHAT_PM2_INSTANCES}"

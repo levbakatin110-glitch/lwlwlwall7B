@@ -1,5 +1,6 @@
 import { readFileSync } from "fs";
 import { join } from "path";
+import { resendFromAddress } from "@/lib/resend";
 
 export const runtime = "nodejs";
 
@@ -17,6 +18,7 @@ export async function GET() {
     ok: true,
     app: "maya",
     buildId: readBuildId(),
+    mailFrom: resendFromAddress(),
     betterstack: Boolean(process.env.NEXT_PUBLIC_BETTERSTACK_DSN?.trim()),
     features: ["email-register", "feedback", "betterstack", "chat", "push"],
   });
