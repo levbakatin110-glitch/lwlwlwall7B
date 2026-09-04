@@ -1,5 +1,7 @@
 import { cpus, freemem, loadavg, totalmem } from "os";
+import { capacityModel, type CapacityModel } from "@/lib/capacity";
 import { chatQueueSnapshot } from "@/lib/chat-queue";
+import { chatAnswerEstimate } from "@/lib/chat-timing";
 import { getDb } from "@/lib/db";
 import {
   noteLivePeaks,
@@ -30,6 +32,7 @@ export type LiveLoadReport = {
     maxConcurrent: number;
     maxWaiting: number;
   };
+  capacity: CapacityModel;
   server: {
     rssMb: number;
     heapMb: number;
@@ -46,36 +49,23 @@ export type LiveLoadReport = {
 };
 
 export function classifyLoad(input: {
-  chatActive: number;
-  chatWaiting: number;
-  maxConcurrent: number;
-  maxWaiting: number;
+  estimatedWaitSec: number;
   rssMb: number;
   systemUsedPct: number;
   load1: number;
   cpuCount: number;
 }): { verdict: LoadVerdict; reasons: string[] } {
   const reasons: string[] = [];
-  const chatRatio =
-    input.maxConcurrent > 0 ? input.chatActive / input.maxConcurrent : 0;
   const loadRatio = input.cpuCount > 0 ? input.load1 / input.cpuCount : 0;
 
   let verdict: LoadVerdict = "ok";
 
-  if (input.chatWaiting >= 10) {
+  if (input.estimatedWaitSec > 60) {
     verdict = "overload";
-    reasons.push("Очередь чата длинная — мамы ждут ответа ИИ");
-  } else if (input.chatWaiting > 0) {
+    reasons.push("Очередь ИИ уже больше минуты");
+  } else if (input.estimatedWaitSec >= 15) {
     verdict = "busy";
-    reasons.push("Есть очередь на чат с ИИ");
-  }
-
-  if (chatRatio >= 0.95) {
-    verdict = "overload";
-    reasons.push("Почти все слоты чата заняты");
-  } else if (chatRatio >= 0.7 && verdict === "ok") {
-    verdict = "busy";
-    reasons.push("Чат ИИ загружен больше чем на 70%");
+    reasons.push("Очередь ИИ растёт — до минуты ещё терпимо");
   }
 
   if (input.systemUsedPct >= 90) {
@@ -108,6 +98,7 @@ export function classifyLoad(input: {
 function verdictCopy(
   verdict: LoadVerdict,
   online: number,
+  nowWaitSec: number,
   reasons: string[],
 ): { verdictLabel: string; hint: string } {
   if (verdict === "overload") {
@@ -123,15 +114,19 @@ function verdictCopy(
       verdictLabel: "На грани",
       hint:
         reasons[0] ||
-        "Пока держимся, но запас маленький. Не разгонять трафик.",
+        "Пока держимся. Минута ожидания в ИИ ещё норма, дальше — уже нет.",
+    };
+  }
+  if (nowWaitSec > 0) {
+    return {
+      verdictLabel: "Вывозим",
+      hint: `Очередь есть, но короткая: ~${nowWaitSec} сек. Минута ещё в запасе.`,
     };
   }
   const people =
     online === 0
       ? "Сейчас почти никого нет."
-      : online === 1
-        ? "Сейчас 1 человек на сайте — спокойно вывозим."
-        : `Сейчас ${online} человек на сайте — спокойно вывозим.`;
+      : `Сейчас ${online} ${online === 1 ? "человек" : "человек"} на сайте — спокойно вывозим.`;
   return { verdictLabel: "Вывозим", hint: people };
 }
 
@@ -174,17 +169,26 @@ export function getLiveLoadReport(): LiveLoadReport {
   const cpuCount = Math.max(1, cpus().length);
   const load1 = loadavg()[0] ?? 0;
   const rssMb = Math.round(mem.rss / 1024 / 1024);
+  const answer = chatAnswerEstimate();
+  const capacity = capacityModel({
+    slots: chat.maxConcurrent,
+    answerSec: answer.answerSec,
+    answerMeasured: answer.measured,
+    waiting: chat.waiting,
+  });
   const classified = classifyLoad({
-    chatActive: chat.active,
-    chatWaiting: chat.waiting,
-    maxConcurrent: chat.maxConcurrent,
-    maxWaiting: chat.maxWaiting,
+    estimatedWaitSec: capacity.nowWaitSec,
     rssMb,
     systemUsedPct,
     load1,
     cpuCount,
   });
-  const copy = verdictCopy(classified.verdict, presence.online, classified.reasons);
+  const copy = verdictCopy(
+    classified.verdict,
+    presence.online,
+    capacity.nowWaitSec,
+    classified.reasons,
+  );
   const todayCounts = last24hCounts();
 
   return {
@@ -204,6 +208,7 @@ export function getLiveLoadReport(): LiveLoadReport {
       maxConcurrent: chat.maxConcurrent,
       maxWaiting: chat.maxWaiting,
     },
+    capacity,
     server: {
       rssMb,
       heapMb: Math.round(mem.heapUsed / 1024 / 1024),

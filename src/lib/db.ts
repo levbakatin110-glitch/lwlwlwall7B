@@ -123,6 +123,13 @@ function migrateSchema(db: DatabaseSync) {
       peak_chat INTEGER NOT NULL DEFAULT 0,
       updated_at INTEGER NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS chat_timing (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      ema_ms REAL NOT NULL,
+      samples INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
   `);
   const cols = db.prepare("PRAGMA table_info(plan_orders)").all() as {
     name: string;

@@ -14,10 +14,7 @@ describe("screenFromPath", () => {
 
 describe("classifyLoad", () => {
   const base = {
-    chatActive: 2,
-    chatWaiting: 0,
-    maxConcurrent: 50,
-    maxWaiting: 120,
+    estimatedWaitSec: 0,
     rssMb: 400,
     systemUsedPct: 20,
     load1: 0.4,
@@ -28,12 +25,20 @@ describe("classifyLoad", () => {
     expect(classifyLoad(base).verdict).toBe("ok");
   });
 
-  it("is busy when chat is 70%+ full", () => {
-    expect(classifyLoad({ ...base, chatActive: 36 }).verdict).toBe("busy");
+  it("is ok with a short AI queue under a minute", () => {
+    expect(classifyLoad({ ...base, estimatedWaitSec: 8 }).verdict).toBe("ok");
   });
 
-  it("is overload when chat queue is long", () => {
-    expect(classifyLoad({ ...base, chatWaiting: 20 }).verdict).toBe("overload");
+  it("is busy when wait climbs toward a minute", () => {
+    expect(classifyLoad({ ...base, estimatedWaitSec: 25 }).verdict).toBe(
+      "busy",
+    );
+  });
+
+  it("is overload when wait exceeds a minute", () => {
+    expect(classifyLoad({ ...base, estimatedWaitSec: 70 }).verdict).toBe(
+      "overload",
+    );
   });
 
   it("is overload when RAM is almost gone", () => {

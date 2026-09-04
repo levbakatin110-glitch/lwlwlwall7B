@@ -5,6 +5,7 @@
 
 import { randomBytes } from "crypto";
 import { getDb } from "@/lib/db";
+import { recordChatDurationMs } from "@/lib/chat-timing";
 
 export const CHAT_MAX_CONCURRENT = Math.max(
   1,
@@ -18,7 +19,7 @@ export const CHAT_MAX_WAITING = Math.max(
 
 export const CHAT_QUEUE_WAIT_MS = Math.max(
   5_000,
-  Number(process.env.CHAT_QUEUE_WAIT_MS) || 40_000,
+  Number(process.env.CHAT_QUEUE_WAIT_MS) || 60_000,
 );
 
 /** Макс. жизнь слота без release (защита от зависших стримов) */
@@ -122,7 +123,14 @@ function dropWaiter(id: string) {
 
 function dropLease(id: string) {
   try {
-    getDb().prepare("DELETE FROM chat_leases WHERE id = ?").run(id);
+    const db = getDb();
+    const row = db
+      .prepare("SELECT acquired_at AS acquiredAt FROM chat_leases WHERE id = ?")
+      .get(id) as { acquiredAt: number } | undefined;
+    db.prepare("DELETE FROM chat_leases WHERE id = ?").run(id);
+    if (row?.acquiredAt) {
+      recordChatDurationMs(Date.now() - row.acquiredAt);
+    }
   } catch {
     /* ignore */
   }

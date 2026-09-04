@@ -158,6 +158,48 @@ export function AdminLiveLoad() {
         </div>
       )}
 
+      <div className="mt-4 rounded-xl border border-line/70 bg-card/80 p-3">
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted">
+          Сколько вывозим, если можно ждать до минуты
+        </p>
+        <p className="mt-1.5 text-sm leading-relaxed text-foreground">
+          Мая отвечает за{" "}
+          <span className="font-semibold">
+            {data.capacity.answerSec} сек
+          </span>
+          {data.capacity.answerMeasured ? " (по факту)" : " (пока среднее)"}.
+          Одновременно болтает с {data.capacity.instant} мамами. Остальные
+          встают в очередь.
+        </p>
+        <ul className="mt-2 space-y-1 text-sm text-foreground">
+          <li>
+            {data.capacity.instant} человек нажали отправить сразу → ждут{" "}
+            <span className="font-semibold">0 сек</span>
+          </li>
+          <li>
+            60 человек сразу → последняя ждёт{" "}
+            <span className="font-semibold">{data.capacity.waitAt60} сек</span>
+          </li>
+          <li>
+            100 человек сразу →{" "}
+            <span className="font-semibold">{data.capacity.waitAt100} сек</span>
+          </li>
+          <li>
+            {data.capacity.withMinute} человек сразу → около{" "}
+            <span className="font-semibold">1 минуты</span>
+          </li>
+        </ul>
+        <p className="mt-2 text-xs leading-relaxed text-muted">
+          Это если все одновременно пишут в ИИ. На сайте при этом могут сидеть
+          примерно {data.capacity.siteTypical.toLocaleString("ru-RU")} человек
+          — в чат в одну секунду пишет не каждый. Круг мам очередь не создаёт,
+          это обычные сообщения.
+          {data.capacity.nowWaitSec > 0
+            ? ` Сейчас очередь ≈ ${data.capacity.nowWaitSec} сек.`
+            : " Сейчас очереди нет."}
+        </p>
+      </div>
+
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Stat
           label="Чат ИИ"

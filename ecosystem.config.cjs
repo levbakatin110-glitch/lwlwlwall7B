@@ -17,7 +17,7 @@ module.exports = {
         PORT: process.env.PORT || "3000",
         CHAT_MAX_CONCURRENT: process.env.CHAT_MAX_CONCURRENT || "50",
         CHAT_MAX_WAITING: process.env.CHAT_MAX_WAITING || "120",
-        CHAT_QUEUE_WAIT_MS: process.env.CHAT_QUEUE_WAIT_MS || "40000",
+        CHAT_QUEUE_WAIT_MS: process.env.CHAT_QUEUE_WAIT_MS || "60000",
       },
     },
   ],
