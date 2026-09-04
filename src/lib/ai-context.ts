@@ -222,7 +222,7 @@ export function buildSystemPrompt(input: {
             pregnancy.startWeightKg != null
               ? `Вес до беременности: ${pregnancy.startWeightKg} кг`
               : "",
-            "Дневники: pregnancy, contractions, kicks, preg_weight, preg_pressure, preg_symptoms, preg_visits, preg_belly, preg_meds, preg_labs, preg_docs, preg_sleep, birth_plan, cycle.",
+            "Дневники малыша: growth, sleep, breastfeeding, formula, solids, diaper, water, walk, health, vaccines, notes. Беременность (только если беременна): pregnancy, contractions, kicks, preg_pressure, preg_symptoms, preg_visits, preg_belly, preg_meds, preg_labs, preg_docs, preg_sleep, birth_plan, cycle. Не предлагай вес мамы и не смешивай дневники мамы с дневниками ребёнка.",
             "Тревожные симптомы — к врачу/скорой, не ставь диагнозы.",
           ].filter(Boolean);
         })()

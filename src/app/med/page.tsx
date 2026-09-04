@@ -83,12 +83,6 @@ const SECTIONS: {
     moduleId: "kicks",
   },
   {
-    href: "/m/preg_weight",
-    title: "Вес",
-    sub: "Динамика по неделям",
-    moduleId: "preg_weight",
-  },
-  {
     href: "/m/preg_pressure",
     title: "Давление",
     sub: "АД и пульс",
@@ -154,7 +148,6 @@ export default function MedCardPage() {
         c("preg_labs") +
         c("preg_docs") +
         c("preg_symptoms") +
-        c("preg_weight") +
         c("preg_pressure"),
     };
   }, [journals]);

@@ -110,6 +110,8 @@ type AppState = {
   modulesCareTrackersV1?: boolean;
   /** одноразовая: досеять 11 популярных дневников без сброса выбора мамы */
   modulesPopular11V1?: boolean;
+  /** одноразовая: вес мамы выключить; беременность не держать у тех, кто уже с ребёнком */
+  modulesAudienceV1?: boolean;
   /** План диеты мамы (общий) */
   dietPlan: DietPlan | null;
   /** Лог ошибок чата / API для админки */
@@ -414,6 +416,7 @@ export const useAppStore = create<AppState>()(
           modulesDefaultsSeededV1: true,
           modulesCareTrackersV1: true,
           modulesPopular11V1: true,
+          modulesAudienceV1: true,
           demoWardrobeSeeded: false,
         });
       },
@@ -909,6 +912,7 @@ export const useAppStore = create<AppState>()(
         modulesDefaultsSeededV1: state.modulesDefaultsSeededV1,
         modulesCareTrackersV1: state.modulesCareTrackersV1,
         modulesPopular11V1: state.modulesPopular11V1,
+        modulesAudienceV1: state.modulesAudienceV1,
         dietPlan: state.dietPlan,
         opsErrors: (state.opsErrors ?? []).slice(0, 30),
         pregnancy: state.pregnancy,
@@ -1211,6 +1215,26 @@ export const useAppStore = create<AppState>()(
             space.enabledModules = list;
           }
           state.modulesPopular11V1 = true;
+          seededDefaults = true;
+        }
+
+        if (!state.modulesAudienceV1) {
+          const pregnant = Boolean(state.pregnancy?.active);
+          const drop = new Set<string>(["preg_weight"]);
+          if (!pregnant) {
+            for (const id of PREGNANCY_MODULE_IDS) drop.add(id);
+          }
+          const apply = (list: ModuleId[]) =>
+            list.filter((id) => !drop.has(id));
+          const cleaned = apply(next);
+          next.length = 0;
+          next.push(...cleaned);
+          for (const sid of Object.keys(state.childSpaces ?? {})) {
+            const space = state.childSpaces[sid];
+            if (!space) continue;
+            space.enabledModules = apply(space.enabledModules ?? []);
+          }
+          state.modulesAudienceV1 = true;
           seededDefaults = true;
         }
 

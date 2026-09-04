@@ -17,9 +17,9 @@ export type AnyModuleDef = Omit<ModuleDef, "id"> & { id: string; custom?: boolea
 export const OPTIONAL_MODULES: ModuleDef[] = [
   {
     id: "growth",
-    title: "Рост и вес",
+    title: "Рост и вес малыша",
     shortTitle: "Рост и вес",
-    description: "По датам",
+    description: "Малыш по датам",
     icon: "growth",
     valueLabel: "Показатели",
     valuePlaceholder: "68 см, 8.2 кг",
@@ -80,9 +80,9 @@ export const OPTIONAL_MODULES: ModuleDef[] = [
   },
   {
     id: "diet",
-    title: "Диета",
+    title: "Диета мамы",
     shortTitle: "Диета",
-    description: "Калории и цель по весу для мамы.",
+    description: "Калории и цель по весу — не дневник малыша.",
     icon: "diet",
     valueLabel: "Приём пищи",
     valuePlaceholder: "Обед · 450 ккал",
@@ -154,7 +154,7 @@ export const OPTIONAL_MODULES: ModuleDef[] = [
     id: "preg_weight",
     title: "Вес при беременности",
     shortTitle: "Вес мамы",
-    description: "Динамика веса мамы по неделям.",
+    description: "Убран из меню — вес мамы не смешиваем с дневниками малыша.",
     icon: "growth",
     valueLabel: "Вес",
     valuePlaceholder: "68.5 кг",

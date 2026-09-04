@@ -6,6 +6,10 @@ import type { MouseEvent } from "react";
 import { MayaIcon, type IconName } from "@/components/icons/MayaIcon";
 import { showPaywallHint } from "@/components/PaywallHint";
 import { MODULE_BY_ID, customToDef } from "@/lib/modules";
+import {
+  filterModulesForNav,
+  hasBornChild,
+} from "@/lib/module-audience";
 import { isSubscriptionActive, PAID_ONLY } from "@/lib/subscription";
 import { useAppStore } from "@/lib/store";
 import type { CustomModule, ModuleId } from "@/lib/types";
@@ -24,9 +28,6 @@ const PRIORITY_ORDER: ModuleId[] = [
   "health",
   "notes",
   "pregnancy",
-  "contractions",
-  "kicks",
-  "preg_weight",
   "preg_pressure",
   "preg_symptoms",
   "preg_visits",
@@ -42,7 +43,7 @@ const PRIORITY_ORDER: ModuleId[] = [
 
 /** Короткие подписи под иконкой в узкой шапке */
 const NAV_LABEL: Partial<Record<ModuleId, string>> = {
-  growth: "Рост",
+  growth: "Рост малыша",
   vaccines: "Прививки",
   sleep: "Сон",
   breastfeeding: "ГВ",
@@ -56,7 +57,6 @@ const NAV_LABEL: Partial<Record<ModuleId, string>> = {
   pregnancy: "Неделя",
   contractions: "Схватки",
   kicks: "Шевел.",
-  preg_weight: "Вес",
   preg_pressure: "Давлен.",
   preg_symptoms: "Симптом",
   preg_visits: "Визиты",
@@ -95,6 +95,7 @@ function moduleItem(id: ModuleId): QuickItem | null {
 function buildQuickItems(
   enabled: ModuleId[],
   customModules: CustomModule[],
+  hasChild: boolean,
 ): QuickItem[] {
   const items: QuickItem[] = [
     { href: "/", label: "Чат", icon: "chat" },
@@ -128,7 +129,9 @@ function buildQuickItems(
     });
   }
 
-  items.push({ href: "/wardrobe", label: "Одежда", icon: "wardrobe" });
+  if (hasChild) {
+    items.push({ href: "/wardrobe", label: "Одежда", icon: "wardrobe" });
+  }
 
   const seen = new Set<string>();
   return items.filter((it) => {
@@ -142,9 +145,19 @@ export function QuickNavCarousel({ className = "" }: { className?: string }) {
   const pathname = usePathname() ?? "";
   const enabledModules = useAppStore((s) => s.enabledModules ?? []);
   const customModules = useAppStore((s) => s.customModules ?? []);
+  const pregnancy = useAppStore((s) => s.pregnancy);
+  const childrenList = useAppStore((s) => s.children ?? []);
   const subscription = useAppStore((s) => s.subscription);
   const paywalled = PAID_ONLY && !isSubscriptionActive(subscription);
-  const items = buildQuickItems(enabledModules, customModules);
+  const hasChild = hasBornChild(childrenList);
+  const items = buildQuickItems(
+    filterModulesForNav(enabledModules, {
+      pregnant: Boolean(pregnancy?.active),
+      hasChild,
+    }),
+    customModules,
+    hasChild,
+  );
   const canScroll = items.length > 4;
 
   function onNavClick(e: MouseEvent<HTMLAnchorElement>, href: string) {

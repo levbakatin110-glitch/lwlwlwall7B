@@ -8,6 +8,10 @@ import { MayaIcon, type IconName } from "@/components/icons/MayaIcon";
 import { SidebarHeader } from "@/components/SidebarHeader";
 import { SketchCorner, SketchSprig } from "@/components/illustrations/MayaSketch";
 import { childDisplayName } from "@/lib/children";
+import {
+  filterModulesForNav,
+  hasBornChild,
+} from "@/lib/module-audience";
 import { LEGAL_OPERATOR } from "@/lib/legal";
 import { MODULE_BY_ID, customToDef } from "@/lib/modules";
 import { isRecipesCatalogModule } from "@/lib/recipes";
@@ -41,7 +45,7 @@ const NAV: { href: string; label: string; icon: IconName }[] = [
   { href: "/pricing", label: "Подписка", icon: "spark" },
 ];
 
-const PINNED_DIARIES: {
+const PREGNANCY_PINNED: {
   href: string;
   label: string;
   icon: IconName;
@@ -50,7 +54,6 @@ const PINNED_DIARIES: {
   { href: "/m/pregnancy", label: "Беременность", icon: "spark", moduleId: "pregnancy" },
   { href: "/m/contractions", label: "Схватки", icon: "pulse", moduleId: "contractions" },
   { href: "/m/kicks", label: "Шевеления", icon: "moments", moduleId: "kicks" },
-  { href: "/m/preg_weight", label: "Вес мамы", icon: "growth", moduleId: "preg_weight" },
   { href: "/m/preg_pressure", label: "Давление", icon: "pulse", moduleId: "preg_pressure" },
   { href: "/m/preg_symptoms", label: "Самочувствие", icon: "health", moduleId: "preg_symptoms" },
   { href: "/m/preg_visits", label: "Визиты", icon: "list", moduleId: "preg_visits" },
@@ -61,16 +64,25 @@ const PINNED_DIARIES: {
   { href: "/m/preg_sleep", label: "Сон мамы", icon: "sleep", moduleId: "preg_sleep" },
   { href: "/m/birth_plan", label: "План родов", icon: "spark", moduleId: "birth_plan" },
   { href: "/m/cycle", label: "Цикл", icon: "pulse", moduleId: "cycle" },
-  { href: "/m/growth", label: "Рост и вес", icon: "growth", moduleId: "growth" },
+];
+
+const BABY_PINNED: {
+  href: string;
+  label: string;
+  icon: IconName;
+  moduleId?: ModuleId;
+}[] = [
+  { href: "/m/growth", label: "Рост и вес малыша", icon: "growth", moduleId: "growth" },
   { href: "/m/vaccines", label: "Прививки", icon: "vaccines", moduleId: "vaccines" },
   { href: "/m/sleep", label: "Сон", icon: "sleep", moduleId: "sleep" },
   { href: "/m/breastfeeding", label: "ГВ · таймер", icon: "feeding", moduleId: "breastfeeding" },
   { href: "/m/formula", label: "Смеси", icon: "formula", moduleId: "formula" },
+  { href: "/m/solids", label: "Прикорм", icon: "solids", moduleId: "solids" },
+  { href: "/m/health", label: "Здоровье", icon: "health", moduleId: "health" },
   { href: "/m/water", label: "Вода", icon: "water", moduleId: "water" },
   { href: "/m/walk", label: "Прогулка", icon: "walk", moduleId: "walk" },
   { href: "/m/diaper", label: "Подгузник", icon: "diaper", moduleId: "diaper" },
   { href: "/m/notes", label: "Заметки", icon: "notes", moduleId: "notes" },
-  { href: "/m/diet", label: "Диета", icon: "diet", moduleId: "diet" },
   { href: "/wardrobe", label: "Одежда", icon: "wardrobe" },
   { href: "/recipes", label: "Рецепты", icon: "diet" },
 ];
@@ -86,6 +98,7 @@ export function Sidebar({
   const enabledModules = useAppStore((s) => s.enabledModules ?? []);
   const customModules = useAppStore((s) => s.customModules ?? []);
   const childrenList = useAppStore((s) => s.children ?? []);
+  const pregnancy = useAppStore((s) => s.pregnancy);
   const activeChildId = useAppStore((s) => s.activeChildId);
   const switchChild = useAppStore((s) => s.switchChild);
   const subscription = useAppStore((s) => s.subscription);
@@ -127,18 +140,39 @@ export function Sidebar({
     showPaywallHint("Сначала оформите подписку");
   }
 
+  const audience = {
+    pregnant: Boolean(pregnancy?.active),
+    hasChild: hasBornChild(childrenList),
+  };
+  const navModules = new Set(filterModulesForNav(enabledModules, audience));
+
   const pinnedIds = new Set(
-    PINNED_DIARIES.map((p) => p.moduleId).filter(Boolean) as ModuleId[],
+    [...PREGNANCY_PINNED, ...BABY_PINNED]
+      .map((p) => p.moduleId)
+      .filter(Boolean) as ModuleId[],
   );
 
-  /** Закреплённые дневники — только если раздел включён (Гардероб всегда) */
-  const visiblePinned = PINNED_DIARIES.filter(
-    (item) => !item.moduleId || enabledModules.includes(item.moduleId),
-  );
+  function visibleRows(
+    rows: {
+      href: string;
+      label: string;
+      icon: IconName;
+      moduleId?: ModuleId;
+    }[],
+  ) {
+    return rows.filter((item) => {
+      if (item.href === "/wardrobe") return audience.hasChild;
+      if (!item.moduleId) return true;
+      return navModules.has(item.moduleId);
+    });
+  }
+
+  const pregnancyRows = visibleRows(PREGNANCY_PINNED);
+  const babyRows = visibleRows(BABY_PINNED);
 
   const extraDiaries = [
     ...enabledModules
-      .filter((id) => !pinnedIds.has(id))
+      .filter((id) => navModules.has(id) && !pinnedIds.has(id))
       .map((id) => MODULE_BY_ID[id])
       .filter(Boolean),
     ...customModules
@@ -296,19 +330,46 @@ export function Sidebar({
             </span>
             <span className="min-w-0 flex-1">Все дневники</span>
           </Link>
-          {visiblePinned.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={(e) => onNavClick(e, item.href)}
-              className={linkClass(
-                pathname === item.href || pathname.startsWith(`${item.href}/`),
-              )}
-            >
-              <MayaIcon name={item.icon} size={17} />
-              <span>{item.label}</span>
-            </Link>
-          ))}
+          {babyRows.length > 0 ? (
+            <>
+              <p className="mb-1 mt-1 px-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
+                Малыш
+              </p>
+              {babyRows.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={(e) => onNavClick(e, item.href)}
+                  className={linkClass(
+                    pathname === item.href || pathname.startsWith(`${item.href}/`),
+                  )}
+                >
+                  <MayaIcon name={item.icon} size={17} />
+                  <span>{item.label}</span>
+                </Link>
+              ))}
+            </>
+          ) : null}
+          {pregnancyRows.length > 0 ? (
+            <>
+              <p className="mb-1 mt-3 px-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
+                Беременность
+              </p>
+              {pregnancyRows.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={(e) => onNavClick(e, item.href)}
+                  className={linkClass(
+                    pathname === item.href || pathname.startsWith(`${item.href}/`),
+                  )}
+                >
+                  <MayaIcon name={item.icon} size={17} />
+                  <span>{item.label}</span>
+                </Link>
+              ))}
+            </>
+          ) : null}
           {extraDiaries.map((mod) => {
             const href = `/m/${mod.id}`;
             return (

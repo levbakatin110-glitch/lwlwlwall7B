@@ -26,7 +26,6 @@ export const PREGNANCY_MODULE_IDS = [
   "pregnancy",
   "contractions",
   "kicks",
-  "preg_weight",
   "preg_pressure",
   "preg_symptoms",
   "preg_visits",
