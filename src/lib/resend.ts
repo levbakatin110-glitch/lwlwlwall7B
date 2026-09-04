@@ -1,16 +1,26 @@
 import { Resend } from "resend";
 
 export function getResend() {
-  const key = process.env.RESEND_API_KEY?.trim();
+  const key = process.env["RESEND_API_KEY"]?.trim();
   if (!key) return null;
   return new Resend(key);
 }
 
+function isTestFrom(from: string) {
+  return /onboarding@resend\.dev/i.test(from);
+}
+
 export function resendFromAddress() {
-  return (
-    process.env.RESEND_FROM?.trim() ||
-    "Мая <onboarding@resend.dev>"
-  );
+  const from = (process.env["RESEND_FROM"] ?? "").trim();
+  if (from && !isTestFrom(from)) return from;
+  return "Мая <noreply@hey-maya.ru>";
+}
+
+function humanResendError(raw: string): string {
+  if (/testing emails|verify a domain|onboarding@resend\.dev/i.test(raw)) {
+    return "Письмо не ушло. Напишите в поддержку — или попробуйте другую почту.";
+  }
+  return raw || "Не удалось отправить письмо";
 }
 
 export async function sendResendEmail(opts: {
@@ -34,7 +44,7 @@ export async function sendResendEmail(opts: {
       replyTo: opts.replyTo,
     });
     if (error) {
-      return { ok: false, error: error.message || "Resend отклонил письмо" };
+      return { ok: false, error: humanResendError(error.message) };
     }
     return { ok: true };
   } catch (e) {
@@ -74,7 +84,7 @@ export async function sendRegistrationCodeEmail(opts: {
     });
 
     if (error) {
-      return { ok: false, error: error.message || "Не удалось отправить письмо" };
+      return { ok: false, error: humanResendError(error.message) };
     }
     return { ok: true };
   } catch (e) {
