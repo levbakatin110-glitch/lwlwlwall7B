@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
+import { VaccineTapHint } from "@/components/VaccineTapHint";
 import {
   CALENDAR_AGE_COLS,
   CALENDAR_VACCINES,
@@ -240,6 +241,7 @@ function CalendarGrid({
   done,
   onCell,
   onVaccine,
+  hintFirstCell = false,
 }: {
   title: string;
   subtitle: string;
@@ -248,6 +250,7 @@ function CalendarGrid({
   done: DoneMap;
   onCell: (vaccine: VaccineInfo, dose: VaccineDose) => void;
   onVaccine: (vaccine: VaccineInfo) => void;
+  hintFirstCell?: boolean;
 }) {
   const monthCols = ages.filter((a) => a.band === "m");
   const yearCols = ages.filter((a) => a.band === "y");
@@ -366,10 +369,13 @@ function CalendarGrid({
                           {doses.map((dose) => {
                             const entry = done.get(dose.id);
                             const isDone = Boolean(entry);
+                            const isHint =
+                              hintFirstCell && dose.id === vaccines[0]?.doses[0]?.id;
                             return (
                               <button
                                 key={dose.id}
                                 type="button"
+                                data-maya-vaccine-hint={isHint ? "1" : undefined}
                                 title={
                                   isDone
                                     ? `${dose.label} · была ${formatRuDate(entry!.date)} · нажмите снять`
@@ -528,6 +534,7 @@ export function VaccinesTracker() {
         ages={CALENDAR_AGE_COLS}
         vaccines={CALENDAR_VACCINES}
         done={done}
+        hintFirstCell
         onCell={openCell}
         onVaccine={openVaccineInfo}
       />
@@ -540,6 +547,10 @@ export function VaccinesTracker() {
         done={done}
         onCell={openCell}
         onVaccine={openVaccineInfo}
+      />
+
+      <VaccineTapHint
+        onPeek={() => openVaccineInfo(CALENDAR_VACCINES[0])}
       />
 
       {sheet && (

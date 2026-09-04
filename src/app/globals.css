@@ -850,6 +850,36 @@ select {
   }
 }
 
+@keyframes maya-hint-ring {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--accent) 50%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 12px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.maya-hint-ring {
+  animation: maya-hint-ring 1.7s ease-out infinite;
+}
+
+@keyframes maya-hint-tap {
+  0%,
+  100% {
+    transform: translate(-30%, -20%) scale(1);
+  }
+  45% {
+    transform: translate(-30%, -20%) scale(0.86);
+  }
+}
+
+.maya-hint-tap {
+  animation: maya-hint-tap 1.15s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
