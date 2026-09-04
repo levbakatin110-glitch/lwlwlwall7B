@@ -107,9 +107,9 @@ export default function RemindersPage() {
       </p>
       <h1 className="font-display mt-1.5 text-3xl font-semibold">Напоминания</h1>
       <p className="mt-1.5 max-w-lg text-sm leading-relaxed text-muted">
-        Мая напомнит покормить, уложить или проверить подгузник — даже если
-        приложение свёрнуто. Таймер кормления сбрасывается, когда вы отмечаете
-        запись в дневнике.
+        На сайте ничего не всплывает. Пуш приходит на экран телефона, когда Мая
+        свёрнута или телефон заблокирован. На iPhone сначала поставьте сайт на
+        экран «Домой» и разрешите уведомления.
       </p>
 
       <div className="mt-5 rounded-2xl border border-line bg-card/80 p-4">

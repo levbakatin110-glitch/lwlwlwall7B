@@ -70,8 +70,8 @@ export function PushReminders() {
           <p className="text-sm font-semibold">Напоминания на телефоне</p>
           <p className="mt-0.5 text-xs leading-relaxed text-muted">
             Разрешите уведомления — Мая напомнит покормить, уложить и про
-            лекарство, даже если вкладка свёрнута. На iPhone: сначала «На экран
-            Домой».
+            лекарство на экране телефона, когда сайт свёрнут. На открытой
+            вкладке ничего не всплывает. На iPhone: сначала «На экран Домой».
           </p>
           <div className="mt-2.5 flex gap-2">
             <button
@@ -130,6 +130,9 @@ export function notifyViaSw(input: {
   tag?: string;
   url?: string;
 }) {
+  if (typeof document !== "undefined" && document.visibilityState === "visible") {
+    return;
+  }
   if (typeof navigator === "undefined" || !navigator.serviceWorker) {
     try {
       if (Notification.permission === "granted") {

@@ -1,5 +1,5 @@
 /* PWA: только push. Не перехватываем fetch — на телефоне это давало белый экран. */
-const CACHE = "maya-shell-v13";
+const CACHE = "maya-shell-v15";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
@@ -15,7 +15,7 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-self.addEventListener("push", (event) => {
+function parsePushPayload(event) {
   let title = "Мая";
   let body = "Напоминание";
   let url = "/";
@@ -33,15 +33,28 @@ self.addEventListener("push", (event) => {
       /* ignore */
     }
   }
-  event.waitUntil(
-    self.registration.showNotification(title, {
-      body,
-      icon: "/icons/icon-192.png",
-      badge: "/icons/icon-192.png",
-      tag,
-      data: { url },
-    }),
-  );
+  return { title, body, url, tag };
+}
+
+function showIfAway(title, body, tag, url) {
+  return self.clients
+    .matchAll({ type: "window", includeUncontrolled: true })
+    .then((list) => {
+      const looking = list.some((c) => c.visibilityState === "visible");
+      if (looking) return;
+      return self.registration.showNotification(title, {
+        body,
+        icon: "/icons/icon-192.png",
+        badge: "/icons/icon-192.png",
+        tag,
+        data: { url },
+      });
+    });
+}
+
+self.addEventListener("push", (event) => {
+  const { title, body, url, tag } = parsePushPayload(event);
+  event.waitUntil(showIfAway(title, body, tag, url));
 });
 
 self.addEventListener("notificationclick", (event) => {
@@ -71,13 +84,12 @@ self.addEventListener("message", (event) => {
   const data = event.data || {};
   if (data.type === "SHOW_NOTIFICATION" && data.title) {
     event.waitUntil(
-      self.registration.showNotification(data.title, {
-        body: data.body || "",
-        icon: "/icons/icon-192.png",
-        badge: "/icons/icon-192.png",
-        tag: data.tag || "maya",
-        data: { url: data.url || "/" },
-      }),
+      showIfAway(
+        data.title,
+        data.body || "",
+        data.tag || "maya",
+        data.url || "/",
+      ),
     );
   }
 });

@@ -12,7 +12,7 @@ export function PwaRegister() {
       /* ignore */
     }
     const t = window.setTimeout(() => {
-      void navigator.serviceWorker.register("/sw.js?v=14").catch(() => {});
+      void navigator.serviceWorker.register("/sw.js?v=15").catch(() => {});
     }, 3500);
     return () => window.clearTimeout(t);
   }, []);
