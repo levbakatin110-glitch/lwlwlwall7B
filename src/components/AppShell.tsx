@@ -1,16 +1,15 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { AuthSessionSync } from "./AuthSessionSync";
 import { OnboardingGate } from "./OnboardingGate";
 import { PremiumGate } from "./PremiumGate";
-import { QuickNavCarousel } from "./QuickNavCarousel";
-import { Sidebar } from "./Sidebar";
 import { ThemeSync } from "./ThemeSync";
 import { MayaIcon } from "@/components/icons/MayaIcon";
 import { PaywallHintHost } from "./PaywallHint";
+import { useIdleReady } from "@/lib/use-idle-ready";
 
 const AnalyticsVisitBeacon = dynamic(
   () =>
@@ -62,6 +61,20 @@ const InstallHint = dynamic(
   () => import("./InstallHint").then((m) => ({ default: m.InstallHint })),
   { ssr: false },
 );
+const QuickNavCarousel = dynamic(
+  () =>
+    import("./QuickNavCarousel").then((m) => ({
+      default: m.QuickNavCarousel,
+    })),
+  {
+    ssr: false,
+    loading: () => <div className="h-11 min-w-0 flex-1" />,
+  },
+);
+const Sidebar = dynamic(
+  () => import("./Sidebar").then((m) => ({ default: m.Sidebar })),
+  { ssr: false },
+);
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? "";
@@ -75,11 +88,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isPlanChat =
     pathname.startsWith("/plan/") && !pathname.startsWith("/plan/order");
   const [menuOpen, setMenuOpen] = useState(false);
+  const idleReady = useIdleReady(1600);
+  const [loadSidebar, setLoadSidebar] = useState(false);
+
+  useEffect(() => {
+    if (menuOpen) {
+      setLoadSidebar(true);
+      return;
+    }
+    const t = window.setTimeout(() => setLoadSidebar(true), 1800);
+    return () => window.clearTimeout(t);
+  }, [menuOpen]);
 
   const globalSync = (
     <>
       <AuthSessionSync />
-      <CloudBackupSync />
+      {idleReady ? <CloudBackupSync /> : null}
     </>
   );
 
@@ -111,29 +135,38 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="h-dvh overflow-y-auto overscroll-y-auto bg-background text-foreground">
           {children}
         </div>
-        {isLegalPage ? <CookieBanner /> : null}
+        {isLegalPage && idleReady ? <CookieBanner /> : null}
       </>
     );
   }
+
+  const extras = idleReady ? (
+    <>
+      <AnalyticsVisitBeacon />
+      <SubscriptionSync />
+      <CookieBanner />
+      <PushReminders />
+      <CareRemindersSync />
+      <RemindersHost />
+    </>
+  ) : null;
 
   return (
     <OnboardingGate>
       <PremiumGate>
       <PaywallHintHost />
       <ThemeSync />
-      <AnalyticsVisitBeacon />
+      {extras}
       {globalSync}
-      <SubscriptionSync />
-      <CookieBanner />
-      <PushReminders />
-      <CareRemindersSync />
       <div className="flex h-dvh max-h-dvh overflow-hidden overscroll-none bg-background pt-[env(safe-area-inset-top)] text-foreground">
-        {!isCommunity && !isPlanFlow && (
+        {loadSidebar && !isCommunity && !isPlanFlow ? (
           <Sidebar
             mobileOpen={menuOpen}
             onMobileOpenChange={setMenuOpen}
           />
-        )}
+        ) : !isCommunity && !isPlanFlow ? (
+          <div className="hidden w-[17.5rem] shrink-0 md:block" />
+        ) : null}
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden overscroll-none">
           {!isCommunity && !isPlanFlow && (
             <header className="z-30 flex shrink-0 items-center gap-2 border-b border-line bg-card/90 px-2 py-1.5 backdrop-blur-xl md:hidden">
@@ -164,13 +197,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {children}
           </main>
         </div>
-        {!isCommunity && !isPlanFlow && (
+        {idleReady && !isCommunity && !isPlanFlow && (
           <>
             <WhiteNoisePlayer />
             <InstallHint />
           </>
         )}
-        <RemindersHost />
       </div>
       </PremiumGate>
     </OnboardingGate>

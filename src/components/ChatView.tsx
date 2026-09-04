@@ -1,18 +1,11 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { ChatChart } from "@/components/ChatChart";
-import { ChatNewsFeed } from "@/components/ChatNewsFeed";
-import { SiteFeedbackBox } from "@/components/SiteFeedbackBox";
-import { TodayPulse } from "@/components/TodayPulse";
 import { JournalEntryChip } from "@/components/JournalEntryChip";
-import { LogPreviewSheet, type LogPreviewData } from "@/components/LogPreviewSheet";
-import { KitchenCarousel } from "@/components/KitchenCarousel";
+import type { LogPreviewData } from "@/components/LogPreviewSheet";
 import { MayaChatText } from "@/components/MayaChatText";
 import { CHAT_PROMPTS } from "@/lib/chat-prompts";
-import { VpnHintBanner } from "@/components/VpnHintBanner";
-import { WeatherWidget } from "@/components/WeatherWidget";
-import { WardrobeChatCard } from "@/components/WardrobeChatCard";
 import {
   SketchBackdrop,
   SketchDoodles,
@@ -42,6 +35,70 @@ import type { ModuleBlueprint, ModuleId, WeatherSnapshot } from "@/lib/types";
 import { decodeWeatherHeader } from "@/lib/weather";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+
+const ChatChart = dynamic(
+  () => import("@/components/ChatChart").then((m) => m.ChatChart),
+  { ssr: false },
+);
+const LogPreviewSheet = dynamic(
+  () =>
+    import("@/components/LogPreviewSheet").then((m) => m.LogPreviewSheet),
+  { ssr: false },
+);
+const VpnHintBanner = dynamic(
+  () => import("@/components/VpnHintBanner").then((m) => m.VpnHintBanner),
+  { ssr: false },
+);
+const WeatherWidget = dynamic(
+  () => import("@/components/WeatherWidget").then((m) => m.WeatherWidget),
+  { ssr: false },
+);
+const WardrobeChatCard = dynamic(
+  () =>
+    import("@/components/WardrobeChatCard").then((m) => m.WardrobeChatCard),
+  { ssr: false },
+);
+const TodayPulse = dynamic(
+  () => import("@/components/TodayPulse").then((m) => m.TodayPulse),
+  { ssr: false, loading: () => null },
+);
+const ChatBelowFold = dynamic(
+  () => import("@/components/ChatBelowFold").then((m) => m.ChatBelowFold),
+  { ssr: false, loading: () => null },
+);
+
+function LazyChatBelow({
+  onOpenChat,
+}: {
+  onOpenChat: (prefill?: string) => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [on, setOn] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (typeof IntersectionObserver === "undefined") {
+      setOn(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          setOn(true);
+          io.disconnect();
+        }
+      },
+      { rootMargin: "280px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  return (
+    <div ref={ref}>{on ? <ChatBelowFold onOpenChat={onOpenChat} /> : null}</div>
+  );
+}
 
 function isOutfitIntent(text: string) {
   const t = text.toLowerCase();
@@ -1371,47 +1428,16 @@ export function ChatView() {
           </form>
         </div>
 
-        <div className="mt-1 space-y-4 pb-2">
-          <TodayPulse variant="card" />
-
-          {/* Кухня — отдельно по цвету от ленты малыша */}
-          <section
-            id="noise"
-            className="rounded-[1.5rem] border border-amber-500/25 bg-gradient-to-br from-amber-50/90 via-[#fff8ee] to-orange-50/50 px-3.5 py-4 dark:border-amber-400/20 dark:from-amber-950/40 dark:via-card dark:to-orange-950/20"
-            aria-label="Рецепты"
-          >
-            <div className="mb-3 flex items-end justify-between gap-2 px-0.5">
-              <div>
-                <h2 className="font-display text-xl font-semibold tracking-tight text-foreground">
-                  Рецепты
-                </h2>
-                <p className="mt-0.5 text-xs text-muted">
-                  Каталог — без записей в дневник
-                </p>
-              </div>
-              <Link
-                href="/recipes"
-                className="shrink-0 text-xs font-semibold text-amber-800 underline decoration-amber-500/40 underline-offset-2 dark:text-amber-200"
-              >
-                Все →
-              </Link>
-            </div>
-            <KitchenCarousel />
-          </section>
-
-          <ChatNewsFeed
-            onOpenChat={(prefill) => {
-              if (prefill) setInput(prefill);
-              chatPanelRef.current?.scrollIntoView({
-                behavior: "smooth",
-                block: "start",
-              });
-              window.setTimeout(() => inputRef.current?.focus(), 350);
-            }}
-          />
-
-          <SiteFeedbackBox />
-        </div>
+        <LazyChatBelow
+          onOpenChat={(prefill) => {
+            if (prefill) setInput(prefill);
+            chatPanelRef.current?.scrollIntoView({
+              behavior: "smooth",
+              block: "start",
+            });
+            window.setTimeout(() => inputRef.current?.focus(), 350);
+          }}
+        />
       </div>
 
       {logPreview && (

@@ -74,7 +74,7 @@
   --color-on-accent: var(--on-accent);
   --color-surface-elevated: var(--surface-elevated);
   --font-sans: var(--font-nunito);
-  --font-display: var(--font-fraunces), var(--font-nunito);
+  --font-display: var(--font-nunito);
 }
 
 html {
@@ -122,7 +122,7 @@ body::before {
 }
 
 .font-display {
-  font-family: var(--font-fraunces), var(--font-nunito), Georgia, serif;
+  font-family: var(--font-nunito), system-ui, sans-serif;
   letter-spacing: -0.02em;
 }
 

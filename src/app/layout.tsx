@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Nunito } from "next/font/google";
+import { Nunito } from "next/font/google";
 import { AppErrorBoundary } from "@/components/AppErrorBoundary";
 import { AppShell } from "@/components/AppShell";
 import { BetterStackInit } from "@/components/BetterStackInit";
@@ -7,19 +7,12 @@ import { MobileKeyboardFix } from "@/components/MobileKeyboardFix";
 import { PwaRegister } from "@/components/PwaRegister";
 import "./globals.css";
 
-const fraunces = Fraunces({
-  variable: "--font-fraunces",
-  subsets: ["latin"],
-  weight: ["600"],
-  display: "swap",
-  preload: false,
-});
-
 const nunito = Nunito({
   variable: "--font-nunito",
   subsets: ["cyrillic", "latin"],
   weight: ["400", "600"],
   display: "swap",
+  fallback: ["system-ui", "Segoe UI", "Roboto", "sans-serif"],
 });
 
 export const metadata: Metadata = {
@@ -105,7 +98,7 @@ export default function RootLayout({
   return (
     <html
       lang="ru"
-      className={`${fraunces.variable} ${nunito.variable} h-full antialiased`}
+      className={`${nunito.variable} h-full antialiased`}
     >
       <body className="h-full overflow-hidden bg-background font-sans text-foreground antialiased">
         <script

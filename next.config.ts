@@ -16,7 +16,7 @@ const nextConfig: NextConfig = {
   // Не standalone: на VPS pm2 запускает `next start` (см. pm2 logs).
   // standalone ломает next start → 500 / required-server-files.json
   experimental: {
-    optimizePackageImports: ["@sentry/browser"],
+    optimizePackageImports: ["@sentry/browser", "@sentry/core"],
     // кружки/видео в community и прочие формы
     serverActions: {
       bodySizeLimit: "12mb",

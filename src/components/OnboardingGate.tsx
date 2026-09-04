@@ -30,14 +30,8 @@ function peekLikelyOnboarded(): boolean {
   }
   try {
     const raw = localStorage.getItem("maya-mom-ai");
-    if (raw) {
-      const parsed = JSON.parse(raw) as {
-        state?: { onboardingDone?: boolean };
-        onboardingDone?: boolean;
-      };
-      const done = parsed?.state?.onboardingDone ?? parsed?.onboardingDone;
-      if (done) return true;
-    }
+    // не JSON.parse всего стора — на телефоне это подвисает
+    if (raw && raw.includes('"onboardingDone":true')) return true;
   } catch {
     /* ignore */
   }

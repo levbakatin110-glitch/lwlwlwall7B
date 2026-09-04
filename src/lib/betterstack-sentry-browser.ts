@@ -1,14 +1,23 @@
 "use client";
 
-import * as Sentry from "@sentry/browser";
 import { betterStackDsn, betterStackEnabled } from "@/lib/betterstack-sentry";
 
 let ready = false;
+let sentryMod: typeof import("@sentry/browser") | null = null;
 
-function ensureInit(): void {
+async function loadSentry() {
+  if (sentryMod) return sentryMod;
+  sentryMod = await import("@sentry/browser");
+  return sentryMod;
+}
+
+/** Подключает Sentry лениво — не в первом бандле телефона. */
+export async function initBetterStackBrowser(): Promise<void> {
   if (ready || typeof window === "undefined" || !betterStackEnabled()) return;
   const dsn = betterStackDsn();
   if (!dsn) return;
+  const Sentry = await loadSentry();
+  if (ready) return;
   ready = true;
   Sentry.init({
     dsn,
@@ -17,16 +26,9 @@ function ensureInit(): void {
   });
 }
 
-// Сразу при загрузке страницы — не ждём useEffect
-ensureInit();
-
-export function initBetterStackBrowser(): void {
-  ensureInit();
-}
-
 export function captureBetterStackException(error: unknown): void {
   if (!betterStackEnabled()) return;
-  ensureInit();
-  if (!ready) return;
-  Sentry.captureException(error);
+  void initBetterStackBrowser().then(() => {
+    sentryMod?.captureException(error);
+  });
 }
