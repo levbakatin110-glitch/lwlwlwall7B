@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, type ReactNode } from "react";
+import { LinkifiedText } from "@/components/LinkifiedText";
 
 /** Лёгкий markdown для пузыря Маи: **жирный**, списки, переносы */
 function renderInline(text: string): ReactNode[] {
@@ -10,7 +11,11 @@ function renderInline(text: string): ReactNode[] {
   let m: RegExpExecArray | null;
   let i = 0;
   while ((m = re.exec(text))) {
-    if (m.index > last) nodes.push(text.slice(last, m.index));
+    if (m.index > last) {
+      nodes.push(
+        <LinkifiedText key={`t${i++}`} text={text.slice(last, m.index)} />,
+      );
+    }
     const raw = m[0];
     if (raw.startsWith("**") && raw.endsWith("**")) {
       nodes.push(
@@ -27,7 +32,11 @@ function renderInline(text: string): ReactNode[] {
     }
     last = m.index + raw.length;
   }
-  if (last < text.length) nodes.push(text.slice(last));
+  if (last < text.length) {
+    nodes.push(
+      <LinkifiedText key={`t${i++}`} text={text.slice(last)} />,
+    );
+  }
   return nodes;
 }
 

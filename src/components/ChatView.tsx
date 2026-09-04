@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { JournalEntryChip } from "@/components/JournalEntryChip";
 import type { LogPreviewData } from "@/components/LogPreviewSheet";
 import { MayaChatText } from "@/components/MayaChatText";
+import { LinkifiedText } from "@/components/LinkifiedText";
 import { CHAT_PROMPTS } from "@/lib/chat-prompts";
 import {
   SketchBackdrop,
@@ -1135,7 +1136,9 @@ export function ChatView() {
                     live={streamingId === m.id && pending}
                   />
                 ) : (
-                  <p className="whitespace-pre-wrap">{m.content}</p>
+                  <p className="whitespace-pre-wrap">
+                    <LinkifiedText text={m.content} />
+                  </p>
                 )}
 
                 {m.wardrobePhotos && m.wardrobePhotos.length > 0 && (

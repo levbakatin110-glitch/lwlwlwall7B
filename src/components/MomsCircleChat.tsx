@@ -16,6 +16,7 @@ import {
   CircleRecorder,
 } from "@/components/CircleRecorder";
 import { VoiceNotePlayer, VoiceRecorder } from "@/components/VoiceRecorder";
+import { LinkifiedText } from "@/components/LinkifiedText";
 import { MayaIcon } from "@/components/icons/MayaIcon";
 import {
   COMMUNITY_REACTIONS,
@@ -249,6 +250,8 @@ export function MomsCircleChat() {
   const [replyTo, setReplyTo] = useState<CommunityMessage | null>(null);
   const [menu, setMenu] = useState<MenuState | null>(null);
   const [flashId, setFlashId] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [newBelow, setNewBelow] = useState(false);
 
   const listRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
@@ -259,6 +262,8 @@ export function MomsCircleChat() {
   const pressStart = useRef({ x: 0, y: 0 });
   const suppressClick = useRef(false);
   const menuOpenedAt = useRef(0);
+  const copiedTimer = useRef<number | null>(null);
+  const prevMsgLen = useRef(0);
 
   const canPost = Boolean(emailVerified && accountEmail);
 
@@ -342,10 +347,15 @@ export function MomsCircleChat() {
   }, [load]);
 
   useEffect(() => {
-    if (!stickBottom.current) return;
     const el = listRef.current;
-    if (!el) return;
-    el.scrollTop = el.scrollHeight;
+    const grew = messages.length > prevMsgLen.current && prevMsgLen.current > 0;
+    prevMsgLen.current = messages.length;
+    if (stickBottom.current) {
+      if (el) el.scrollTop = el.scrollHeight;
+      setNewBelow(false);
+      return;
+    }
+    if (grew) setNewBelow(true);
   }, [messages, commProfile]);
 
   useEffect(() => {
@@ -469,6 +479,9 @@ export function MomsCircleChat() {
     if (!t) return;
     try {
       await navigator.clipboard.writeText(t);
+      setCopied(true);
+      if (copiedTimer.current) window.clearTimeout(copiedTimer.current);
+      copiedTimer.current = window.setTimeout(() => setCopied(false), 1600);
     } catch {
       setError("Не скопировалось");
     }
@@ -798,13 +811,16 @@ export function MomsCircleChat() {
         </div>
       ) : (
         <>
+          <div className="relative flex min-h-0 flex-1 flex-col">
           <div
             ref={listRef}
             onScroll={() => {
               const el = listRef.current;
               if (!el) return;
-              stickBottom.current =
+              const atBottom =
                 el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+              stickBottom.current = atBottom;
+              if (atBottom) setNewBelow(false);
             }}
             className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto overscroll-none px-3 py-3 sm:px-4"
           >
@@ -897,7 +913,7 @@ export function MomsCircleChat() {
                           m.text === "🎤 голосовое")
                       ) && (
                         <p className="mt-1 whitespace-pre-wrap text-[15px] leading-snug text-foreground">
-                          {m.text}
+                          <LinkifiedText text={m.text} />
                         </p>
                       )}
                     {reactionEntries.length > 0 && (
@@ -934,6 +950,21 @@ export function MomsCircleChat() {
                 </article>
               );
             })}
+          </div>
+          {newBelow ? (
+            <button
+              type="button"
+              onClick={() => {
+                stickBottom.current = true;
+                setNewBelow(false);
+                const el = listRef.current;
+                if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+              }}
+              className="absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-full bg-accent px-3.5 py-1.5 text-xs font-semibold text-white shadow-md"
+            >
+              Новые сообщения
+            </button>
+          ) : null}
           </div>
 
           <div className="shrink-0 border-t border-line bg-card/95 px-3 pt-2.5 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
@@ -1071,7 +1102,9 @@ export function MomsCircleChat() {
                       }
                     }}
                     rows={1}
-                    placeholder={replyTo ? "Ответ" : "Сообщение"}
+                    placeholder={
+                      replyTo ? "Ответ" : "Сообщение или ссылка на WB / Ozon"
+                    }
                     className="max-h-28 min-h-[2.75rem] flex-1 resize-none rounded-2xl border border-line bg-background px-3.5 py-2.5 text-base text-foreground outline-none focus:border-accent/40"
                   />
                   <button
@@ -1085,6 +1118,9 @@ export function MomsCircleChat() {
                 </form>
               </>
             )}
+            {copied ? (
+              <p className="mt-1.5 text-xs font-medium text-accent">Скопировано</p>
+            ) : null}
             {error && (
               <p className="mt-1.5 text-xs text-red-600 dark:text-red-300">
                 {error}
