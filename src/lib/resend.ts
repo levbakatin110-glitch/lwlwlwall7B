@@ -6,19 +6,14 @@ export function getResend() {
   return new Resend(key);
 }
 
-function isTestFrom(from: string) {
-  return /onboarding@resend\.dev/i.test(from);
-}
-
+/** Всегда домен Маи. Тестовый onboarding@resend.dev режет чужие почты. */
 export function resendFromAddress() {
-  const from = (process.env["RESEND_FROM"] ?? "").trim();
-  if (from && !isTestFrom(from)) return from;
   return "Мая <noreply@hey-maya.ru>";
 }
 
 function humanResendError(raw: string): string {
   if (/testing emails|verify a domain|onboarding@resend\.dev/i.test(raw)) {
-    return "Письмо не ушло. Напишите в поддержку — или попробуйте другую почту.";
+    return "Письмо не ушло. Подождите минуту и нажмите «Получить код» ещё раз.";
   }
   return raw || "Не удалось отправить письмо";
 }
@@ -49,7 +44,7 @@ export async function sendResendEmail(opts: {
     return { ok: true };
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Ошибка Resend";
-    return { ok: false, error: msg };
+    return { ok: false, error: humanResendError(msg) };
   }
 }
 
@@ -89,6 +84,6 @@ export async function sendRegistrationCodeEmail(opts: {
     return { ok: true };
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Ошибка отправки";
-    return { ok: false, error: msg };
+    return { ok: false, error: humanResendError(msg) };
   }
 }
