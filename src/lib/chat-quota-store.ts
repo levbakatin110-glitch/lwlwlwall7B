@@ -10,6 +10,7 @@ import {
   CHAT_COST_PER_MSG_RUB,
 } from "@/lib/chat-quota";
 import { normalizeEmail } from "@/lib/paid-store";
+import { recordSale, saleAmountForTopup } from "@/lib/sales-store";
 
 type MonthRow = { used: number; boosts: number };
 
@@ -126,7 +127,13 @@ export function grantChatTopup(email: string, orderId?: string): ChatQuotaView {
     ).run(key, month, row.used);
     const next = rowFor(key, month);
     db.exec("COMMIT");
-    void orderId;
+    recordSale({
+      email,
+      kind: "chat_topup",
+      amountRub: saleAmountForTopup(),
+      source: orderId?.startsWith("fake-") ? "fake" : "prodamus",
+      orderId: orderId || null,
+    });
     return viewFrom(key, month, next);
   } catch (e) {
     try {

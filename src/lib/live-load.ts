@@ -37,6 +37,9 @@ export type LiveLoadReport = {
     rssMb: number;
     heapMb: number;
     systemUsedPct: number;
+    /** Сколько из всей RAM ест именно процесс Маи */
+    mayaPct: number;
+    usedMb: number;
     freeMb: number;
     totalMb: number;
     load1: number;
@@ -213,6 +216,11 @@ export function getLiveLoadReport(): LiveLoadReport {
       rssMb,
       heapMb: Math.round(mem.heapUsed / 1024 / 1024),
       systemUsedPct,
+      mayaPct:
+        total > 0
+          ? Math.round((mem.rss / total) * 1000) / 10
+          : 0,
+      usedMb: Math.round((total - free) / 1024 / 1024),
       freeMb: Math.round(free / 1024 / 1024),
       totalMb: Math.round(total / 1024 / 1024),
       load1: Math.round(load1 * 100) / 100,

@@ -1,4 +1,5 @@
 import { getDb } from "@/lib/db";
+import { recordSale, saleAmountForPlan } from "@/lib/sales-store";
 import type { PaidPlanId, PlanId } from "@/lib/subscription";
 import { activatePaidPlan, isSubscriptionActive } from "@/lib/subscription";
 
@@ -50,6 +51,7 @@ export function grantPaidPlan(opts: {
   email: string;
   planId: PaidPlanId;
   orderId?: string;
+  source?: "prodamus" | "fake";
 }): ServerSubscription {
   const email = normalizeEmail(opts.email);
   const activated = activatePaidPlan(opts.planId);
@@ -77,5 +79,15 @@ export function grantPaidPlan(opts: {
       row.orderId ?? null,
       row.updatedAt,
     );
+  recordSale({
+    email,
+    kind: "subscription",
+    planId: opts.planId,
+    amountRub: saleAmountForPlan(opts.planId),
+    source:
+      opts.source ??
+      (opts.orderId?.startsWith("fake-") ? "fake" : "prodamus"),
+    orderId: opts.orderId,
+  });
   return row;
 }

@@ -89,6 +89,19 @@ function migrateSchema(db: DatabaseSync) {
       updated_at TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS sales (
+      id TEXT PRIMARY KEY,
+      at TEXT NOT NULL,
+      email TEXT NOT NULL,
+      kind TEXT NOT NULL,
+      plan_id TEXT,
+      amount_rub INTEGER NOT NULL,
+      source TEXT NOT NULL,
+      order_id TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_sales_at ON sales(at DESC);
+    CREATE INDEX IF NOT EXISTS idx_sales_order ON sales(order_id);
+
     CREATE TABLE IF NOT EXISTS push_schedule (
       id TEXT PRIMARY KEY,
       email TEXT NOT NULL,

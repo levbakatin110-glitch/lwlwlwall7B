@@ -1,3 +1,4 @@
+import { trackAnalyticsEvent } from "@/lib/analytics-store";
 import { grantPaidPlan } from "@/lib/paid-store";
 import { readSessionFromRequest } from "@/lib/session";
 import {
@@ -36,6 +37,11 @@ export async function POST(req: Request) {
     email,
     planId,
     orderId: `fake-${Date.now()}`,
+    source: "fake",
+  });
+  trackAnalyticsEvent({
+    name: "subscribe_activate",
+    meta: `${planId}:${email.slice(0, 24)}`,
   });
 
   return Response.json({

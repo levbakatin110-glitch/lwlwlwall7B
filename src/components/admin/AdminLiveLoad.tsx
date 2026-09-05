@@ -213,7 +213,7 @@ export function AdminLiveLoad() {
         <Stat
           label="Память сервера"
           value={`${Math.round(data.server.systemUsedPct)}%`}
-          sub={`${data.server.freeMb} МБ свободно`}
+          sub={`свободно ${data.server.freeMb} из ${data.server.totalMb} МБ`}
         />
         <Stat
           label="Нагрузка CPU"
@@ -221,11 +221,19 @@ export function AdminLiveLoad() {
           sub={`${data.server.cpuCount} ядер`}
         />
         <Stat
-          label="Процесс сайта"
+          label="Процесс Маи"
           value={`${data.server.rssMb} МБ`}
-          sub={`пик чата сегодня ${data.peakChatToday}`}
+          sub={`${data.server.mayaPct}% от всей RAM`}
         />
       </div>
+      <p className="mt-3 text-xs leading-relaxed text-muted">
+        {Math.round(data.server.systemUsedPct)}% занято — это не гости. Linux,
+        кэш диска и система сразу едят сотни мегабайт на пустом сервере. Мая
+        сейчас занимает {data.server.rssMb} МБ (
+        {data.server.mayaPct}% RAM). Сто гостей не умножат это на сто: чат ест
+        память, только пока отвечает. Тревога с ~78%. 100% — кончилась
+        оперативка, не «в десять раз больше людей».
+      </p>
 
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
         <Mini label="Визиты 24ч" value={data.today.visits} />
