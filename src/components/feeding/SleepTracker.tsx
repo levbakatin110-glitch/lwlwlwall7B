@@ -22,6 +22,8 @@ import {
   wakeMinutesSince,
 } from "@/lib/diary-day";
 import { liveGet, liveSet } from "@/lib/live-session";
+import { ISLAND_EVENT, notifyIslandChanged } from "@/lib/live-timer-actions";
+import { timerIsland } from "@/lib/timer-island";
 import { useAppStore } from "@/lib/store";
 import type { JournalEntry } from "@/lib/types";
 
@@ -78,18 +80,27 @@ export function SleepTracker({ journalId = "sleep" }: { journalId?: string }) {
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
-    try {
-      const raw = liveGet(storageKey);
-      setLive(raw ? (JSON.parse(raw) as SleepLive) : null);
-    } catch {
-      setLive(null);
-    }
+    const pull = () => {
+      try {
+        const raw = liveGet(storageKey);
+        const next = raw ? (JSON.parse(raw) as SleepLive) : null;
+        setLive((prev) =>
+          JSON.stringify(prev) === JSON.stringify(next) ? prev : next,
+        );
+      } catch {
+        setLive(null);
+      }
+    };
+    pull();
+    window.addEventListener(ISLAND_EVENT, pull);
+    return () => window.removeEventListener(ISLAND_EVENT, pull);
   }, [storageKey]);
 
   useEffect(() => {
     try {
       if (!live) liveSet(storageKey, null);
       else liveSet(storageKey, JSON.stringify(live));
+      notifyIslandChanged();
     } catch {
       /* */
     }
@@ -140,6 +151,7 @@ export function SleepTracker({ journalId = "sleep" }: { journalId?: string }) {
   }, [todayEntries, live, now]);
 
   function start(kind: Kind) {
+    timerIsland.unlock();
     setLive({ kind, startedAt: Date.now() });
     setNow(Date.now());
   }

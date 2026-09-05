@@ -19,6 +19,8 @@ import {
   formatDuration,
 } from "@/lib/diary-day";
 import { liveGet, liveSet } from "@/lib/live-session";
+import { ISLAND_EVENT, notifyIslandChanged } from "@/lib/live-timer-actions";
+import { timerIsland } from "@/lib/timer-island";
 import { useAppStore } from "@/lib/store";
 import type { JournalEntry } from "@/lib/types";
 
@@ -128,13 +130,22 @@ export function BreastfeedingTracker() {
   const hydrated = useRef(false);
 
   useEffect(() => {
-    setSession(loadSession());
+    const pull = () => {
+      const next = loadSession();
+      setSession((prev) =>
+        JSON.stringify(prev) === JSON.stringify(next) ? prev : next,
+      );
+    };
+    pull();
     hydrated.current = true;
+    window.addEventListener(ISLAND_EVENT, pull);
+    return () => window.removeEventListener(ISLAND_EVENT, pull);
   }, []);
 
   useEffect(() => {
     if (!hydrated.current) return;
     saveSession(session);
+    notifyIslandChanged();
   }, [session]);
 
   useEffect(() => {
@@ -186,6 +197,7 @@ export function BreastfeedingTracker() {
   );
 
   function start(side: Side) {
+    timerIsland.unlock();
     setSession((prev) => {
       const settled = settle(prev);
       return { ...settled, active: side, tickAt: Date.now() };

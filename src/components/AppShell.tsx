@@ -51,6 +51,13 @@ const SubscriptionSync = dynamic(
     })),
   { ssr: false },
 );
+const TimerIslandHost = dynamic(
+  () =>
+    import("./TimerIslandHost").then((m) => ({
+      default: m.TimerIslandHost,
+    })),
+  { ssr: false },
+);
 const WhiteNoisePlayer = dynamic(
   () =>
     import("./WhiteNoisePlayer").then((m) => ({
@@ -162,6 +169,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <PaywallHintHost />
       <ThemeSync />
       {extras}
+      <TimerIslandHost />
       <div className="flex h-dvh max-h-dvh overflow-hidden overscroll-none bg-background pt-[env(safe-area-inset-top)] text-foreground">
         {loadSidebar && !isCommunity && !isPlanFlow ? (
           <Sidebar

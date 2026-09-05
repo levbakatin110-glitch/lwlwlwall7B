@@ -12,9 +12,9 @@ import {
 import {
   LIVE_KEYS,
   liveParse,
-  liveSet,
   sleepLiveKey,
 } from "@/lib/live-session";
+import { stopSleepLive, stopWalkLive } from "@/lib/live-timer-actions";
 import { useAppStore } from "@/lib/store";
 import type { JournalEntry, ModuleId } from "@/lib/types";
 
@@ -44,10 +44,6 @@ function settleBf(s: BfLive, now: number): BfLive {
     rightSec: s.active === "right" ? s.rightSec + add : s.rightSec,
     tickAt: now,
   };
-}
-
-function pad(n: number) {
-  return String(n).padStart(2, "0");
 }
 
 export function TodayPulse({
@@ -173,67 +169,12 @@ export function TodayPulse({
   }
 
   function stopSleep(journalId: "sleep" | "preg_sleep") {
-    const key = sleepLiveKey(journalId);
-    const live = liveParse<SleepLive>(key);
-    if (!live) return;
-    const elapsed = Math.max(0, Math.floor((Date.now() - live.startedAt) / 1000));
-    if (elapsed < 15) {
-      liveSet(key, null);
-      setTick((n) => n + 1);
-      return;
-    }
-    const startDate = new Date(live.startedAt);
-    const endDate = new Date();
-    const range = `${pad(startDate.getHours())}:${pad(startDate.getMinutes())}–${pad(endDate.getHours())}:${pad(endDate.getMinutes())}`;
-    const isMom = journalId === "preg_sleep";
-    const label =
-      live.kind === "night" ? "ночь" : isMom ? "дневной отдых" : "дневной сон";
-    addJournalEntry(journalId, {
-      date: todayYmd(),
-      value: `${label} ${range} · ${formatDuration(elapsed)}`,
-      note: "",
-      fields: {
-        kind: live.kind,
-        totalSec: elapsed,
-        from: startDate.toISOString(),
-        to: endDate.toISOString(),
-        startMs: live.startedAt,
-        endMs: endDate.getTime(),
-      },
-    });
-    liveSet(key, null);
+    stopSleepLive(journalId, addJournalEntry);
     setTick((n) => n + 1);
   }
 
   function stopWalk() {
-    const live = liveParse<WalkLive>(LIVE_KEYS.walk);
-    if (!live) return;
-    const endMs = Date.now();
-    const totalSec = Math.floor((endMs - live.startMs) / 1000);
-    if (totalSec < 30) {
-      liveSet(LIVE_KEYS.walk, null);
-      setTick((n) => n + 1);
-      return;
-    }
-    const totalMin = Math.max(1, Math.round(totalSec / 60));
-    const fromLabel = (live.from ?? "").trim();
-    const toLabel = (live.to ?? "").trim();
-    const parts = [`${totalMin} мин`];
-    if (fromLabel) parts.push(fromLabel);
-    if (toLabel && toLabel !== fromLabel) parts.push(`→ ${toLabel}`);
-    addJournalEntry("walk", {
-      date: todayYmd(),
-      value: parts.join(" · "),
-      note: "",
-      fields: {
-        totalSec,
-        startMs: live.startMs,
-        endMs,
-        ...(fromLabel ? { from: fromLabel } : {}),
-        ...(toLabel ? { to: toLabel } : {}),
-      },
-    });
-    liveSet(LIVE_KEYS.walk, null);
+    stopWalkLive(addJournalEntry);
     setTick((n) => n + 1);
   }
 

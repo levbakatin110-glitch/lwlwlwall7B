@@ -16,6 +16,8 @@ import {
 import { localToday } from "@/lib/local-date";
 import { formatSec } from "@/lib/pregnancy";
 import { liveGet, liveSet } from "@/lib/live-session";
+import { ISLAND_EVENT, notifyIslandChanged } from "@/lib/live-timer-actions";
+import { timerIsland } from "@/lib/timer-island";
 import { getJournalEntries, useAppStore } from "@/lib/store";
 import type { JournalEntry } from "@/lib/types";
 
@@ -119,21 +121,28 @@ export function ContractionsTracker() {
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
-    try {
-      const raw = liveGet(SESSION_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as LiveRow;
-        if (parsed?.startMs) setLive(parsed);
+    const pull = () => {
+      try {
+        const raw = liveGet(SESSION_KEY);
+        const parsed = raw ? (JSON.parse(raw) as LiveRow) : null;
+        const next = parsed?.startMs ? parsed : null;
+        setLive((prev) =>
+          JSON.stringify(prev) === JSON.stringify(next) ? prev : next,
+        );
+      } catch {
+        /* */
       }
-    } catch {
-      /* */
-    }
+    };
+    pull();
+    window.addEventListener(ISLAND_EVENT, pull);
+    return () => window.removeEventListener(ISLAND_EVENT, pull);
   }, []);
 
   useEffect(() => {
     try {
       if (!live) liveSet(SESSION_KEY, null);
       else liveSet(SESSION_KEY, JSON.stringify(live));
+      notifyIslandChanged();
     } catch {
       /* */
     }
@@ -179,6 +188,7 @@ export function ContractionsTracker() {
     : 0;
 
   function start() {
+    timerIsland.unlock();
     setPending(null);
     setLive({ startMs: Date.now() });
     setNow(Date.now());

@@ -21,6 +21,8 @@ import {
   todayYmd,
 } from "@/lib/diary-day";
 import { liveParse, liveSet } from "@/lib/live-session";
+import { ISLAND_EVENT, notifyIslandChanged } from "@/lib/live-timer-actions";
+import { timerIsland } from "@/lib/timer-island";
 import { useAppStore } from "@/lib/store";
 import type { JournalEntry } from "@/lib/types";
 
@@ -64,18 +66,24 @@ export function WalkTracker() {
   const [to, setTo] = useState("");
 
   useEffect(() => {
-    const s = loadSession();
-    if (s) {
-      setLive(s);
-      if (s.from) setFrom(s.from);
-      if (s.to) setTo(s.to);
-    }
+    const pull = () => {
+      const s = loadSession();
+      setLive((prev) =>
+        JSON.stringify(prev) === JSON.stringify(s) ? prev : s,
+      );
+      if (s?.from) setFrom(s.from);
+      if (s?.to) setTo(s.to);
+    };
+    pull();
+    window.addEventListener(ISLAND_EVENT, pull);
+    return () => window.removeEventListener(ISLAND_EVENT, pull);
   }, []);
 
   useEffect(() => {
     try {
       if (!live) liveSet(SS_KEY, null);
       else liveSet(SS_KEY, JSON.stringify(live));
+      notifyIslandChanged();
     } catch {
       /* */
     }
@@ -119,6 +127,7 @@ export function WalkTracker() {
     : 0;
 
   function start() {
+    timerIsland.unlock();
     const startMs = Date.now();
     const next: LiveSession = {
       startMs,

@@ -2,6 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { CustomModule, JournalEntry, SmartPanel } from "@/lib/types";
+import { LIVE_KEYS, liveParse, liveSet } from "@/lib/live-session";
+import {
+  ISLAND_EVENT,
+  notifyIslandChanged,
+  startCustomTimerLive,
+  type CustomTimerLive,
+} from "@/lib/live-timer-actions";
+import { timerIsland } from "@/lib/timer-island";
 import { useAppStore } from "@/lib/store";
 
 function todayIso() {
@@ -47,12 +55,34 @@ export function CustomSmartPanel({
   const [timerOn, setTimerOn] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [flash, setFlash] = useState(false);
+  const [timerStartedAt, setTimerStartedAt] = useState<number | null>(null);
 
   useEffect(() => {
-    if (!timerOn) return;
-    const id = window.setInterval(() => setElapsed((s) => s + 1), 1000);
+    const pull = () => {
+      const live = liveParse<CustomTimerLive>(LIVE_KEYS.customTimer);
+      if (live?.moduleId === moduleId && live.startedAt) {
+        setTimerStartedAt(live.startedAt);
+        setTimerOn(true);
+        setElapsed(
+          Math.max(0, Math.floor((Date.now() - live.startedAt) / 1000)),
+        );
+      } else {
+        setTimerOn(false);
+        setTimerStartedAt(null);
+      }
+    };
+    pull();
+    window.addEventListener(ISLAND_EVENT, pull);
+    return () => window.removeEventListener(ISLAND_EVENT, pull);
+  }, [moduleId]);
+
+  useEffect(() => {
+    if (!timerOn || !timerStartedAt) return;
+    const id = window.setInterval(() => {
+      setElapsed(Math.max(0, Math.floor((Date.now() - timerStartedAt) / 1000)));
+    }, 500);
     return () => window.clearInterval(id);
-  }, [timerOn]);
+  }, [timerOn, timerStartedAt]);
 
   const doneMilestones = useMemo(() => {
     const set = new Set<string>();
@@ -111,6 +141,9 @@ export function CustomSmartPanel({
 
   function stopTimer(save: boolean) {
     setTimerOn(false);
+    setTimerStartedAt(null);
+    liveSet(LIVE_KEYS.customTimer, null);
+    notifyIslandChanged();
     if (save && elapsed >= 5) {
       const mins = Math.max(1, Math.round(elapsed / 60));
       const label = smart?.timerLabel || "Занятие";
@@ -151,8 +184,16 @@ export function CustomSmartPanel({
               <button
                 type="button"
                 onClick={() => {
+                  timerIsland.unlock();
+                  const startedAt = Date.now();
                   setElapsed(0);
+                  setTimerStartedAt(startedAt);
                   setTimerOn(true);
+                  startCustomTimerLive({
+                    moduleId,
+                    startedAt,
+                    title: smart?.timerLabel || "Занятие",
+                  });
                 }}
                 className="flex-1 rounded-2xl bg-accent py-3 text-sm font-semibold text-[var(--on-accent)]"
               >

@@ -38,6 +38,7 @@ export const LIVE_KEYS = {
   walk: "maya-walk-session",
   contractions: "maya-contractions-session",
   kicks: "maya-kicks-session",
+  customTimer: "maya-custom-timer",
 } as const;
 
 export function sleepLiveKey(journalId: string): string {
