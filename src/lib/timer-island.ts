@@ -1,6 +1,18 @@
-import type { IslandTarget } from "@/lib/live-timer-actions";
-import { islandElapsedSec } from "@/lib/live-timer-actions";
-import { formatLockClock, paintTimerLockArt } from "@/lib/timer-lock-art";
+import {
+  islandElapsedSec,
+  type IslandKind,
+  type IslandTarget,
+} from "@/lib/live-timer-actions";
+import { formatLockClock } from "@/lib/timer-lock-art";
+
+const ISLAND_ART: Record<IslandKind, string> = {
+  sleep: "/icons/island-sleep.png",
+  preg_sleep: "/icons/island-sleep.png",
+  bf: "/icons/island-feeding.png",
+  walk: "/icons/island-walk.png",
+  contractions: "/icons/island-pulse.png",
+  timer: "/icons/island-timer.png",
+};
 
 export type IslandHandlers = {
   onPause?: () => void;
@@ -22,7 +34,6 @@ class TimerIsland {
   private handlers: IslandHandlers = {};
   private posTimer: number | null = null;
   private visBound = false;
-  private artSrc: string | null = null;
   private noticeTicks = 0;
   private listeners = new Set<(p: Playing | null) => void>();
 
@@ -185,7 +196,6 @@ class TimerIsland {
     }
     this.playing = null;
     this.noticeTicks = 0;
-    this.artSrc = null;
     if (typeof navigator !== "undefined" && navigator.mediaSession) {
       try {
         navigator.mediaSession.metadata = null;
@@ -214,19 +224,9 @@ class TimerIsland {
     }
   }
 
-  private artwork(clock: string, label: string, paused: boolean): MediaImage[] {
-    const painted = paintTimerLockArt({ clock, label, paused });
-    if (painted) this.artSrc = painted;
-    const src =
-      this.artSrc ||
-      new URL("/icons/icon-512.png", window.location.origin).href;
-    return [
-      {
-        src,
-        sizes: "512x512",
-        type: painted ? "image/jpeg" : "image/png",
-      },
-    ];
+  private artwork(kind: IslandKind): MediaImage[] {
+    const src = new URL(ISLAND_ART[kind], window.location.origin).href;
+    return [{ src, sizes: "512x512", type: "image/png" }];
   }
 
   private applyMetadata() {
@@ -242,7 +242,7 @@ class TimerIsland {
         title: clock,
         artist: t.title,
         album: paused ? "пауза · Мая" : "идёт · Мая",
-        artwork: this.artwork(clock, t.title, paused),
+        artwork: this.artwork(t.id),
       });
       navigator.mediaSession.playbackState = paused ? "paused" : "playing";
     } catch {
