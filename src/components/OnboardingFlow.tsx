@@ -28,6 +28,8 @@ import {
 import { restoreCloudBackup } from "@/components/CloudBackupSync";
 import { PAID_ONLY, TEMP_UNLOCK_ALL } from "@/lib/subscription";
 import { getValuePitch } from "@/lib/value-pitch";
+import { MayaIcon } from "@/components/icons/MayaIcon";
+import { ValuePitchVisual } from "@/components/ValuePitchVisual";
 import { useRouter } from "next/navigation";
 
 type FlowStep =
@@ -958,31 +960,31 @@ export function OnboardingFlow({
           )}
 
           {flowStep === "value" && (
-            <div className="maya-rise flex h-full flex-col justify-center py-4">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-accent">
-                {valuePitch.eyebrow}
-              </p>
-              <h1 className="font-display mt-3 text-3xl font-semibold tracking-tight">
-                {valuePitch.title}
-              </h1>
-              {valuePitch.intro ? (
-                <p className="mt-3 text-sm leading-relaxed text-muted">
-                  {valuePitch.intro}
+            <div className="maya-rise space-y-4 py-1">
+              <div className="text-center">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-accent">
+                  {valuePitch.eyebrow}
                 </p>
-              ) : null}
-              <div className="mt-6 rounded-2xl border border-accent/35 bg-accent-soft/60 px-4 py-3.5">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-accent">
-                  Зачем Мая
-                </p>
-                <p className="mt-1.5 text-[17px] font-semibold leading-snug">
-                  {valuePitch.highlight}
-                </p>
+                <h1 className="font-display mt-1.5 text-3xl font-semibold tracking-tight">
+                  {valuePitch.title}
+                </h1>
               </div>
-              <ul className="mt-4 space-y-2.5">
-                {valuePitch.bullets.map((t) => (
-                  <li key={t} className="flex gap-2.5 text-sm text-foreground/90">
-                    <span className="mt-0.5 shrink-0 text-accent">✓</span>
-                    <span>{t}</span>
+              <ValuePitchVisual
+                hello={valuePitch.hello}
+                pluses={valuePitch.pluses}
+              />
+              <ul className="space-y-2">
+                {valuePitch.pluses.map((plus) => (
+                  <li
+                    key={plus.text}
+                    className="flex items-start gap-2.5 rounded-2xl border border-line/80 bg-card/50 px-3 py-2.5"
+                  >
+                    <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent">
+                      <MayaIcon name={plus.icon} size={14} />
+                    </span>
+                    <span className="text-sm leading-snug text-foreground/90">
+                      {plus.text}
+                    </span>
                   </li>
                 ))}
               </ul>

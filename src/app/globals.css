@@ -742,6 +742,29 @@ body::before {
   animation: maya-float-soft 5.5s ease-in-out infinite;
 }
 
+@keyframes maya-orbit-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.maya-orbit {
+  animation: maya-orbit-spin 32s linear infinite;
+  transform-origin: center;
+}
+
+.maya-orbit-counter {
+  animation: maya-orbit-spin 32s linear infinite reverse;
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .maya-orbit,
+  .maya-orbit-counter {
+    animation: none;
+  }
+}
+
 .maya-drift {
   animation: maya-drift 7s ease-in-out infinite;
 }

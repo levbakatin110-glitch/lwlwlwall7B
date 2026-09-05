@@ -241,14 +241,10 @@ export default function PricingInner() {
           Что входит
         </p>
         <ul className="mt-2 space-y-2 text-sm text-foreground/90">
-          <li className="flex gap-2 font-semibold">
-            <span className="text-accent">✓</span>
-            <span>{pitch.highlight}</span>
-          </li>
-          {pitch.bullets.map((t) => (
-            <li key={t} className="flex gap-2">
+          {pitch.pluses.map((plus) => (
+            <li key={plus.text} className="flex gap-2">
               <span className="text-accent">✓</span>
-              <span>{t}</span>
+              <span>{plus.text}</span>
             </li>
           ))}
         </ul>
