@@ -25,7 +25,7 @@ type Playing = {
   paused: boolean;
 };
 
-const SW_URL = "/sw.js?v=16";
+const SW_URL = "/sw.js?v=17";
 const KEEP_SRC = "/timer-keep.wav";
 
 class TimerIsland {

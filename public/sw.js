@@ -1,5 +1,5 @@
 /* PWA: только push. Не перехватываем fetch — на телефоне это давало белый экран. */
-const CACHE = "maya-shell-v16";
+const CACHE = "maya-shell-v17";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
@@ -36,25 +36,20 @@ function parsePushPayload(event) {
   return { title, body, url, tag };
 }
 
-function showIfAway(title, body, tag, url) {
-  return self.clients
-    .matchAll({ type: "window", includeUncontrolled: true })
-    .then((list) => {
-      const looking = list.some((c) => c.visibilityState === "visible");
-      if (looking) return;
-      return self.registration.showNotification(title, {
-        body,
-        icon: "/icons/icon-192.png",
-        badge: "/icons/icon-192.png",
-        tag,
-        data: { url },
-      });
-    });
+function showNotice(title, body, tag, url) {
+  return self.registration.showNotification(title, {
+    body,
+    icon: "/icons/icon-192.png",
+    badge: "/icons/icon-192.png",
+    tag: tag || "maya",
+    renotify: true,
+    data: { url: url || "/" },
+  });
 }
 
 self.addEventListener("push", (event) => {
   const { title, body, url, tag } = parsePushPayload(event);
-  event.waitUntil(showIfAway(title, body, tag, url));
+  event.waitUntil(showNotice(title, body, tag, url));
 });
 
 self.addEventListener("notificationclick", (event) => {
@@ -108,7 +103,7 @@ self.addEventListener("message", (event) => {
   }
   if (data.type === "SHOW_NOTIFICATION" && data.title) {
     event.waitUntil(
-      showIfAway(
+      showNotice(
         data.title,
         data.body || "",
         data.tag || "maya",

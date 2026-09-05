@@ -11,7 +11,7 @@ export function PwaRegister() {
     } catch {
       /* ignore */
     }
-    void navigator.serviceWorker.register("/sw.js?v=16").catch(() => {});
+    void navigator.serviceWorker.register("/sw.js?v=17").catch(() => {});
   }, []);
 
   return null;

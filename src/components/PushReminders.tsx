@@ -47,6 +47,11 @@ export function PushReminders() {
       }
       trackEvent("push_enable");
       await subscribePush();
+      await showLocalNotice(
+        "Мая",
+        "Уведомления включены. Напомню, когда свернёте сайт.",
+        "/reminders",
+      );
     } catch {
       /* ignore */
     }
@@ -95,13 +100,47 @@ export function PushReminders() {
   );
 }
 
+const SW_URL = "/sw.js?v=17";
+
+export async function showLocalNotice(
+  title: string,
+  body: string,
+  url = "/",
+  tag = "maya",
+) {
+  if (typeof window === "undefined" || !("Notification" in window)) return;
+  if (Notification.permission !== "granted") return;
+  try {
+    if ("serviceWorker" in navigator) {
+      await navigator.serviceWorker.register(SW_URL);
+      const reg = await navigator.serviceWorker.ready;
+      await reg.showNotification(title, {
+        body,
+        tag,
+        icon: "/icons/icon-192.png",
+        badge: "/icons/icon-192.png",
+        data: { url },
+      });
+      return;
+    }
+  } catch {
+    /* */
+  }
+  try {
+    new Notification(title, { body, tag, icon: "/icons/icon-192.png" });
+  } catch {
+    /* */
+  }
+}
+
 export async function subscribePush() {
   if (typeof window === "undefined") return;
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
   if (Notification.permission !== "granted") return;
   try {
+    await navigator.serviceWorker.register(SW_URL);
     const reg = await navigator.serviceWorker.ready;
-    const vapid = await fetch("/api/push/vapid").then((r) => r.json()) as {
+    const vapid = (await fetch("/api/push/vapid").then((r) => r.json())) as {
       publicKey?: string | null;
     };
     let sub = await reg.pushManager.getSubscription();
@@ -133,23 +172,10 @@ export function notifyViaSw(input: {
   if (typeof document !== "undefined" && document.visibilityState === "visible") {
     return;
   }
-  if (typeof navigator === "undefined" || !navigator.serviceWorker) {
-    try {
-      if (Notification.permission === "granted") {
-        new Notification(input.title, { body: input.body, tag: input.tag });
-      }
-    } catch {
-      /* ignore */
-    }
-    return;
-  }
-  void navigator.serviceWorker.ready.then((reg) => {
-    reg.active?.postMessage({
-      type: "SHOW_NOTIFICATION",
-      title: input.title,
-      body: input.body,
-      tag: input.tag,
-      url: input.url,
-    });
-  });
+  void showLocalNotice(
+    input.title,
+    input.body,
+    input.url || "/",
+    input.tag || "maya",
+  );
 }

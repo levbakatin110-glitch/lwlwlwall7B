@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { subscribePush } from "@/components/PushReminders";
+import { showLocalNotice, subscribePush } from "@/components/PushReminders";
 import { MayaIcon, type IconName } from "@/components/icons/MayaIcon";
 import {
   CARE_PRESETS,
@@ -62,6 +62,7 @@ export default function RemindersPage() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [customText, setCustomText] = useState("");
   const [customTime, setCustomTime] = useState("10:00");
+  const [testBusy, setTestBusy] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined" || !("Notification" in window)) {
@@ -76,7 +77,14 @@ export default function RemindersPage() {
     try {
       const next = await Notification.requestPermission();
       setPerm(next);
-      if (next === "granted") await subscribePush();
+      if (next === "granted") {
+        await subscribePush();
+        await showLocalNotice(
+          "Мая",
+          "Уведомления включены. Напомню, когда свернёте сайт.",
+          "/reminders",
+        );
+      }
     } catch {
       /* ignore */
     }
@@ -100,6 +108,23 @@ export default function RemindersPage() {
 
   const pushOk = perm === "granted";
 
+  async function sendTest() {
+    setTestBusy(true);
+    try {
+      await showLocalNotice(
+        "Мая",
+        "Проверка: уведомление на этом телефоне.",
+        "/reminders",
+        "maya-test",
+      );
+      await fetch("/api/push/test", { method: "POST", credentials: "include" });
+    } catch {
+      /* */
+    } finally {
+      setTestBusy(false);
+    }
+  }
+
   return (
     <div className="maya-page mx-auto w-full max-w-2xl px-4 py-8">
       <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">
@@ -120,9 +145,19 @@ export default function RemindersPage() {
             «Домой» через Safari.
           </p>
         ) : pushOk ? (
-          <p className="mt-1 text-sm text-muted">
-            Включены. {emailVerified ? "Придут и при закрытой вкладке." : "Привяжите почту в профиле — тогда напомним и при закрытой вкладке."}
-          </p>
+          <>
+            <p className="mt-1 text-sm text-muted">
+              Включены. {emailVerified ? "Придут и при закрытой вкладке." : "Привяжите почту в профиле — тогда напомним и при закрытой вкладке."}
+            </p>
+            <button
+              type="button"
+              disabled={testBusy}
+              onClick={() => void sendTest()}
+              className="mt-3 rounded-xl border border-line px-4 py-2 text-sm font-semibold text-foreground disabled:opacity-50"
+            >
+              {testBusy ? "Отправляю…" : "Проверить уведомление"}
+            </button>
+          </>
         ) : perm === "denied" ? (
           <p className="mt-1 text-sm text-muted">
             Браузер запретил уведомления. Разрешите их для hey-maya.ru в
