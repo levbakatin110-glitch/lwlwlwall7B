@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { withStarterModulesFirst } from "./children";
 import {
   applyPayStarterModules,
   filterModulesForNav,
@@ -77,5 +78,14 @@ describe("module audience", () => {
     expect(next).not.toContain("water");
     expect(next).not.toContain("solids");
     expect(next).toHaveLength(9);
+  });
+
+  it("puts the seven core baby diaries first", () => {
+    const ids = withStarterModulesFirst(
+      ["walk", "vaccines", "sleep", "growth", "water"],
+      (id) => id,
+    );
+    expect(ids.slice(0, 3)).toEqual(["growth", "sleep", "vaccines"]);
+    expect(ids.slice(3)).toEqual(["walk", "water"]);
   });
 });

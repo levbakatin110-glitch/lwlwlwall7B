@@ -70,15 +70,15 @@ const BABY_PINNED: {
   moduleId?: ModuleId;
 }[] = [
   { href: "/m/growth", label: "Рост и вес малыша", icon: "growth", moduleId: "growth" },
-  { href: "/m/vaccines", label: "Прививки", icon: "vaccines", moduleId: "vaccines" },
   { href: "/m/sleep", label: "Сон", icon: "sleep", moduleId: "sleep" },
   { href: "/m/breastfeeding", label: "ГВ · таймер", icon: "feeding", moduleId: "breastfeeding" },
   { href: "/m/formula", label: "Смеси", icon: "formula", moduleId: "formula" },
-  { href: "/m/solids", label: "Прикорм", icon: "solids", moduleId: "solids" },
+  { href: "/m/diaper", label: "Подгузник", icon: "diaper", moduleId: "diaper" },
   { href: "/m/health", label: "Здоровье", icon: "health", moduleId: "health" },
+  { href: "/m/vaccines", label: "Прививки", icon: "vaccines", moduleId: "vaccines" },
+  { href: "/m/solids", label: "Прикорм", icon: "solids", moduleId: "solids" },
   { href: "/m/water", label: "Вода", icon: "water", moduleId: "water" },
   { href: "/m/walk", label: "Прогулка", icon: "walk", moduleId: "walk" },
-  { href: "/m/diaper", label: "Подгузник", icon: "diaper", moduleId: "diaper" },
   { href: "/wardrobe", label: "Одежда", icon: "wardrobe" },
   { href: "/recipes", label: "Рецепты", icon: "diet" },
 ];

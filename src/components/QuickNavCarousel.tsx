@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import type { MouseEvent } from "react";
 import { MayaIcon, type IconName } from "@/components/icons/MayaIcon";
 import { showPaywallHint } from "@/components/PaywallHint";
+import { STARTER_ENABLED_MODULES } from "@/lib/children";
 import { MODULE_BY_ID, customToDef } from "@/lib/modules";
 import {
   filterModulesForNav,
@@ -16,17 +17,13 @@ import type { CustomModule, ModuleId } from "@/lib/types";
 
 /** Приоритет в шапке: сначала эти, потом остальные включённые */
 const PRIORITY_ORDER: ModuleId[] = [
-  "growth",
-  "vaccines",
-  "sleep",
-  "breastfeeding",
-  "formula",
+  ...STARTER_ENABLED_MODULES,
   "solids",
-  "diaper",
   "water",
   "walk",
-  "health",
   "pregnancy",
+  "contractions",
+  "kicks",
   "preg_pressure",
   "preg_symptoms",
   "preg_visits",

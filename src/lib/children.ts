@@ -72,12 +72,12 @@ export const BABY_MODULE_IDS: ModuleId[] = [
   "sleep",
   "breastfeeding",
   "formula",
-  "solids",
   "diaper",
-  "water",
-  "walk",
   "health",
   "vaccines",
+  "solids",
+  "water",
+  "walk",
 ];
 
 /** После оплаты: семь главных. Одежду не включаем. */
@@ -93,6 +93,22 @@ export const STARTER_ENABLED_MODULES: ModuleId[] = [
 
 /** Стартовый набор дневников малыша. Беременность и цикл — из анкеты. */
 export const DEFAULT_ENABLED_MODULES: ModuleId[] = [...STARTER_ENABLED_MODULES];
+
+/** Семёрка сначала, остальные как были. */
+export function withStarterModulesFirst<T>(
+  items: T[],
+  idOf: (item: T) => string,
+): T[] {
+  const rank = new Map(STARTER_ENABLED_MODULES.map((id, i) => [id, i]));
+  return [...items].sort((a, b) => {
+    const ra = rank.get(idOf(a) as ModuleId);
+    const rb = rank.get(idOf(b) as ModuleId);
+    if (ra == null && rb == null) return 0;
+    if (ra == null) return 1;
+    if (rb == null) return -1;
+    return ra - rb;
+  });
+}
 
 /** Поднимает битый/частичный space после persist — иначе journals undefined роняет UI */
 export function ensureChildSpace(

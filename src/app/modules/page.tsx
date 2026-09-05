@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { IconBadge, MayaIcon } from "@/components/icons/MayaIcon";
+import { withStarterModulesFirst } from "@/lib/children";
 import { OPTIONAL_MODULES, MODULE_BY_ID } from "@/lib/modules";
 import {
   isBabyModuleId,
@@ -37,8 +38,11 @@ export default function ModulesPage() {
   const hasChild = hasBornChild(childrenList);
   const pregnant = Boolean(pregnancy?.active);
 
-  const babyMods = OPTIONAL_MODULES.filter(
-    (m) => isBabyModuleId(m.id) && !isRetiredModuleId(m.id),
+  const babyMods = withStarterModulesFirst(
+    OPTIONAL_MODULES.filter(
+      (m) => isBabyModuleId(m.id) && !isRetiredModuleId(m.id),
+    ),
+    (m) => m.id,
   );
   const pregMods = OPTIONAL_MODULES.filter(
     (m) => isPregnancyModuleId(m.id) && !isRetiredModuleId(m.id),

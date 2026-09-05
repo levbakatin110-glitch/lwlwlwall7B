@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { IconBadge, MayaIcon } from "@/components/icons/MayaIcon";
 import type { IconName } from "@/lib/icons";
+import { withStarterModulesFirst } from "@/lib/children";
 import { OPTIONAL_MODULES } from "@/lib/modules";
 import { isBabyModuleId, isRetiredModuleId } from "@/lib/module-audience";
 import { isPregnancyModuleId } from "@/lib/pregnancy";
@@ -268,8 +269,11 @@ export default function PricingInner() {
 }
 
 function DiaryShowcase() {
-  const baby = OPTIONAL_MODULES.filter(
-    (m) => isBabyModuleId(m.id) && !isRetiredModuleId(m.id),
+  const baby = withStarterModulesFirst(
+    OPTIONAL_MODULES.filter(
+      (m) => isBabyModuleId(m.id) && !isRetiredModuleId(m.id),
+    ),
+    (m) => m.id,
   );
   const preg = OPTIONAL_MODULES.filter(
     (m) => isPregnancyModuleId(m.id) && !isRetiredModuleId(m.id),
