@@ -974,7 +974,7 @@ export function OnboardingFlow({
                 pluses={valuePitch.pluses}
               />
               <ul className="space-y-2">
-                {valuePitch.pluses.map((plus) => (
+                {valuePitch.pluses.slice(0, 4).map((plus) => (
                   <li
                     key={plus.text}
                     className="flex items-start gap-2.5 rounded-2xl border border-line/80 bg-card/50 px-3 py-2.5"

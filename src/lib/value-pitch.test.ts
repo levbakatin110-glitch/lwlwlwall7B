@@ -12,7 +12,10 @@ describe("value pitch names Maya", () => {
     expect(blob).not.toMatch(/Спросите ночью/i);
     expect(pitch.title).toMatch(/Мая/);
     expect(pitch.hello).toMatch(/Я Мая/);
-    expect(pitch.pluses.length).toBeGreaterThanOrEqual(5);
+    expect(pitch.pluses.length).toBeGreaterThanOrEqual(4);
+    expect(blob).not.toMatch(/Напоминания|Одежда/i);
+    expect(blob).toMatch(/Общение с мамами/);
+    expect(blob).not.toMatch(/спросить|гуглить/i);
   });
 
   it("picks baby vs pregnancy", () => {
