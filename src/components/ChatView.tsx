@@ -311,41 +311,43 @@ export function ChatView() {
     }
   }
 
-  function requestPhoneLocation() {
+  function requestPhoneLocation(): Promise<{
+    latitude: number;
+    longitude: number;
+  } | null> {
+    const noCity = !useAppStore.getState().profile?.city?.trim();
     if (typeof navigator === "undefined" || !navigator.geolocation) {
-      if (!useAppStore.getState().profile?.city?.trim()) {
-        void fallbackIpLocation();
-      }
-      return;
+      return noCity ? fallbackIpLocation() : Promise.resolve(null);
     }
-    // На http:// (не localhost) Chrome часто запрещает GPS
     if (typeof window !== "undefined" && !window.isSecureContext) {
       setCoords(null);
-      if (!useAppStore.getState().profile?.city?.trim()) {
-        void fallbackIpLocation();
-      }
-      return;
+      return noCity ? fallbackIpLocation() : Promise.resolve(null);
     }
-    setCoords(null);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setCoords({
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
-        });
-      },
-      () => {
-        setCoords(null);
-        if (!useAppStore.getState().profile?.city?.trim()) {
-          void fallbackIpLocation();
-        }
-      },
-      {
-        enableHighAccuracy: false,
-        maximumAge: 120_000,
-        timeout: 2500,
-      },
-    );
+    return new Promise((resolve) => {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const next = {
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+          };
+          setCoords(next);
+          resolve(next);
+        },
+        () => {
+          setCoords(null);
+          if (noCity) {
+            void fallbackIpLocation().then(resolve);
+            return;
+          }
+          resolve(null);
+        },
+        {
+          enableHighAccuracy: false,
+          maximumAge: 120_000,
+          timeout: 8000,
+        },
+      );
+    });
   }
 
   async function fallbackIpLocation(): Promise<{
@@ -417,10 +419,6 @@ export function ChatView() {
       webkitSpeechRecognition?: new () => SpeechRec;
     };
     setVoiceSupported(Boolean(w.SpeechRecognition || w.webkitSpeechRecognition));
-  }, []);
-
-  useEffect(() => {
-    requestPhoneLocation();
   }, []);
 
   useEffect(() => {
@@ -559,6 +557,11 @@ export function ChatView() {
       return;
     }
 
+    const needGeo = isOutfitIntent(text);
+    const geoPromise = needGeo
+      ? requestPhoneLocation()
+      : Promise.resolve(coords);
+
     setInput("");
     setError(null);
     setNeedTopup(false);
@@ -575,13 +578,12 @@ export function ChatView() {
     startTransition(async () => {
       try {
         let sendCoords = coords;
-        const hasCity = Boolean(useAppStore.getState().profile?.city?.trim());
-        if (!sendCoords && !hasCity) {
-          // Не ждём гео дольше 1.5с — иначе чат упирается в 504 nginx
+        if (needGeo) {
           sendCoords = await Promise.race([
-            fallbackIpLocation(),
-            new Promise<null>((r) => setTimeout(() => r(null), 1500)),
+            geoPromise,
+            new Promise<null>((r) => setTimeout(() => r(null), 10_000)),
           ]);
+          if (!sendCoords) sendCoords = coords;
         }
         const liveProfile = useAppStore.getState().profile;
 
