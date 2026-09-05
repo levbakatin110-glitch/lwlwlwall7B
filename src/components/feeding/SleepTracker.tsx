@@ -231,9 +231,6 @@ export function SleepTracker({ journalId = "sleep" }: { journalId?: string }) {
           <p className="font-mono mt-2 text-5xl font-semibold tabular-nums tracking-tight">
             {formatDuration(elapsed)}
           </p>
-          <p className="mt-2 text-xs text-muted">
-            Сверни телефон — таймер на заставке и в островке
-          </p>
         </div>
       ) : null}
 
