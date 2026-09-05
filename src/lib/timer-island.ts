@@ -6,12 +6,12 @@ import {
 import { formatLockClock } from "@/lib/timer-lock-art";
 
 const ISLAND_ART: Record<IslandKind, string> = {
-  sleep: "/icons/island-sleep.png",
-  preg_sleep: "/icons/island-sleep.png",
-  bf: "/icons/island-feeding.png",
-  walk: "/icons/island-walk.png",
-  contractions: "/icons/island-pulse.png",
-  timer: "/icons/island-timer.png",
+  sleep: "/icons/island-sleep.png?v=2",
+  preg_sleep: "/icons/island-sleep.png?v=2",
+  bf: "/icons/island-feeding.png?v=2",
+  walk: "/icons/island-walk.png?v=2",
+  contractions: "/icons/island-pulse.png?v=2",
+  timer: "/icons/island-timer.png?v=2",
 };
 
 export type IslandHandlers = {
