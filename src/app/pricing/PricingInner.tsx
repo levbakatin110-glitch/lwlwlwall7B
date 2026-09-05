@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { IconBadge } from "@/components/icons/MayaIcon";
+import { CHAT_INCLUDED_MSGS } from "@/lib/chat-quota";
 import {
   FAKE_PAYMENTS,
   formatExpiry,
@@ -190,6 +191,9 @@ export default function PricingInner() {
                 <div>
                   <p className="font-display text-lg font-semibold">{p.label}</p>
                   <p className="mt-0.5 text-xs text-muted">{p.blurb}</p>
+                  <p className="mt-0.5 text-xs text-muted">
+                    {CHAT_INCLUDED_MSGS} сообщений Мае в месяц
+                  </p>
                   <p className="mt-2 text-[11px] text-muted">
                     ≈ {formatRub(p.perMonthRub)} / мес
                   </p>
@@ -237,15 +241,10 @@ export default function PricingInner() {
       </p>
 
       <div className="mt-8">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
-          Что входит
-        </p>
-        <ul className="mt-2 space-y-2 text-sm text-foreground/90">
+        <p className="text-sm text-muted">За что платите</p>
+        <ul className="mt-2 space-y-2 text-sm text-muted">
           {pitch.pluses.map((plus) => (
-            <li key={plus.text} className="flex gap-2">
-              <span className="text-accent">✓</span>
-              <span>{plus.text}</span>
-            </li>
+            <li key={plus.text}>{plus.text}</li>
           ))}
         </ul>
       </div>

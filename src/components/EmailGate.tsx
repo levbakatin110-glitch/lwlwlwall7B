@@ -4,7 +4,9 @@ import { restoreCloudBackup } from "@/components/CloudBackupSync";
 import { authFetchErrorMessage } from "@/lib/auth-fetch-error";
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { trackEvent } from "@/lib/analytics-client";
+import { isSubscriptionActive, PAID_ONLY } from "@/lib/subscription";
 import { useAppStore } from "@/lib/store";
 
 type AuthMode = "register" | "login" | "recover";
@@ -15,6 +17,7 @@ export function EmailGate({ children }: { children: React.ReactNode }) {
   const accountEmail = useAppStore((s) => s.accountEmail);
   const setAccountEmail = useAppStore((s) => s.setAccountEmail);
   const completeOnboarding = useAppStore((s) => s.completeOnboarding);
+  const router = useRouter();
 
   const [authMode, setAuthMode] = useState<AuthMode>("login");
   const [email, setEmail] = useState("");
@@ -107,6 +110,12 @@ export function EmailGate({ children }: { children: React.ReactNode }) {
       trackEvent("login");
       await restoreCloudBackup({ force: true });
       completeOnboarding();
+      if (
+        PAID_ONLY &&
+        !isSubscriptionActive(useAppStore.getState().subscription)
+      ) {
+        router.replace("/pricing");
+      }
     } catch (e) {
       setError(authFetchErrorMessage(e, "Ошибка"));
     } finally {
@@ -145,6 +154,12 @@ export function EmailGate({ children }: { children: React.ReactNode }) {
       if (authMode !== "register") {
         await restoreCloudBackup({ force: true });
         completeOnboarding();
+        if (
+          PAID_ONLY &&
+          !isSubscriptionActive(useAppStore.getState().subscription)
+        ) {
+          router.replace("/pricing");
+        }
       }
     } catch (e) {
       setError(authFetchErrorMessage(e, "Ошибка"));

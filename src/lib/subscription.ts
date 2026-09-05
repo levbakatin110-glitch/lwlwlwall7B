@@ -1,12 +1,12 @@
 /** Тарифы Маи. Оплата через Prodamus. */
 
-import { CHAT_TOPUP_RUB } from "@/lib/chat-quota";
+import { CHAT_INCLUDED_MSGS, CHAT_TOPUP_RUB } from "@/lib/chat-quota";
 
 /**
- * Полный Premium всем — как будто подписка уже куплена.
- * Дневники, чат и разделы не кидают на тарифы.
+ * Если true — всем как будто уже куплена подписка.
+ * Сейчас выключено: после анкеты только тарифы.
  */
-export const TEMP_UNLOCK_ALL = true;
+export const TEMP_UNLOCK_ALL = false;
 
 /**
  * ВРЕМЕННО: кнопка «Оплатить» сразу выдаёт Premium (без Prodamus).
@@ -206,6 +206,7 @@ export const FREE_PERKS: readonly string[] = PAID_ONLY
     ];
 
 export const PAID_PERKS = [
+  `${CHAT_INCLUDED_MSGS} сообщений Мае в месяц`,
   "Чат с Маей и все дневники",
   "Сон, кормление, беременность, цикл",
   "Свои дневники и доработка разделов через ИИ",

@@ -1,9 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, type ReactNode } from "react";
+import { useMemo, type MouseEvent, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { showPaywallHint } from "@/components/PaywallHint";
 import { childDisplayName } from "@/lib/children";
+import { isSubscriptionActive, PAID_ONLY } from "@/lib/subscription";
 import { useAppStore } from "@/lib/store";
 
 function formatToday() {
@@ -27,15 +30,26 @@ export function SidebarHeader({
   onNavigate?: () => void;
 }) {
   const profile = useAppStore((s) => s.profile);
+  const subscription = useAppStore((s) => s.subscription);
+  const router = useRouter();
   const today = useMemo(() => formatToday(), []);
   const name = childDisplayName(profile);
   const initial = name.slice(0, 1).toUpperCase();
+  const paywalled = PAID_ONLY && !isSubscriptionActive(subscription);
+
+  function onProfileClick(e: MouseEvent<HTMLAnchorElement>) {
+    onNavigate?.();
+    if (!paywalled) return;
+    e.preventDefault();
+    showPaywallHint();
+    router.replace("/pricing");
+  }
 
   return (
     <div className="flex items-center gap-3">
       <Link
         href="/profile"
-        onClick={onNavigate}
+        onClick={onProfileClick}
         aria-label="Профиль"
         className="flex min-w-0 flex-1 items-center gap-3 rounded-xl outline-none transition active:opacity-80 focus-visible:ring-2 focus-visible:ring-accent/40"
       >

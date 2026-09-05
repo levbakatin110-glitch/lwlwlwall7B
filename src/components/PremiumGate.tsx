@@ -45,7 +45,7 @@ export function PremiumGate({ children }: { children: React.ReactNode }) {
 
     if (hintedForPath.current !== pathname) {
       hintedForPath.current = pathname;
-      showPaywallHint("Сначала оформите подписку");
+      showPaywallHint();
     }
     router.replace("/pricing");
   }, [onboardingDone, active, pathname, router]);

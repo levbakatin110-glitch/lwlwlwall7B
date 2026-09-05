@@ -26,7 +26,11 @@ import {
   saveOnboardingProgress,
 } from "@/lib/onboarding-progress";
 import { restoreCloudBackup } from "@/components/CloudBackupSync";
-import { PAID_ONLY, TEMP_UNLOCK_ALL } from "@/lib/subscription";
+import {
+  isSubscriptionActive,
+  PAID_ONLY,
+  TEMP_UNLOCK_ALL,
+} from "@/lib/subscription";
 import { getValuePitch } from "@/lib/value-pitch";
 import { MayaIcon } from "@/components/icons/MayaIcon";
 import { ValuePitchVisual } from "@/components/ValuePitchVisual";
@@ -498,6 +502,13 @@ export function OnboardingFlow({
         await restoreCloudBackup({ force: true });
         completeOnboarding();
         onClose?.();
+        if (
+          mode === "first" &&
+          PAID_ONLY &&
+          !isSubscriptionActive(useAppStore.getState().subscription)
+        ) {
+          router.replace("/pricing");
+        }
         return;
       }
       setStepIdx((i) => Math.min(flow.length - 1, i + 1));
@@ -543,6 +554,13 @@ export function OnboardingFlow({
       await restoreCloudBackup({ force: true });
       completeOnboarding();
       onClose?.();
+      if (
+        mode === "first" &&
+        PAID_ONLY &&
+        !isSubscriptionActive(useAppStore.getState().subscription)
+      ) {
+        router.replace("/pricing");
+      }
     } catch (e) {
       setEmailError(e instanceof Error ? e.message : "Ошибка");
     } finally {

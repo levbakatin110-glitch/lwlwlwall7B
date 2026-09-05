@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import type { MouseEvent } from "react";
 import { MayaIcon, type IconName } from "@/components/icons/MayaIcon";
 import { showPaywallHint } from "@/components/PaywallHint";
@@ -139,6 +139,7 @@ function buildQuickItems(
 
 export function QuickNavCarousel({ className = "" }: { className?: string }) {
   const pathname = usePathname() ?? "";
+  const router = useRouter();
   const enabledModules = useAppStore((s) => s.enabledModules ?? []);
   const customModules = useAppStore((s) => s.customModules ?? []);
   const pregnancy = useAppStore((s) => s.pregnancy);
@@ -160,7 +161,8 @@ export function QuickNavCarousel({ className = "" }: { className?: string }) {
     if (!paywalled) return;
     if (href === "/pricing" || href.startsWith("/pricing/")) return;
     e.preventDefault();
-    showPaywallHint("Сначала оформите подписку");
+    showPaywallHint();
+    router.replace("/pricing");
   }
 
   return (

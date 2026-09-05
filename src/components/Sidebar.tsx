@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { MayaIcon, type IconName } from "@/components/icons/MayaIcon";
 import { SidebarHeader } from "@/components/SidebarHeader";
 import { SketchCorner, SketchSprig } from "@/components/illustrations/MayaSketch";
@@ -91,6 +91,7 @@ export function Sidebar({
   onMobileOpenChange?: (open: boolean) => void;
 }) {
   const pathname = usePathname() ?? "";
+  const router = useRouter();
   const enabledModules = useAppStore((s) => s.enabledModules ?? []);
   const customModules = useAppStore((s) => s.customModules ?? []);
   const childrenList = useAppStore((s) => s.children ?? []);
@@ -133,7 +134,8 @@ export function Sidebar({
     close();
     if (!paywalled || isOpenWithoutPay(href)) return;
     e.preventDefault();
-    showPaywallHint("Сначала оформите подписку");
+    showPaywallHint();
+    router.replace("/pricing");
   }
 
   const audience = {

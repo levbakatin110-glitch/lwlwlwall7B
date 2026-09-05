@@ -7,7 +7,7 @@ type Listener = (message: string) => void;
 
 const listeners = new Set<Listener>();
 
-const DEFAULT_MSG = "Сначала оформите подписку";
+const DEFAULT_MSG = "Сначала оплатите";
 
 /** Показать всплывающую подсказку про оплату */
 export function showPaywallHint(message = DEFAULT_MSG) {
