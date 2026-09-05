@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  applyPayStarterModules,
   filterModulesForNav,
   hasBornChild,
   shouldShowModule,
@@ -57,5 +58,24 @@ describe("module audience", () => {
       ctx,
     );
     expect(shown).toEqual(["sleep", "kicks", "growth"]);
+  });
+
+  it("keeps pregnancy after pay and drops extra baby diaries", () => {
+    const next = applyPayStarterModules([
+      "sleep",
+      "walk",
+      "water",
+      "solids",
+      "kicks",
+      "cycle",
+    ]);
+    expect(next).toContain("sleep");
+    expect(next).toContain("diaper");
+    expect(next).toContain("kicks");
+    expect(next).toContain("cycle");
+    expect(next).not.toContain("walk");
+    expect(next).not.toContain("water");
+    expect(next).not.toContain("solids");
+    expect(next).toHaveLength(9);
   });
 });

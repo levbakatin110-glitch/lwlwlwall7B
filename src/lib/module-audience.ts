@@ -1,4 +1,7 @@
-import { DEFAULT_ENABLED_MODULES } from "./children";
+import {
+  BABY_MODULE_IDS,
+  STARTER_ENABLED_MODULES,
+} from "./children";
 import { isPregnancyModuleId } from "./pregnancy";
 import type { ChildProfile, ModuleId } from "./types";
 
@@ -11,7 +14,22 @@ export function hasBornChild(children: ChildProfile[] | undefined): boolean {
 }
 
 export function isBabyModuleId(id: string): boolean {
-  return (DEFAULT_ENABLED_MODULES as readonly string[]).includes(id);
+  return (BABY_MODULE_IDS as readonly string[]).includes(id);
+}
+
+/** После оплаты: 7 главных малыша + то, что уже включили по анкете (срок, цикл). */
+export function applyPayStarterModules(enabled: ModuleId[]): ModuleId[] {
+  const keep = enabled.filter(
+    (id) => isPregnancyModuleId(id) || id === "cycle" || id === "diet",
+  );
+  const out: ModuleId[] = [];
+  const seen = new Set<string>();
+  for (const id of [...STARTER_ENABLED_MODULES, ...keep]) {
+    if (seen.has(id)) continue;
+    seen.add(id);
+    out.push(id);
+  }
+  return out;
 }
 
 /** Вес мамы, заметки и документы убрали из продукта. */

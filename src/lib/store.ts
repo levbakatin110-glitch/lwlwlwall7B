@@ -58,7 +58,7 @@ import {
   type SubscriptionState,
 } from "./subscription";
 import { localToday } from "./local-date";
-import { isRetiredModuleId } from "./module-audience";
+import { applyPayStarterModules, isRetiredModuleId } from "./module-audience";
 import {
   emptyPregnancy,
   isPregnancyModuleId,
@@ -113,6 +113,8 @@ type AppState = {
   modulesPopular11V1?: boolean;
   /** одноразовая: вес мамы выключить; беременность не держать у тех, кто уже с ребёнком */
   modulesAudienceV1?: boolean;
+  /** одноразовая: после первой оплаты оставить 7 главных дневников */
+  modulesPayStarterV1?: boolean;
   /** План диеты мамы (общий) */
   dietPlan: DietPlan | null;
   /** Лог ошибок чата / API для админки */
@@ -418,6 +420,7 @@ export const useAppStore = create<AppState>()(
           modulesCareTrackersV1: true,
           modulesPopular11V1: true,
           modulesAudienceV1: true,
+          modulesPayStarterV1: false,
           demoWardrobeSeeded: false,
         });
       },
@@ -460,8 +463,31 @@ export const useAppStore = create<AppState>()(
             spaces[activeId]?.enabledModules ?? get().enabledModules,
         });
       },
-      activateSubscription: (planId) =>
-        set({ subscription: activatePaidPlan(planId) }),
+      activateSubscription: (planId) => {
+        const already = get().modulesPayStarterV1;
+        if (already) {
+          set({ subscription: activatePaidPlan(planId) });
+          return;
+        }
+        const spaces = { ...get().childSpaces };
+        for (const sid of Object.keys(spaces)) {
+          const cur = spaces[sid];
+          if (!cur) continue;
+          spaces[sid] = {
+            ...cur,
+            enabledModules: applyPayStarterModules(cur.enabledModules),
+          };
+        }
+        const activeId = get().activeChildId;
+        set({
+          subscription: activatePaidPlan(planId),
+          modulesPayStarterV1: true,
+          childSpaces: spaces,
+          enabledModules:
+            spaces[activeId]?.enabledModules ??
+            applyPayStarterModules(get().enabledModules),
+        });
+      },
       clearSubscription: () => {
         const freeMods = clampModulesForPlan(
           get().enabledModules,
@@ -917,6 +943,7 @@ export const useAppStore = create<AppState>()(
         modulesCareTrackersV1: state.modulesCareTrackersV1,
         modulesPopular11V1: state.modulesPopular11V1,
         modulesAudienceV1: state.modulesAudienceV1,
+        modulesPayStarterV1: state.modulesPayStarterV1,
         dietPlan: state.dietPlan,
         opsErrors: (state.opsErrors ?? []).slice(0, 30),
         pregnancy: state.pregnancy,
@@ -1256,6 +1283,14 @@ export const useAppStore = create<AppState>()(
             if (!space) continue;
             space.enabledModules = apply(space.enabledModules ?? []);
           }
+        }
+
+        // Уже оплатившие не сбрасываем на семёрку при обновлении
+        if (
+          !state.modulesPayStarterV1 &&
+          isSubscriptionActive(state.subscription)
+        ) {
+          state.modulesPayStarterV1 = true;
         }
 
         // Бесплатный тариф: только разрешённые дневники

@@ -3,7 +3,11 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { IconBadge } from "@/components/icons/MayaIcon";
+import { IconBadge, MayaIcon } from "@/components/icons/MayaIcon";
+import type { IconName } from "@/lib/icons";
+import { OPTIONAL_MODULES } from "@/lib/modules";
+import { isBabyModuleId, isRetiredModuleId } from "@/lib/module-audience";
+import { isPregnancyModuleId } from "@/lib/pregnancy";
 import { CHAT_INCLUDED_MSGS } from "@/lib/chat-quota";
 import {
   FAKE_PAYMENTS,
@@ -145,6 +149,17 @@ export default function PricingInner() {
       </h1>
       <p className="mt-1 text-sm text-muted">{pitch.intro || pitch.highlight}</p>
 
+      {!active ? (
+        <div className="mt-6">
+          <p className="text-sm text-muted">Все дневники в подписке</p>
+          <p className="mt-1 text-xs text-muted">
+            После оплаты откроем семь главных. Остальные включите в меню, когда
+            понадобятся. Одежду не ставим сразу — она не из важных.
+          </p>
+          <DiaryShowcase />
+        </div>
+      ) : null}
+
       {paidHint && (
         <p className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm">
           Если оплата прошла — доступ включится автоматически (обновите страницу
@@ -248,6 +263,56 @@ export default function PricingInner() {
           ))}
         </ul>
       </div>
+    </div>
+  );
+}
+
+function DiaryShowcase() {
+  const baby = OPTIONAL_MODULES.filter(
+    (m) => isBabyModuleId(m.id) && !isRetiredModuleId(m.id),
+  );
+  const preg = OPTIONAL_MODULES.filter(
+    (m) => isPregnancyModuleId(m.id) && !isRetiredModuleId(m.id),
+  );
+  const extra = OPTIONAL_MODULES.filter(
+    (m) => (m.id === "diet" || m.id === "cycle") && !isRetiredModuleId(m.id),
+  );
+  const groups = [
+    {
+      label: "Малыш",
+      items: [
+        ...baby.map((m) => ({ id: m.id, title: m.shortTitle, icon: m.icon })),
+        { id: "wardrobe", title: "Одежда", icon: "wardrobe" },
+      ],
+    },
+    {
+      label: "Беременность",
+      items: preg.map((m) => ({ id: m.id, title: m.shortTitle, icon: m.icon })),
+    },
+    {
+      label: "Маме",
+      items: extra.map((m) => ({ id: m.id, title: m.shortTitle, icon: m.icon })),
+    },
+  ];
+
+  return (
+    <div className="mt-3 space-y-3">
+      {groups.map((g) => (
+        <div key={g.label}>
+          <p className="text-xs text-muted">{g.label}</p>
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {g.items.map((item) => (
+              <span
+                key={item.id}
+                className="inline-flex items-center gap-1 rounded-full border border-line bg-card/70 px-2 py-1 text-[11px] text-foreground/80"
+              >
+                <MayaIcon name={item.icon as IconName} size={12} />
+                {item.title}
+              </span>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

@@ -66,8 +66,8 @@ export function emptyChildSpace(): ChildSpace {
   };
 }
 
-/** Стартовый набор дневников малыша. Беременность и цикл — из анкеты. */
-export const DEFAULT_ENABLED_MODULES: ModuleId[] = [
+/** Все дневники малыша (меню и витрина). Одежда — отдельная страница, не модуль. */
+export const BABY_MODULE_IDS: ModuleId[] = [
   "growth",
   "sleep",
   "breastfeeding",
@@ -79,6 +79,20 @@ export const DEFAULT_ENABLED_MODULES: ModuleId[] = [
   "health",
   "vaccines",
 ];
+
+/** После оплаты: семь главных. Одежду не включаем. */
+export const STARTER_ENABLED_MODULES: ModuleId[] = [
+  "growth",
+  "sleep",
+  "breastfeeding",
+  "formula",
+  "diaper",
+  "health",
+  "vaccines",
+];
+
+/** Стартовый набор дневников малыша. Беременность и цикл — из анкеты. */
+export const DEFAULT_ENABLED_MODULES: ModuleId[] = [...STARTER_ENABLED_MODULES];
 
 /** Поднимает битый/частичный space после persist — иначе journals undefined роняет UI */
 export function ensureChildSpace(
