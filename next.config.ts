@@ -82,6 +82,15 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        source: "/timer-keep.wav",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=86400",
+          },
+        ],
+      },
+      {
         source: "/((?!_next/|icons/|avatars/|banners/|sw\\.js).*)",
         headers: [
           {

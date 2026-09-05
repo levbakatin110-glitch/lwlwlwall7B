@@ -1,7 +1,6 @@
 import { formatDuration } from "@/lib/diary-day";
 import type { IslandTarget } from "@/lib/live-timer-actions";
 import { islandElapsedSec } from "@/lib/live-timer-actions";
-import { buildQuietLoopWav } from "@/lib/quiet-loop-wav";
 
 export type IslandHandlers = {
   onPause?: () => void;
@@ -15,10 +14,11 @@ type Playing = {
 };
 
 const POSITION_DURATION = 12 * 60 * 60;
+const SW_URL = "/sw.js?v=16";
+const KEEP_SRC = "/timer-keep.wav";
 
 class TimerIsland {
   private el: HTMLAudioElement | null = null;
-  private srcUrl: string | null = null;
   private playing: Playing | null = null;
   private handlers: IslandHandlers = {};
   private posTimer: number | null = null;
@@ -50,19 +50,29 @@ class TimerIsland {
   begin(target: IslandTarget) {
     if (typeof window === "undefined") return;
     this.playing = { target, paused: Boolean(target.paused) };
+    this.armAudioSession();
     const el = this.ensureEl();
     this.bindMedia();
     this.bindVisibility();
     this.refreshMedia();
     if (!this.playing.paused) {
-      el.volume = 0.05;
+      el.volume = 0.18;
       el.muted = false;
-      void el.play().catch(() => {
-        /* жест уже мог потеряться при повторном sync */
-      });
+      const play = el.play();
+      if (play) void play.catch(() => undefined);
     }
-    this.pushLockNotice();
+    this.askNoticeInGesture();
     this.emit();
+  }
+
+  /** Прогреть файл до тапа «Старт», чтобы play() в жесте не ждал сеть. */
+  warmup() {
+    if (typeof window === "undefined") return;
+    this.armAudioSession();
+    this.ensureEl().load();
+    if ("serviceWorker" in navigator) {
+      void navigator.serviceWorker.register(SW_URL).catch(() => undefined);
+    }
   }
 
   /** Доиграть / разбудить плеер в жесте (пауза, возврат на экран). */
@@ -138,9 +148,6 @@ class TimerIsland {
 
   private ensureEl(): HTMLAudioElement {
     if (this.el) return this.el;
-    if (!this.srcUrl) {
-      this.srcUrl = URL.createObjectURL(buildQuietLoopWav());
-    }
     const el = document.createElement("audio");
     el.setAttribute("playsinline", "true");
     el.setAttribute("webkit-playsinline", "true");
@@ -148,12 +155,9 @@ class TimerIsland {
     el.loop = true;
     el.preload = "auto";
     el.controls = false;
-    el.volume = 0.05;
-    el.src = this.srcUrl;
-    el.style.position = "fixed";
-    el.style.left = "-9999px";
-    el.style.width = "1px";
-    el.style.height = "1px";
+    el.volume = 0.18;
+    el.src = KEEP_SRC;
+    el.setAttribute("aria-hidden", "true");
     document.body.appendChild(el);
     this.el = el;
     return el;
@@ -240,8 +244,10 @@ class TimerIsland {
     if (this.posTimer == null) {
       this.posTimer = window.setInterval(() => {
         this.updatePosition();
-        this.pushLockNotice();
-      }, 5000);
+        if (typeof document !== "undefined" && document.hidden) {
+          this.pushLockNotice();
+        }
+      }, 10_000);
     }
   }
 
@@ -269,6 +275,32 @@ class TimerIsland {
     }
   }
 
+  private armAudioSession() {
+    try {
+      const nav = navigator as Navigator & { audioSession?: { type: string } };
+      if (nav.audioSession) nav.audioSession.type = "playback";
+    } catch {
+      /* */
+    }
+  }
+
+  /** requestPermission должен стартовать в том же тапе, что и «Старт». */
+  private askNoticeInGesture() {
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+    if (Notification.permission === "default") {
+      try {
+        const req = Notification.requestPermission();
+        if (req && typeof req.then === "function") {
+          void req.then(() => this.pushLockNotice());
+        }
+      } catch {
+        /* */
+      }
+      return;
+    }
+    this.pushLockNotice();
+  }
+
   private pushLockNotice() {
     if (typeof window === "undefined" || !this.playing) return;
     if (!("Notification" in window) || Notification.permission !== "granted") {
@@ -279,39 +311,52 @@ class TimerIsland {
     const body = this.playing.paused
       ? `${formatDuration(elapsed)} · пауза`
       : formatDuration(elapsed);
-    const payload = {
-      type: "LIVE_TIMER",
-      title: t.title,
-      body: `${body} · Мая`,
-      url: t.href,
-    };
-    try {
-      const ready = navigator.serviceWorker?.controller;
-      if (ready) {
-        ready.postMessage(payload);
-        return;
+    const title = t.title;
+    const url = t.href;
+    const text = `${body} · Мая`;
+    void (async () => {
+      try {
+        if ("serviceWorker" in navigator) {
+          await navigator.serviceWorker.register(SW_URL);
+          const reg = await navigator.serviceWorker.ready;
+          await reg.showNotification(title, {
+            body: text,
+            tag: "maya-live-timer",
+            silent: true,
+            requireInteraction: true,
+            icon: "/icons/icon-192.png",
+            badge: "/icons/icon-192.png",
+            data: { url },
+            renotify: true,
+          } as NotificationOptions);
+          return;
+        }
+      } catch {
+        /* */
       }
-    } catch {
-      /* */
-    }
-    try {
-      new Notification(t.title, {
-        body: `${body} · Мая`,
-        tag: "maya-live-timer",
-        silent: true,
-        icon: "/icons/icon-192.png",
-      });
-    } catch {
-      /* */
-    }
+      try {
+        new Notification(title, {
+          body: text,
+          tag: "maya-live-timer",
+          silent: true,
+          icon: "/icons/icon-192.png",
+        });
+      } catch {
+        /* */
+      }
+    })();
   }
 
   private clearLockNotice() {
-    try {
-      navigator.serviceWorker?.controller?.postMessage({ type: "LIVE_TIMER_CLEAR" });
-    } catch {
-      /* */
-    }
+    void (async () => {
+      try {
+        const reg = await navigator.serviceWorker?.ready;
+        const list = await reg?.getNotifications({ tag: "maya-live-timer" });
+        for (const n of list ?? []) n.close();
+      } catch {
+        /* */
+      }
+    })();
   }
 }
 

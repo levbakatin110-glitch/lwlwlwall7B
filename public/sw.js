@@ -1,5 +1,5 @@
 /* PWA: только push. Не перехватываем fetch — на телефоне это давало белый экран. */
-const CACHE = "maya-shell-v15";
+const CACHE = "maya-shell-v16";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();

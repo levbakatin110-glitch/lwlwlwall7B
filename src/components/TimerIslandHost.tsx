@@ -29,6 +29,7 @@ export function TimerIslandHost() {
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
+    timerIsland.warmup();
     timerIsland.setHandlers({
       onPause: () => applyIslandPause(addJournalEntry),
       onPlay: () => applyIslandResume(),
