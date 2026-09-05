@@ -197,10 +197,17 @@ export function BreastfeedingTracker() {
   );
 
   function start(side: Side) {
-    timerIsland.unlock();
-    setSession((prev) => {
-      const settled = settle(prev);
-      return { ...settled, active: side, tickAt: Date.now() };
+    const now = Date.now();
+    const settled = settle(session);
+    const next = { ...settled, active: side, tickAt: now };
+    setSession(next);
+    saveSession(next);
+    timerIsland.begin({
+      id: "bf",
+      title: side === "left" ? "ГВ · левая" : "ГВ · правая",
+      href: "/m/breastfeeding",
+      startedAt: now,
+      elapsedOffsetSec: settled.leftSec + settled.rightSec,
     });
   }
 

@@ -184,15 +184,22 @@ export function CustomSmartPanel({
               <button
                 type="button"
                 onClick={() => {
-                  timerIsland.unlock();
                   const startedAt = Date.now();
+                  const title = smart?.timerLabel || "Занятие";
                   setElapsed(0);
                   setTimerStartedAt(startedAt);
                   setTimerOn(true);
                   startCustomTimerLive({
                     moduleId,
                     startedAt,
-                    title: smart?.timerLabel || "Занятие",
+                    title,
+                  });
+                  timerIsland.begin({
+                    id: "timer",
+                    title,
+                    href: `/m/${moduleId}`,
+                    startedAt,
+                    elapsedOffsetSec: 0,
                   });
                 }}
                 className="flex-1 rounded-2xl bg-accent py-3 text-sm font-semibold text-[var(--on-accent)]"

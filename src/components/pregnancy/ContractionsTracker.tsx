@@ -188,10 +188,23 @@ export function ContractionsTracker() {
     : 0;
 
   function start() {
-    timerIsland.unlock();
+    const startMs = Date.now();
+    try {
+      liveSet(SESSION_KEY, JSON.stringify({ startMs }));
+    } catch {
+      /* */
+    }
     setPending(null);
-    setLive({ startMs: Date.now() });
-    setNow(Date.now());
+    setLive({ startMs });
+    setNow(startMs);
+    timerIsland.begin({
+      id: "contractions",
+      title: "Схватка",
+      href: "/m/contractions",
+      startedAt: startMs,
+      elapsedOffsetSec: 0,
+    });
+    notifyIslandChanged();
   }
 
   function stopToPending() {

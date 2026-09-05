@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { islandElapsedSec, type IslandTarget } from "@/lib/live-timer-actions";
 import { formatDuration } from "@/lib/diary-day";
+import { buildQuietLoopWav } from "@/lib/quiet-loop-wav";
 
 describe("islandElapsedSec", () => {
   const base: IslandTarget = {
@@ -25,5 +26,16 @@ describe("islandElapsedSec", () => {
 describe("formatDuration for island clock", () => {
   it("matches Dynamic Island style after an hour", () => {
     expect(formatDuration(1 * 3600 + 22 * 60 + 34)).toBe("1:22:34");
+  });
+});
+
+describe("buildQuietLoopWav", () => {
+  it("writes a RIFF wave", async () => {
+    const blob = buildQuietLoopWav();
+    const buf = new Uint8Array(await blob.arrayBuffer());
+    const ascii = String.fromCharCode(...buf.slice(0, 4));
+    expect(ascii).toBe("RIFF");
+    expect(blob.type).toBe("audio/wav");
+    expect(buf.byteLength).toBeGreaterThan(44);
   });
 });

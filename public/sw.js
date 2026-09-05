@@ -82,6 +82,30 @@ self.addEventListener("notificationclick", (event) => {
 
 self.addEventListener("message", (event) => {
   const data = event.data || {};
+  if (data.type === "LIVE_TIMER" && data.title) {
+    event.waitUntil(
+      self.registration.showNotification(data.title, {
+        body: data.body || "",
+        icon: "/icons/icon-192.png",
+        badge: "/icons/icon-192.png",
+        tag: "maya-live-timer",
+        silent: true,
+        renotify: true,
+        data: { url: data.url || "/" },
+      }),
+    );
+    return;
+  }
+  if (data.type === "LIVE_TIMER_CLEAR") {
+    event.waitUntil(
+      self.registration
+        .getNotifications({ tag: "maya-live-timer" })
+        .then((list) => {
+          for (const n of list) n.close();
+        }),
+    );
+    return;
+  }
   if (data.type === "SHOW_NOTIFICATION" && data.title) {
     event.waitUntil(
       showIfAway(

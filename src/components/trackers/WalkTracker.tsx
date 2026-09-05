@@ -127,15 +127,27 @@ export function WalkTracker() {
     : 0;
 
   function start() {
-    timerIsland.unlock();
     const startMs = Date.now();
     const next: LiveSession = {
       startMs,
       from: from.trim() || undefined,
       to: to.trim() || undefined,
     };
+    try {
+      liveSet(SS_KEY, JSON.stringify(next));
+    } catch {
+      /* */
+    }
     setLive(next);
     setNow(startMs);
+    timerIsland.begin({
+      id: "walk",
+      title: "Прогулка",
+      href: "/m/walk",
+      startedAt: startMs,
+      elapsedOffsetSec: 0,
+    });
+    notifyIslandChanged();
   }
 
   function stopAndSave() {

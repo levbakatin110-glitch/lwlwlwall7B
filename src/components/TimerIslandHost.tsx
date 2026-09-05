@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { MayaIcon } from "@/components/icons/MayaIcon";
 import { formatDuration } from "@/lib/diary-day";
@@ -26,7 +25,6 @@ function iconFor(id: IslandTarget["id"]) {
 
 export function TimerIslandHost() {
   const addJournalEntry = useAppStore((s) => s.addJournalEntry);
-  const pathname = usePathname() ?? "";
   const [target, setTarget] = useState<IslandTarget | null>(null);
   const [now, setNow] = useState(() => Date.now());
 
@@ -39,10 +37,17 @@ export function TimerIslandHost() {
   }, [addJournalEntry]);
 
   useEffect(() => {
+    let empty = 0;
     const pull = () => {
       const next = readIslandTarget();
       setTarget(next);
-      void timerIsland.sync(next);
+      if (!next) {
+        empty += 1;
+        if (empty >= 3) timerIsland.sync(null);
+        return;
+      }
+      empty = 0;
+      timerIsland.sync(next);
     };
     pull();
     const id = window.setInterval(pull, 800);
@@ -62,7 +67,6 @@ export function TimerIslandHost() {
   }, [target]);
 
   if (!target) return null;
-  if (pathname === target.href) return null;
 
   const elapsed = islandElapsedSec(target, now);
   const paused = Boolean(target.paused);

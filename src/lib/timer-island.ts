@@ -1,6 +1,7 @@
 import { formatDuration } from "@/lib/diary-day";
 import type { IslandTarget } from "@/lib/live-timer-actions";
 import { islandElapsedSec } from "@/lib/live-timer-actions";
+import { buildQuietLoopWav } from "@/lib/quiet-loop-wav";
 
 export type IslandHandlers = {
   onPause?: () => void;
@@ -16,12 +17,12 @@ type Playing = {
 const POSITION_DURATION = 12 * 60 * 60;
 
 class TimerIsland {
-  private ctx: AudioContext | null = null;
-  private source: AudioBufferSourceNode | null = null;
-  private gain: GainNode | null = null;
+  private el: HTMLAudioElement | null = null;
+  private srcUrl: string | null = null;
   private playing: Playing | null = null;
   private handlers: IslandHandlers = {};
   private posTimer: number | null = null;
+  private visBound = false;
   private listeners = new Set<(p: Playing | null) => void>();
 
   subscribe(fn: (p: Playing | null) => void) {
@@ -42,137 +43,136 @@ class TimerIsland {
     this.bindMedia();
   }
 
-  /** Вызвать в том же клике, что и «старт» — иначе iPhone не пустит звук. */
+  /**
+   * Запустить плеер в том же тапе, что и «сон».
+   * Без этого iPhone не рисует островок и заставку.
+   */
+  begin(target: IslandTarget) {
+    if (typeof window === "undefined") return;
+    this.playing = { target, paused: Boolean(target.paused) };
+    const el = this.ensureEl();
+    this.bindMedia();
+    this.bindVisibility();
+    this.refreshMedia();
+    if (!this.playing.paused) {
+      el.volume = 0.05;
+      el.muted = false;
+      void el.play().catch(() => {
+        /* жест уже мог потеряться при повторном sync */
+      });
+    }
+    this.pushLockNotice();
+    this.emit();
+  }
+
+  /** Доиграть / разбудить плеер в жесте (пауза, возврат на экран). */
   unlock() {
     if (typeof window === "undefined") return;
-    void this.ensureCtx();
+    const el = this.ensureEl();
+    el.muted = false;
+    void el.play().catch(() => undefined);
   }
 
   snapshot() {
     return this.playing;
   }
 
-  async sync(target: IslandTarget | null) {
+  sync(target: IslandTarget | null) {
     if (!target) {
-      if (this.playing) this.teardown(false);
+      this.teardown();
       return;
     }
-    const same =
-      this.playing &&
-      this.playing.target.id === target.id &&
-      this.playing.target.startedAt === target.startedAt &&
-      this.playing.target.title === target.title;
-    if (!this.playing || this.playing.target.id !== target.id) {
+    if (!this.playing) {
       this.playing = { target, paused: Boolean(target.paused) };
-      if (!this.playing.paused) await this.ensureAudio();
       this.bindMedia();
       this.refreshMedia();
+      if (!target.paused) this.unlock();
+      this.pushLockNotice();
       this.emit();
       return;
     }
     this.playing.target = target;
     if (target.paused && !this.playing.paused) {
       this.playing.paused = true;
-      this.suspendAudio();
+      this.el?.pause();
       this.refreshMedia();
+      this.pushLockNotice();
       this.emit();
       return;
     }
     if (!target.paused && this.playing.paused) {
       this.playing.paused = false;
-      await this.ensureAudio();
+      this.unlock();
       this.refreshMedia();
+      this.pushLockNotice();
       this.emit();
       return;
     }
-    if (!same) this.refreshMedia();
-    else this.updatePosition();
+    this.refreshMedia();
   }
 
-  async pauseFromUi() {
+  pauseFromUi() {
     if (!this.playing || this.playing.paused) return;
     this.playing = { ...this.playing, paused: true };
-    this.suspendAudio();
+    this.el?.pause();
     this.refreshMedia();
+    this.pushLockNotice();
     this.emit();
     this.handlers.onPause?.();
   }
 
-  async resumeFromUi() {
+  resumeFromUi() {
     if (!this.playing || !this.playing.paused) return;
     this.playing = { ...this.playing, paused: false };
-    await this.ensureAudio();
+    this.unlock();
     this.refreshMedia();
+    this.pushLockNotice();
     this.emit();
     this.handlers.onPlay?.();
   }
 
   stopFromUi() {
     this.handlers.onStop?.();
-    this.teardown(false);
+    this.teardown();
   }
 
-  private async ensureCtx() {
-    if (typeof window === "undefined") return;
-    if (!this.ctx) {
-      const Ctor =
-        window.AudioContext ||
-        (window as unknown as { webkitAudioContext?: typeof AudioContext })
-          .webkitAudioContext;
-      if (!Ctor) return;
-      this.ctx = new Ctor();
+  private ensureEl(): HTMLAudioElement {
+    if (this.el) return this.el;
+    if (!this.srcUrl) {
+      this.srcUrl = URL.createObjectURL(buildQuietLoopWav());
     }
-    if (this.ctx.state === "suspended") {
-      await this.ctx.resume();
-    }
+    const el = document.createElement("audio");
+    el.setAttribute("playsinline", "true");
+    el.setAttribute("webkit-playsinline", "true");
+    el.setAttribute("x-webkit-airplay", "deny");
+    el.loop = true;
+    el.preload = "auto";
+    el.controls = false;
+    el.volume = 0.05;
+    el.src = this.srcUrl;
+    el.style.position = "fixed";
+    el.style.left = "-9999px";
+    el.style.width = "1px";
+    el.style.height = "1px";
+    document.body.appendChild(el);
+    this.el = el;
+    return el;
   }
 
-  private async ensureAudio() {
-    await this.ensureCtx();
-    if (!this.ctx || this.source) return;
-    const buf = this.ctx.createBuffer(1, this.ctx.sampleRate, this.ctx.sampleRate);
-    const data = buf.getChannelData(0);
-    for (let i = 0; i < data.length; i++) {
-      data[i] = Math.sin((i / this.ctx.sampleRate) * 18 * Math.PI * 2) * 0.0004;
-    }
-    const src = this.ctx.createBufferSource();
-    src.buffer = buf;
-    src.loop = true;
-    const gain = this.ctx.createGain();
-    gain.gain.value = 0.08;
-    src.connect(gain);
-    gain.connect(this.ctx.destination);
-    src.start();
-    this.source = src;
-    this.gain = gain;
-  }
-
-  private suspendAudio() {
-    if (this.source) {
-      try {
-        this.source.stop();
-      } catch {
-        /* */
+  private bindVisibility() {
+    if (this.visBound || typeof document === "undefined") return;
+    this.visBound = true;
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        this.pushLockNotice();
+        return;
       }
-      try {
-        this.source.disconnect();
-      } catch {
-        /* */
-      }
-      this.source = null;
-    }
-    if (this.gain) {
-      try {
-        this.gain.disconnect();
-      } catch {
-        /* */
-      }
-      this.gain = null;
-    }
+      if (this.playing && !this.playing.paused) this.unlock();
+    });
   }
 
-  private teardown(emit = true) {
-    this.suspendAudio();
+  private teardown() {
+    this.el?.pause();
     if (this.posTimer != null) {
       window.clearInterval(this.posTimer);
       this.posTimer = null;
@@ -186,23 +186,17 @@ class TimerIsland {
         /* */
       }
     }
-    if (emit) this.emit();
-    else this.emit();
+    this.clearLockNotice();
+    this.emit();
   }
 
   private bindMedia() {
     if (typeof navigator === "undefined" || !navigator.mediaSession) return;
     const ms = navigator.mediaSession;
     try {
-      ms.setActionHandler("play", () => {
-        void this.resumeFromUi();
-      });
-      ms.setActionHandler("pause", () => {
-        void this.pauseFromUi();
-      });
-      ms.setActionHandler("stop", () => {
-        this.stopFromUi();
-      });
+      ms.setActionHandler("play", () => this.resumeFromUi());
+      ms.setActionHandler("pause", () => this.pauseFromUi());
+      ms.setActionHandler("stop", () => this.stopFromUi());
     } catch {
       /* старый Safari */
     }
@@ -244,7 +238,10 @@ class TimerIsland {
     }
     this.updatePosition();
     if (this.posTimer == null) {
-      this.posTimer = window.setInterval(() => this.updatePosition(), 1000);
+      this.posTimer = window.setInterval(() => {
+        this.updatePosition();
+        this.pushLockNotice();
+      }, 5000);
     }
   }
 
@@ -258,7 +255,7 @@ class TimerIsland {
         position: Math.min(elapsed, POSITION_DURATION - 1),
       });
     } catch {
-      /* iOS иногда кидает, если position > duration */
+      /* */
     }
     try {
       navigator.mediaSession.metadata = new MediaMetadata({
@@ -267,6 +264,51 @@ class TimerIsland {
         album: formatDuration(elapsed),
         artwork: this.artwork(),
       });
+    } catch {
+      /* */
+    }
+  }
+
+  private pushLockNotice() {
+    if (typeof window === "undefined" || !this.playing) return;
+    if (!("Notification" in window) || Notification.permission !== "granted") {
+      return;
+    }
+    const t = this.playing.target;
+    const elapsed = islandElapsedSec(t);
+    const body = this.playing.paused
+      ? `${formatDuration(elapsed)} · пауза`
+      : formatDuration(elapsed);
+    const payload = {
+      type: "LIVE_TIMER",
+      title: t.title,
+      body: `${body} · Мая`,
+      url: t.href,
+    };
+    try {
+      const ready = navigator.serviceWorker?.controller;
+      if (ready) {
+        ready.postMessage(payload);
+        return;
+      }
+    } catch {
+      /* */
+    }
+    try {
+      new Notification(t.title, {
+        body: `${body} · Мая`,
+        tag: "maya-live-timer",
+        silent: true,
+        icon: "/icons/icon-192.png",
+      });
+    } catch {
+      /* */
+    }
+  }
+
+  private clearLockNotice() {
+    try {
+      navigator.serviceWorker?.controller?.postMessage({ type: "LIVE_TIMER_CLEAR" });
     } catch {
       /* */
     }

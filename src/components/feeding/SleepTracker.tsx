@@ -151,9 +151,30 @@ export function SleepTracker({ journalId = "sleep" }: { journalId?: string }) {
   }, [todayEntries, live, now]);
 
   function start(kind: Kind) {
-    timerIsland.unlock();
-    setLive({ kind, startedAt: Date.now() });
-    setNow(Date.now());
+    const startedAt = Date.now();
+    const next = { kind, startedAt };
+    try {
+      liveSet(storageKey, JSON.stringify(next));
+    } catch {
+      /* */
+    }
+    setLive(next);
+    setNow(startedAt);
+    timerIsland.begin({
+      id: isMomSleep ? "preg_sleep" : "sleep",
+      title:
+        kind === "night"
+          ? isMomSleep
+            ? "Ночной отдых"
+            : "Ночной сон"
+          : isMomSleep
+            ? "Отдых мамы"
+            : "Дневной сон",
+      href: isMomSleep ? "/m/preg_sleep" : "/m/sleep",
+      startedAt,
+      elapsedOffsetSec: 0,
+    });
+    notifyIslandChanged();
   }
 
   function stop() {
@@ -209,6 +230,9 @@ export function SleepTracker({ journalId = "sleep" }: { journalId?: string }) {
           </p>
           <p className="font-mono mt-2 text-5xl font-semibold tabular-nums tracking-tight">
             {formatDuration(elapsed)}
+          </p>
+          <p className="mt-2 text-xs text-muted">
+            Сверни телефон — таймер на заставке и в островке
           </p>
         </div>
       ) : null}
