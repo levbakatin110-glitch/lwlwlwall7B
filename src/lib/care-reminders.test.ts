@@ -166,6 +166,51 @@ describe("computeNextAt", () => {
     expect(next).toBe(last + 180 * 60_000);
     expect(next).toBeLessThan(now);
   });
+
+  it("keeps a clock slot for two hours after it was due", () => {
+    const now = utc("2026-03-01T10:30:00Z"); // 13:30 MSK, 12:00 was 90 min ago
+    const next = computeNextAt(
+      {
+        id: "care-custom",
+        kind: "custom",
+        enabled: true,
+        mode: "times",
+        times: ["12:00"],
+        title: "x",
+        body: "y",
+        href: "/reminders",
+      },
+      now,
+      MSK,
+      null,
+    );
+    const wall = wallClock(next, MSK);
+    expect(wall.mins).toBe(12 * 60);
+    expect(wall.d).toBe(1);
+    expect(next).toBeLessThan(now);
+  });
+
+  it("rolls a clock slot after two hours", () => {
+    const now = utc("2026-03-01T11:01:00Z"); // 14:01 MSK
+    const next = computeNextAt(
+      {
+        id: "care-custom",
+        kind: "custom",
+        enabled: true,
+        mode: "times",
+        times: ["12:00"],
+        title: "x",
+        body: "y",
+        href: "/reminders",
+      },
+      now,
+      MSK,
+      null,
+    );
+    const wall = wallClock(next, MSK);
+    expect(wall.mins).toBe(12 * 60);
+    expect(wall.d).toBe(2);
+  });
 });
 
 describe("resolveScheduleWrite", () => {

@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
+import webpush from "web-push";
 import { normalizeEmail } from "@/lib/email-codes";
 
 export type PushSubscriptionJSON = {
@@ -18,7 +19,75 @@ type Store = { rows: Row[] };
 
 const DATA_DIR = join(process.cwd(), "data");
 const FILE = join(DATA_DIR, "push-subscriptions.json");
+const VAPID_FILE = join(DATA_DIR, "vapid.json");
 const MAX = 4_000;
+
+type VapidKeys = {
+  publicKey: string;
+  privateKey: string;
+  subject: string;
+};
+
+let vapidCache: VapidKeys | null = null;
+
+function subjectFromEnv(): string {
+  return (
+    process.env.VAPID_SUBJECT?.trim() || "mailto:levprogrammist@gmail.com"
+  );
+}
+
+function resolveVapid(): VapidKeys | null {
+  if (vapidCache) return vapidCache;
+  const pub = process.env.VAPID_PUBLIC_KEY?.trim();
+  const priv = process.env.VAPID_PRIVATE_KEY?.trim();
+  if (pub && priv) {
+    vapidCache = { publicKey: pub, privateKey: priv, subject: subjectFromEnv() };
+    return vapidCache;
+  }
+  try {
+    if (existsSync(VAPID_FILE)) {
+      const parsed = JSON.parse(readFileSync(VAPID_FILE, "utf8")) as VapidKeys;
+      if (parsed.publicKey && parsed.privateKey) {
+        vapidCache = {
+          publicKey: parsed.publicKey,
+          privateKey: parsed.privateKey,
+          subject: parsed.subject || subjectFromEnv(),
+        };
+        return vapidCache;
+      }
+    }
+    const pair = webpush.generateVAPIDKeys();
+    const generated: VapidKeys = {
+      publicKey: pair.publicKey,
+      privateKey: pair.privateKey,
+      subject: subjectFromEnv(),
+    };
+    if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
+    try {
+      writeFileSync(VAPID_FILE, JSON.stringify(generated), {
+        encoding: "utf8",
+        flag: "wx",
+      });
+      vapidCache = generated;
+      return vapidCache;
+    } catch {
+      if (existsSync(VAPID_FILE)) {
+        const parsed = JSON.parse(readFileSync(VAPID_FILE, "utf8")) as VapidKeys;
+        if (parsed.publicKey && parsed.privateKey) {
+          vapidCache = {
+            publicKey: parsed.publicKey,
+            privateKey: parsed.privateKey,
+            subject: parsed.subject || subjectFromEnv(),
+          };
+          return vapidCache;
+        }
+      }
+      return null;
+    }
+  } catch {
+    return null;
+  }
+}
 
 function load(): Store {
   try {
@@ -36,18 +105,15 @@ function save(store: Store) {
 }
 
 export function vapidPublicKey(): string {
-  return process.env.VAPID_PUBLIC_KEY?.trim() || "";
+  return resolveVapid()?.publicKey || "";
 }
 
 export function vapidPrivateKey(): string {
-  return process.env.VAPID_PRIVATE_KEY?.trim() || "";
+  return resolveVapid()?.privateKey || "";
 }
 
 export function vapidSubject(): string {
-  return (
-    process.env.VAPID_SUBJECT?.trim() ||
-    "mailto:levprogrammist@gmail.com"
-  );
+  return resolveVapid()?.subject || subjectFromEnv();
 }
 
 export function savePushSubscription(

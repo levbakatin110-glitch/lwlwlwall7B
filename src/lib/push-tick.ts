@@ -29,9 +29,9 @@ export function startPushTickLoop(): void {
       console.error("[push-tick]", e);
     });
   };
-  const interval = setInterval(tick, 60_000);
+  const interval = setInterval(tick, 30_000);
   interval.unref();
   g.__mayaPushTick = interval;
-  const boot = setTimeout(tick, 12_000);
+  const boot = setTimeout(tick, 4_000);
   boot.unref();
 }

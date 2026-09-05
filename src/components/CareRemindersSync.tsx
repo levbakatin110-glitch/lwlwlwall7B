@@ -108,6 +108,16 @@ export function collectScheduledPushes(now = Date.now()): ScheduledPushItem[] {
   return items.slice(0, 60);
 }
 
+export function flushCareSchedule() {
+  const items = collectScheduledPushes();
+  return fetch("/api/push/schedule", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ items }),
+  }).catch(() => undefined);
+}
+
 /** Шлёт расписание на сервер — пуши придут, даже если вкладка закрыта. */
 export function CareRemindersSync() {
   const emailVerified = useAppStore((s) => s.emailVerified);
@@ -120,16 +130,15 @@ export function CareRemindersSync() {
     if (!emailVerified) return;
     if (timer.current) window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => {
-      const items = collectScheduledPushes();
-      void fetch("/api/push/schedule", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items }),
-      }).catch(() => undefined);
-    }, 1800);
+      void flushCareSchedule();
+    }, 400);
+    const onReady = () => {
+      void flushCareSchedule();
+    };
+    window.addEventListener("maya-push-ready", onReady);
     return () => {
       if (timer.current) window.clearTimeout(timer.current);
+      window.removeEventListener("maya-push-ready", onReady);
     };
   }, [emailVerified, childSpaces, momJournals, journals]);
 

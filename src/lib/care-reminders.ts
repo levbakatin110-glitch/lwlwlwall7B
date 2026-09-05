@@ -441,7 +441,7 @@ export function computeNextAt(
       reminder.quietFrom,
       reminder.quietTo,
     );
-    if (recent != null && now - recent <= 2 * 60_000) return recent;
+    if (recent != null && now - recent <= 2 * 60 * 60_000) return recent;
     return nextTimesAt(
       now,
       reminder.times ?? [],

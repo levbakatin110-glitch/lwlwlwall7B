@@ -157,6 +157,11 @@ export async function subscribePush() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subscription: sub.toJSON() }),
       });
+      try {
+        window.dispatchEvent(new Event("maya-push-ready"));
+      } catch {
+        /* */
+      }
     }
   } catch {
     /* iOS без установленного PWA / нет VAPID */
