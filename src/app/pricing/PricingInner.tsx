@@ -1,14 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { IconBadge, MayaIcon } from "@/components/icons/MayaIcon";
-import type { IconName } from "@/lib/icons";
-import { withStarterModulesFirst } from "@/lib/children";
-import { OPTIONAL_MODULES } from "@/lib/modules";
-import { isBabyModuleId, isRetiredModuleId } from "@/lib/module-audience";
-import { isPregnancyModuleId } from "@/lib/pregnancy";
+import { IconBadge } from "@/components/icons/MayaIcon";
 import { CHAT_INCLUDED_MSGS } from "@/lib/chat-quota";
 import {
   FAKE_PAYMENTS,
@@ -20,7 +15,6 @@ import {
   type PaidPlanId,
 } from "@/lib/subscription";
 import { trackEvent } from "@/lib/analytics-client";
-import { getValuePitch } from "@/lib/value-pitch";
 import { useAppStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
 
@@ -31,26 +25,11 @@ export default function PricingInner() {
   const accountEmail = useAppStore((s) => s.accountEmail);
   const emailVerified = useAppStore((s) => s.emailVerified);
   const activateSubscription = useAppStore((s) => s.activateSubscription);
-  const pregnancy = useAppStore((s) => s.pregnancy);
-  const childProfiles = useAppStore((s) => s.children);
-  const enabledModules = useAppStore((s) => s.enabledModules);
   const active = isSubscriptionActive(subscription);
   const current = active ? planById(subscription.planId) : null;
   const [busy, setBusy] = useState<PaidPlanId | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [paidHint, setPaidHint] = useState(false);
-
-  const pitch = useMemo(
-    () =>
-      getValuePitch({
-        pregnant: Boolean(pregnancy?.active),
-        hasChild: childProfiles.some(
-          (c) => !c.namePending && Boolean(c.birthDate),
-        ),
-        trackCycle: enabledModules.includes("cycle"),
-      }),
-    [pregnancy?.active, childProfiles, enabledModules],
-  );
 
   useEffect(() => {
     trackEvent("pricing_view");
@@ -148,18 +127,6 @@ export default function PricingInner() {
         <IconBadge name="spark" />
         Выберите тариф
       </h1>
-      <p className="mt-1 text-sm text-muted">{pitch.intro || pitch.highlight}</p>
-
-      {!active ? (
-        <div className="mt-6">
-          <p className="text-sm text-muted">Все дневники в подписке</p>
-          <p className="mt-1 text-xs text-muted">
-            После оплаты откроем семь главных. Остальные включите в меню, когда
-            понадобятся. Одежду не ставим сразу — она не из важных.
-          </p>
-          <DiaryShowcase />
-        </div>
-      ) : null}
 
       {paidHint && (
         <p className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm">
@@ -255,68 +222,6 @@ export default function PricingInner() {
         .
         Услуги информационные, не заменяют консультацию врача.
       </p>
-
-      <div className="mt-8">
-        <p className="text-sm text-muted">За что платите</p>
-        <ul className="mt-2 space-y-2 text-sm text-muted">
-          {pitch.pluses.map((plus) => (
-            <li key={plus.text}>{plus.text}</li>
-          ))}
-        </ul>
-      </div>
-    </div>
-  );
-}
-
-function DiaryShowcase() {
-  const baby = withStarterModulesFirst(
-    OPTIONAL_MODULES.filter(
-      (m) => isBabyModuleId(m.id) && !isRetiredModuleId(m.id),
-    ),
-    (m) => m.id,
-  );
-  const preg = OPTIONAL_MODULES.filter(
-    (m) => isPregnancyModuleId(m.id) && !isRetiredModuleId(m.id),
-  );
-  const extra = OPTIONAL_MODULES.filter(
-    (m) => (m.id === "diet" || m.id === "cycle") && !isRetiredModuleId(m.id),
-  );
-  const groups = [
-    {
-      label: "Малыш",
-      items: [
-        ...baby.map((m) => ({ id: m.id, title: m.shortTitle, icon: m.icon })),
-        { id: "wardrobe", title: "Одежда", icon: "wardrobe" },
-      ],
-    },
-    {
-      label: "Беременность",
-      items: preg.map((m) => ({ id: m.id, title: m.shortTitle, icon: m.icon })),
-    },
-    {
-      label: "Маме",
-      items: extra.map((m) => ({ id: m.id, title: m.shortTitle, icon: m.icon })),
-    },
-  ];
-
-  return (
-    <div className="mt-3 space-y-3">
-      {groups.map((g) => (
-        <div key={g.label}>
-          <p className="text-xs text-muted">{g.label}</p>
-          <div className="mt-1.5 flex flex-wrap gap-1.5">
-            {g.items.map((item) => (
-              <span
-                key={item.id}
-                className="inline-flex items-center gap-1 rounded-full border border-line bg-card/70 px-2 py-1 text-[11px] text-foreground/80"
-              >
-                <MayaIcon name={item.icon as IconName} size={12} />
-                {item.title}
-              </span>
-            ))}
-          </div>
-        </div>
-      ))}
     </div>
   );
 }

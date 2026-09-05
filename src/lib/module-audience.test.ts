@@ -4,8 +4,10 @@ import {
   applyPayStarterModules,
   filterModulesForNav,
   hasBornChild,
+  modulesForAudience,
   shouldShowModule,
 } from "./module-audience";
+import { BABY_MODULE_IDS, STARTER_ENABLED_MODULES } from "./children";
 import type { ChildProfile } from "./types";
 
 function child(partial: Partial<ChildProfile>): ChildProfile {
@@ -61,23 +63,35 @@ describe("module audience", () => {
     expect(shown).toEqual(["sleep", "kicks", "growth"]);
   });
 
-  it("keeps pregnancy after pay and drops extra baby diaries", () => {
-    const next = applyPayStarterModules([
-      "sleep",
-      "walk",
-      "water",
-      "solids",
-      "kicks",
-      "cycle",
-    ]);
+  it("gives a baby-only mom only baby diaries, seven first", () => {
+    const ids = modulesForAudience({ pregnant: false, hasChild: true });
+    expect(ids).toEqual([...BABY_MODULE_IDS]);
+    expect(ids.slice(0, 7)).toEqual([...STARTER_ENABLED_MODULES]);
+    expect(ids).not.toContain("kicks");
+    expect(ids).not.toContain("cycle");
+    expect(ids).not.toContain("diet");
+  });
+
+  it("hides other audiences after pay when she only has a baby", () => {
+    const next = applyPayStarterModules(
+      ["sleep", "walk", "kicks", "cycle", "diet"],
+      { pregnant: false, hasChild: true },
+    );
+    expect(next).toEqual([...BABY_MODULE_IDS]);
+    expect(next).not.toContain("kicks");
+    expect(next).not.toContain("cycle");
+    expect(next).not.toContain("diet");
+  });
+
+  it("keeps pregnancy after pay when she is pregnant", () => {
+    const next = applyPayStarterModules(["sleep", "kicks", "cycle"], {
+      pregnant: true,
+      hasChild: true,
+    });
     expect(next).toContain("sleep");
     expect(next).toContain("diaper");
     expect(next).toContain("kicks");
-    expect(next).toContain("cycle");
-    expect(next).not.toContain("walk");
-    expect(next).not.toContain("water");
-    expect(next).not.toContain("solids");
-    expect(next).toHaveLength(9);
+    expect(next).not.toContain("cycle");
   });
 
   it("puts the seven core baby diaries first", () => {

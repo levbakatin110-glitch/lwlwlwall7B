@@ -60,7 +60,6 @@ const PREGNANCY_PINNED: {
   { href: "/m/preg_labs", label: "Анализы", icon: "list", moduleId: "preg_labs" },
   { href: "/m/preg_sleep", label: "Сон мамы", icon: "sleep", moduleId: "preg_sleep" },
   { href: "/m/birth_plan", label: "План родов", icon: "spark", moduleId: "birth_plan" },
-  { href: "/m/cycle", label: "Цикл", icon: "pulse", moduleId: "cycle" },
 ];
 
 const BABY_PINNED: {
@@ -159,7 +158,9 @@ export function Sidebar({
     }[],
   ) {
     return rows.filter((item) => {
-      if (item.href === "/wardrobe") return audience.hasChild;
+      if (item.href === "/wardrobe" || item.href === "/recipes") {
+        return audience.hasChild;
+      }
       if (!item.moduleId) return true;
       return navModules.has(item.moduleId);
     });

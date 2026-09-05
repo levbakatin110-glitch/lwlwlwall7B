@@ -35,7 +35,11 @@ import { IconBadge } from "@/components/icons/MayaIcon";
 import { PlanOfferBanner } from "@/components/plan/PlanOffer";
 import { hintForDiary } from "@/lib/diary-hints";
 import { isDietLikeModule } from "@/lib/diet";
-import { isRetiredModuleId } from "@/lib/module-audience";
+import {
+  hasBornChild,
+  isRetiredModuleId,
+  shouldShowModule,
+} from "@/lib/module-audience";
 import { fallbackSmartForTopic } from "@/lib/module-schema";
 import {
   assessGrowth,
@@ -270,9 +274,22 @@ function FieldInput({
 
 export function ModuleJournal({ moduleId }: { moduleId: string }) {
   const router = useRouter();
+  const pregnancy = useAppStore((s) => s.pregnancy);
+  const childrenList = useAppStore((s) => s.children ?? []);
+  const audience = {
+    pregnant: Boolean(pregnancy?.active),
+    hasChild: hasBornChild(childrenList),
+  };
+
   useEffect(() => {
-    if (isRetiredModuleId(moduleId)) router.replace("/");
-  }, [moduleId, router]);
+    if (isRetiredModuleId(moduleId)) {
+      router.replace("/");
+      return;
+    }
+    if (isBuiltinModuleId(moduleId) && !shouldShowModule(moduleId, audience)) {
+      router.replace("/");
+    }
+  }, [moduleId, router, audience.pregnant, audience.hasChild]);
 
   const customModules = useAppStore((s) => s.customModules);
   const profile = useAppStore((s) => s.profile);

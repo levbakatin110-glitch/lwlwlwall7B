@@ -88,7 +88,6 @@ function moduleItem(id: ModuleId): QuickItem | null {
 function buildQuickItems(
   enabled: ModuleId[],
   customModules: CustomModule[],
-  hasChild: boolean,
 ): QuickItem[] {
   const items: QuickItem[] = [
     { href: "/", label: "Чат", icon: "chat" },
@@ -122,10 +121,6 @@ function buildQuickItems(
     });
   }
 
-  if (hasChild) {
-    items.push({ href: "/wardrobe", label: "Одежда", icon: "wardrobe" });
-  }
-
   const seen = new Set<string>();
   return items.filter((it) => {
     if (seen.has(it.href)) return false;
@@ -150,7 +145,6 @@ export function QuickNavCarousel({ className = "" }: { className?: string }) {
       hasChild,
     }),
     customModules,
-    hasChild,
   );
   const canScroll = items.length > 4;
 

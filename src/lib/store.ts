@@ -13,6 +13,7 @@ import {
   emptyJournals,
   ensureChildSpace,
   uid,
+  withStarterModulesFirst,
   type ChildSpace,
 } from "./children";
 import { migrateJournalFields } from "./module-schema";
@@ -58,7 +59,14 @@ import {
   type SubscriptionState,
 } from "./subscription";
 import { localToday } from "./local-date";
-import { applyPayStarterModules, isRetiredModuleId } from "./module-audience";
+import {
+  applyPayStarterModules,
+  filterModulesForNav,
+  hasBornChild,
+  isRetiredModuleId,
+  modulesForAudience,
+  type AudienceCtx,
+} from "./module-audience";
 import {
   emptyPregnancy,
   isPregnancyModuleId,
@@ -115,6 +123,8 @@ type AppState = {
   modulesAudienceV1?: boolean;
   /** одноразовая: после первой оплаты оставить 7 главных дневников */
   modulesPayStarterV1?: boolean;
+  /** одноразовая: досеять все дневники своей анкеты, чужие выкинуть */
+  modulesAudienceFillV2?: boolean;
   /** План диеты мамы (общий) */
   dietPlan: DietPlan | null;
   /** Лог ошибок чата / API для админки */
@@ -205,6 +215,33 @@ function spaceSlice(space: ChildSpace) {
 /** Дневники беременности и цикла — общие для мамы, не привязаны к ребёнку */
 export function isMomJournalId(moduleId: string): boolean {
   return isPregnancyModuleId(moduleId) || moduleId === "cycle";
+}
+
+function audienceFromState(s: {
+  pregnancy?: PregnancyProfile | null;
+  children?: ChildProfile[];
+  enabledModules?: ModuleId[];
+}): AudienceCtx {
+  return {
+    pregnant: Boolean(s.pregnancy?.active),
+    hasChild: hasBornChild(s.children),
+    trackCycle:
+      Boolean(s.pregnancy?.trackCycle) ||
+      (s.enabledModules ?? []).includes("cycle"),
+  };
+}
+
+function applyModulesToSpaces(
+  spaces: Record<string, ChildSpace>,
+  list: ModuleId[],
+): Record<string, ChildSpace> {
+  const next = { ...spaces };
+  for (const sid of Object.keys(next)) {
+    const cur = next[sid];
+    if (!cur) continue;
+    next[sid] = { ...cur, enabledModules: [...list] };
+  }
+  return next;
 }
 
 function stripMomJournals(
@@ -421,6 +458,7 @@ export const useAppStore = create<AppState>()(
           modulesPopular11V1: true,
           modulesAudienceV1: true,
           modulesPayStarterV1: false,
+          modulesAudienceFillV2: false,
           demoWardrobeSeeded: false,
         });
       },
@@ -469,23 +507,25 @@ export const useAppStore = create<AppState>()(
           set({ subscription: activatePaidPlan(planId) });
           return;
         }
-        const spaces = { ...get().childSpaces };
+        const s = get();
+        const ctx = audienceFromState(s);
+        const spaces = { ...s.childSpaces };
         for (const sid of Object.keys(spaces)) {
           const cur = spaces[sid];
           if (!cur) continue;
           spaces[sid] = {
             ...cur,
-            enabledModules: applyPayStarterModules(cur.enabledModules),
+            enabledModules: applyPayStarterModules(cur.enabledModules, ctx),
           };
         }
-        const activeId = get().activeChildId;
+        const activeId = s.activeChildId;
         set({
           subscription: activatePaidPlan(planId),
           modulesPayStarterV1: true,
           childSpaces: spaces,
           enabledModules:
             spaces[activeId]?.enabledModules ??
-            applyPayStarterModules(get().enabledModules),
+            applyPayStarterModules(s.enabledModules, ctx),
         });
       },
       clearSubscription: () => {
@@ -886,13 +926,21 @@ export const useAppStore = create<AppState>()(
       },
 
       completeOnboarding: () => {
-        set({ onboardingDone: true });
+        const s = get();
+        const list = modulesForAudience(audienceFromState(s));
+        const spaces = applyModulesToSpaces(s.childSpaces, list);
+        set({
+          onboardingDone: true,
+          enabledModules: list,
+          childSpaces: spaces,
+          modulesAudienceFillV2: true,
+        });
         markOnboardingDoneSticky();
         writeIdentityBackup({
           onboardingDone: true,
-          email: get().accountEmail,
-          emailVerified: get().emailVerified,
-          childName: get().profile?.name,
+          email: s.accountEmail,
+          emailVerified: s.emailVerified,
+          childName: s.profile?.name,
         });
       },
 
@@ -944,6 +992,7 @@ export const useAppStore = create<AppState>()(
         modulesPopular11V1: state.modulesPopular11V1,
         modulesAudienceV1: state.modulesAudienceV1,
         modulesPayStarterV1: state.modulesPayStarterV1,
+        modulesAudienceFillV2: state.modulesAudienceFillV2,
         dietPlan: state.dietPlan,
         opsErrors: (state.opsErrors ?? []).slice(0, 30),
         pregnancy: state.pregnancy,
@@ -1293,26 +1342,42 @@ export const useAppStore = create<AppState>()(
           state.modulesPayStarterV1 = true;
         }
 
-        // Бесплатный тариф: только разрешённые дневники
-        {
-          const premium = isSubscriptionActive(state.subscription);
-          const clamped = clampModulesForPlan(next, premium) as ModuleId[];
+        // Только дневники своей анкеты. Пустой список после старого clamp — досеять.
+        if (state.onboardingDone) {
+          const ctx = audienceFromState({
+            pregnancy: state.pregnancy,
+            children: state.children,
+            enabledModules: next,
+          });
+          const fill = (list: ModuleId[]) => {
+            let out = filterModulesForNav(list, ctx);
+            if (!state.modulesAudienceFillV2 || out.length === 0) {
+              const want = modulesForAudience(ctx);
+              const have = new Set(out);
+              for (const id of want) {
+                if (!have.has(id)) {
+                  out.push(id);
+                  have.add(id);
+                }
+              }
+            }
+            return withStarterModulesFirst(out, (id) => id);
+          };
+          const filled = fill(next);
           if (
-            clamped.length !== next.length ||
-            clamped.some((id, i) => id !== next[i])
+            filled.length !== next.length ||
+            filled.some((id, i) => id !== next[i])
           ) {
             next.length = 0;
-            next.push(...clamped);
+            next.push(...filled);
             seededDefaults = true;
           }
           for (const sid of Object.keys(state.childSpaces ?? {})) {
             const space = state.childSpaces[sid];
             if (!space) continue;
-            space.enabledModules = clampModulesForPlan(
-              space.enabledModules,
-              premium,
-            ) as ModuleId[];
+            space.enabledModules = fill(space.enabledModules ?? []);
           }
+          state.modulesAudienceFillV2 = true;
         }
 
         {

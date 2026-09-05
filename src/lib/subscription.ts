@@ -57,8 +57,9 @@ export function clampModulesForPlan(
   premium: boolean,
 ): string[] {
   const list = [...(modules ?? [])];
-  if (TEMP_UNLOCK_ALL || premium) return list;
-  if (PAID_ONLY) return [];
+  // Без оплаты доступ режет PremiumGate, а не пустой список —
+  // иначе в шапке остаются только чат, общение и одежда.
+  if (TEMP_UNLOCK_ALL || premium || PAID_ONLY) return list;
   const allowed = FREE_MODULE_IDS as readonly string[];
   return list.filter((id) => allowed.includes(id));
 }

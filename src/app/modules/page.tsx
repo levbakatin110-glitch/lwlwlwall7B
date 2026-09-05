@@ -47,6 +47,9 @@ export default function ModulesPage() {
   const pregMods = OPTIONAL_MODULES.filter(
     (m) => isPregnancyModuleId(m.id) && !isRetiredModuleId(m.id),
   );
+  const momMods = OPTIONAL_MODULES.filter(
+    (m) => (m.id === "diet" || m.id === "cycle") && !isRetiredModuleId(m.id),
+  );
 
   const [prompt, setPrompt] = useState("");
   const [blueprint, setBlueprint] = useState<ModuleBlueprint | null>(null);
@@ -416,6 +419,82 @@ export default function ModulesPage() {
       </p>
       <ul className="space-y-3">
         {pregMods.map((mod, i) => {
+          const on = enabledModules.includes(mod.id);
+          const locked = !premium && !isFreeModuleId(mod.id);
+          return (
+            <li
+              key={mod.id}
+              className={`maya-item flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between ${
+                on
+                  ? "border-line bg-card/70"
+                  : "border-line/70 bg-card/40 opacity-70"
+              }`}
+              style={{ animationDelay: `${i * 45}ms` }}
+            >
+              <div className="flex gap-3">
+                <IconBadge name={mod.icon} />
+                <div>
+                  <p className="font-medium">
+                    {mod.title}
+                    {locked ? (
+                      <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-accent">
+                        Premium
+                      </span>
+                    ) : null}
+                  </p>
+                  <p className="mt-1 text-sm text-muted">{mod.description}</p>
+                  {locked ? (
+                    <p className="mt-2 text-xs text-muted">
+                      Доступно после оплаты Premium
+                    </p>
+                  ) : on ? (
+                    <Link
+                      href={`/m/${mod.id}`}
+                      className="mt-2 inline-block text-sm text-accent underline"
+                    >
+                      Открыть журнал
+                    </Link>
+                  ) : (
+                    <p className="mt-2 text-xs text-muted">
+                      Выключен — в меню слева не показывается
+                    </p>
+                  )}
+                </div>
+              </div>
+              {locked ? (
+                <Link
+                  href="/pricing"
+                  className="shrink-0 rounded-xl bg-accent px-4 py-2 text-center text-sm font-medium text-white"
+                >
+                  Открыть в Premium
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => toggleModule(mod.id)}
+                  className={`shrink-0 rounded-xl px-4 py-2 text-sm font-medium ${
+                    on
+                      ? "border border-line bg-accent-soft text-accent"
+                      : "bg-accent text-white"
+                  }`}
+                >
+                  {on ? "Отключить" : "Подключить"}
+                </button>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+        </>
+      ) : null}
+
+      {!hasChild ? (
+        <>
+      <p className="mb-3 mt-8 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+        Маме
+      </p>
+      <ul className="space-y-3">
+        {momMods.map((mod, i) => {
           const on = enabledModules.includes(mod.id);
           const locked = !premium && !isFreeModuleId(mod.id);
           return (
