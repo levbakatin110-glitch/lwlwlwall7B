@@ -86,7 +86,7 @@ export function TimerIslandHost() {
           <span className="max-w-[7rem] truncate text-[11px] font-medium text-white/70">
             {target.title}
           </span>
-          <span className="font-mono text-[15px] font-semibold tabular-nums tracking-tight text-[#c4b0f0]">
+          <span className="font-mono text-[18px] font-semibold tabular-nums tracking-tight text-[#c4b0f0]">
             {formatDuration(elapsed)}
           </span>
         </Link>

@@ -1,6 +1,6 @@
-import { formatDuration } from "@/lib/diary-day";
 import type { IslandTarget } from "@/lib/live-timer-actions";
 import { islandElapsedSec } from "@/lib/live-timer-actions";
+import { formatLockClock, paintTimerLockArt } from "@/lib/timer-lock-art";
 
 export type IslandHandlers = {
   onPause?: () => void;
@@ -13,7 +13,6 @@ type Playing = {
   paused: boolean;
 };
 
-const POSITION_DURATION = 12 * 60 * 60;
 const SW_URL = "/sw.js?v=16";
 const KEEP_SRC = "/timer-keep.wav";
 
@@ -23,6 +22,8 @@ class TimerIsland {
   private handlers: IslandHandlers = {};
   private posTimer: number | null = null;
   private visBound = false;
+  private artSrc: string | null = null;
+  private noticeTicks = 0;
   private listeners = new Set<(p: Playing | null) => void>();
 
   subscribe(fn: (p: Playing | null) => void) {
@@ -168,6 +169,7 @@ class TimerIsland {
     this.visBound = true;
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) {
+        this.applyMetadata();
         this.pushLockNotice();
         return;
       }
@@ -182,6 +184,8 @@ class TimerIsland {
       this.posTimer = null;
     }
     this.playing = null;
+    this.noticeTicks = 0;
+    this.artSrc = null;
     if (typeof navigator !== "undefined" && navigator.mediaSession) {
       try {
         navigator.mediaSession.metadata = null;
@@ -201,77 +205,70 @@ class TimerIsland {
       ms.setActionHandler("play", () => this.resumeFromUi());
       ms.setActionHandler("pause", () => this.pauseFromUi());
       ms.setActionHandler("stop", () => this.stopFromUi());
+      ms.setActionHandler("seekbackward", () => undefined);
+      ms.setActionHandler("seekforward", () => undefined);
+      ms.setActionHandler("previoustrack", () => undefined);
+      ms.setActionHandler("nexttrack", () => undefined);
     } catch {
       /* старый Safari */
     }
   }
 
-  private artwork(): MediaImage[] {
+  private artwork(clock: string, label: string, paused: boolean): MediaImage[] {
+    const painted = paintTimerLockArt({ clock, label, paused });
+    if (painted) this.artSrc = painted;
+    const src =
+      this.artSrc ||
+      new URL("/icons/icon-512.png", window.location.origin).href;
     return [
       {
-        src: new URL("/icons/icon-192.png", window.location.origin).href,
-        sizes: "192x192",
-        type: "image/png",
-      },
-      {
-        src: new URL("/icons/icon-512.png", window.location.origin).href,
+        src,
         sizes: "512x512",
-        type: "image/png",
+        type: painted ? "image/jpeg" : "image/png",
       },
     ];
   }
 
-  private refreshMedia() {
+  private applyMetadata() {
     if (typeof navigator === "undefined" || !navigator.mediaSession || !this.playing) {
       return;
     }
     const t = this.playing.target;
     const elapsed = islandElapsedSec(t);
+    const clock = formatLockClock(elapsed);
+    const paused = this.playing.paused;
     try {
       navigator.mediaSession.metadata = new MediaMetadata({
-        title: t.title,
-        artist: "Мая",
-        album: formatDuration(elapsed),
-        artwork: this.artwork(),
+        title: clock,
+        artist: t.title,
+        album: paused ? "пауза · Мая" : "идёт · Мая",
+        artwork: this.artwork(clock, t.title, paused),
       });
-      navigator.mediaSession.playbackState = this.playing.paused
-        ? "paused"
-        : "playing";
+      navigator.mediaSession.playbackState = paused ? "paused" : "playing";
     } catch {
       /* */
     }
-    this.updatePosition();
-    if (this.posTimer == null) {
-      this.posTimer = window.setInterval(() => {
-        this.updatePosition();
-        if (typeof document !== "undefined" && document.hidden) {
-          this.pushLockNotice();
-        }
-      }, 10_000);
+    try {
+      navigator.mediaSession.setPositionState?.({
+        duration: elapsed + 1,
+        playbackRate: 0,
+        position: elapsed,
+      });
+    } catch {
+      /* */
     }
   }
 
-  private updatePosition() {
-    if (!this.playing || typeof navigator === "undefined") return;
-    const elapsed = islandElapsedSec(this.playing.target);
-    try {
-      navigator.mediaSession?.setPositionState?.({
-        duration: POSITION_DURATION,
-        playbackRate: this.playing.paused ? 0 : 1,
-        position: Math.min(elapsed, POSITION_DURATION - 1),
-      });
-    } catch {
-      /* */
-    }
-    try {
-      navigator.mediaSession.metadata = new MediaMetadata({
-        title: this.playing.target.title,
-        artist: "Мая",
-        album: formatDuration(elapsed),
-        artwork: this.artwork(),
-      });
-    } catch {
-      /* */
+  private refreshMedia() {
+    this.applyMetadata();
+    if (this.posTimer == null) {
+      this.posTimer = window.setInterval(() => {
+        this.applyMetadata();
+        if (typeof document !== "undefined" && document.hidden) {
+          this.noticeTicks += 1;
+          if (this.noticeTicks % 15 === 0) this.pushLockNotice();
+        }
+      }, 1000);
     }
   }
 
@@ -308,12 +305,12 @@ class TimerIsland {
     }
     const t = this.playing.target;
     const elapsed = islandElapsedSec(t);
-    const body = this.playing.paused
-      ? `${formatDuration(elapsed)} · пауза`
-      : formatDuration(elapsed);
-    const title = t.title;
+    const clock = formatLockClock(elapsed);
+    const title = clock;
     const url = t.href;
-    const text = `${body} · Мая`;
+    const text = this.playing.paused
+      ? `${t.title} · пауза · Мая`
+      : `${t.title} · идёт · Мая`;
     void (async () => {
       try {
         if ("serviceWorker" in navigator) {

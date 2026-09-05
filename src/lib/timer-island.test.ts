@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { islandElapsedSec, type IslandTarget } from "@/lib/live-timer-actions";
 import { formatDuration } from "@/lib/diary-day";
+import { formatLockClock } from "@/lib/timer-lock-art";
 import { buildQuietLoopWav } from "@/lib/quiet-loop-wav";
 
 describe("islandElapsedSec", () => {
@@ -26,6 +27,13 @@ describe("islandElapsedSec", () => {
 describe("formatDuration for island clock", () => {
   it("matches Dynamic Island style after an hour", () => {
     expect(formatDuration(1 * 3600 + 22 * 60 + 34)).toBe("1:22:34");
+  });
+});
+
+describe("formatLockClock", () => {
+  it("always shows hours so lock screen looks like a timer", () => {
+    expect(formatLockClock(83)).toBe("0:01:23");
+    expect(formatLockClock(1 * 3600 + 22 * 60 + 34)).toBe("1:22:34");
   });
 });
 
