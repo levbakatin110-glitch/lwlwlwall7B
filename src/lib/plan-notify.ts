@@ -2,7 +2,6 @@ import { MAYA_SITE } from "@/lib/telegram";
 import { getResend, resendFromAddress } from "@/lib/resend";
 import { PLAN_TOPIC_LABEL } from "@/lib/plan-products";
 import { getPlanConsultant } from "@/lib/plan-consultants";
-import { sendPushToEmail } from "@/lib/push-send";
 import type { PlanOrder } from "@/lib/orders-store";
 
 function planChatUrl(orderId: string) {
@@ -67,15 +66,7 @@ export async function notifyMomPlanTeamReply(
       : ""
   }<p><a href="${url}">Открыть чат в Мае</a></p><p style="font-size:12px;color:#888">Не врач и не экстренная помощь.</p>`;
 
-  await Promise.all([
-    sendMomEmail(order.email, subject, html, text),
-    sendPushToEmail(order.email, {
-      title: input.hasPdf ? "Мая · план готов" : `Мая · ${consultant.name}`,
-      body: preview || lead,
-      url: `/plan/${encodeURIComponent(order.id)}`,
-      tag: `plan-${order.id}`,
-    }).catch(() => ({ sent: 0, gone: 0 })),
-  ]);
+  await sendMomEmail(order.email, subject, html, text);
 }
 
 /** Уведомление маме: план готов к просмотру (первый PDF) */
