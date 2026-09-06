@@ -21,18 +21,13 @@ export async function POST(req: Request) {
     return Response.json({ error: "Некорректный запрос" }, { status: 400 });
   }
 
-  const raw = form.get("file");
-  if (!(raw instanceof Blob) || raw.size < 800) {
+  const file = form.get("file");
+  if (!(file instanceof File) || file.size < 800) {
     return Response.json({ error: "Пустая запись — скажите ещё раз" }, { status: 400 });
   }
-  if (raw.size > MAX_BYTES) {
+  if (file.size > MAX_BYTES) {
     return Response.json({ error: "Слишком длинно — скажите короче" }, { status: 400 });
   }
-
-  const file =
-    raw instanceof File
-      ? raw
-      : new File([raw], "voice.m4a", { type: raw.type || "audio/mp4" });
 
   try {
     const out = await openai.audio.transcriptions.create({
