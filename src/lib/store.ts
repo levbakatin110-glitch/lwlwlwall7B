@@ -12,6 +12,7 @@ import {
   emptyChildSpace,
   emptyJournals,
   ensureChildSpace,
+  isOptInOnlyModule,
   uid,
   withStarterModulesFirst,
   type ChildSpace,
@@ -125,6 +126,8 @@ type AppState = {
   modulesPayStarterV1?: boolean;
   /** одноразовая: досеять все дневники своей анкеты, чужие выкинуть */
   modulesAudienceFillV2?: boolean;
+  /** одноразовая: здоровье не включаем сами */
+  healthDiaryOptInV1?: boolean;
   /** План диеты мамы (общий) */
   dietPlan: DietPlan | null;
   /** Лог ошибок чата / API для админки */
@@ -459,6 +462,7 @@ export const useAppStore = create<AppState>()(
           modulesAudienceV1: true,
           modulesPayStarterV1: false,
           modulesAudienceFillV2: false,
+          healthDiaryOptInV1: true,
           demoWardrobeSeeded: false,
         });
       },
@@ -927,13 +931,16 @@ export const useAppStore = create<AppState>()(
 
       completeOnboarding: () => {
         const s = get();
-        const list = modulesForAudience(audienceFromState(s));
+        const list = modulesForAudience(audienceFromState(s)).filter(
+          (id) => !isOptInOnlyModule(id),
+        );
         const spaces = applyModulesToSpaces(s.childSpaces, list);
         set({
           onboardingDone: true,
           enabledModules: list,
           childSpaces: spaces,
           modulesAudienceFillV2: true,
+          healthDiaryOptInV1: true,
         });
         markOnboardingDoneSticky();
         writeIdentityBackup({
@@ -993,6 +1000,7 @@ export const useAppStore = create<AppState>()(
         modulesAudienceV1: state.modulesAudienceV1,
         modulesPayStarterV1: state.modulesPayStarterV1,
         modulesAudienceFillV2: state.modulesAudienceFillV2,
+        healthDiaryOptInV1: state.healthDiaryOptInV1,
         dietPlan: state.dietPlan,
         opsErrors: (state.opsErrors ?? []).slice(0, 30),
         pregnancy: state.pregnancy,
@@ -1354,7 +1362,9 @@ export const useAppStore = create<AppState>()(
           const fill = (list: ModuleId[]) => {
             let out = filterModulesForNav(list, ctx);
             if (!state.modulesAudienceFillV2 || out.length === 0) {
-              const want = modulesForAudience(ctx);
+              const want = modulesForAudience(ctx).filter(
+                (id) => !isOptInOnlyModule(id),
+              );
               const have = new Set(out);
               for (const id of want) {
                 if (!have.has(id)) {
@@ -1380,6 +1390,23 @@ export const useAppStore = create<AppState>()(
             space.enabledModules = fill(space.enabledModules ?? []);
           }
           state.modulesAudienceFillV2 = true;
+        }
+
+        if (!state.healthDiaryOptInV1) {
+          const dropHealth = (list: ModuleId[]) =>
+            list.filter((id) => id !== "health");
+          const cleaned = dropHealth(next);
+          if (cleaned.length !== next.length) {
+            next.length = 0;
+            next.push(...cleaned);
+            seededDefaults = true;
+          }
+          for (const sid of Object.keys(state.childSpaces ?? {})) {
+            const space = state.childSpaces[sid];
+            if (!space) continue;
+            space.enabledModules = dropHealth(space.enabledModules ?? []);
+          }
+          state.healthDiaryOptInV1 = true;
         }
 
         {

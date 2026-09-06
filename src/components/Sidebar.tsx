@@ -79,7 +79,6 @@ const BABY_PINNED: {
   { href: "/m/water", label: "Вода", icon: "water", moduleId: "water" },
   { href: "/m/walk", label: "Прогулка", icon: "walk", moduleId: "walk" },
   { href: "/wardrobe", label: "Одежда", icon: "wardrobe" },
-  { href: "/recipes", label: "Рецепты", icon: "diet" },
 ];
 
 export function Sidebar({
@@ -158,7 +157,7 @@ export function Sidebar({
     }[],
   ) {
     return rows.filter((item) => {
-      if (item.href === "/wardrobe" || item.href === "/recipes") {
+      if (item.href === "/wardrobe") {
         return audience.hasChild;
       }
       if (!item.moduleId) return true;

@@ -63,10 +63,13 @@ describe("module audience", () => {
     expect(shown).toEqual(["sleep", "kicks", "growth"]);
   });
 
-  it("gives a baby-only mom only baby diaries, seven first", () => {
+  it("gives a baby-only mom only baby diaries, core first", () => {
     const ids = modulesForAudience({ pregnant: false, hasChild: true });
     expect(ids).toEqual([...BABY_MODULE_IDS]);
-    expect(ids.slice(0, 7)).toEqual([...STARTER_ENABLED_MODULES]);
+    expect(ids.slice(0, STARTER_ENABLED_MODULES.length)).toEqual([
+      ...STARTER_ENABLED_MODULES,
+    ]);
+    expect(ids).toContain("health");
     expect(ids).not.toContain("kicks");
     expect(ids).not.toContain("cycle");
     expect(ids).not.toContain("diet");
@@ -77,10 +80,19 @@ describe("module audience", () => {
       ["sleep", "walk", "kicks", "cycle", "diet"],
       { pregnant: false, hasChild: true },
     );
-    expect(next).toEqual([...BABY_MODULE_IDS]);
+    expect(next).toEqual(BABY_MODULE_IDS.filter((id) => id !== "health"));
+    expect(next).not.toContain("health");
     expect(next).not.toContain("kicks");
     expect(next).not.toContain("cycle");
     expect(next).not.toContain("diet");
+  });
+
+  it("keeps health after pay only if she already turned it on", () => {
+    const next = applyPayStarterModules(["sleep", "health"], {
+      pregnant: false,
+      hasChild: true,
+    });
+    expect(next).toContain("health");
   });
 
   it("keeps pregnancy after pay when she is pregnant", () => {
@@ -94,7 +106,7 @@ describe("module audience", () => {
     expect(next).not.toContain("cycle");
   });
 
-  it("puts the seven core baby diaries first", () => {
+  it("puts the core baby diaries first", () => {
     const ids = withStarterModulesFirst(
       ["walk", "vaccines", "sleep", "growth", "water"],
       (id) => id,

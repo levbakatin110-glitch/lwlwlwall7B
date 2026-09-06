@@ -1,5 +1,6 @@
 import {
   BABY_MODULE_IDS,
+  isOptInOnlyModule,
   STARTER_ENABLED_MODULES,
 } from "./children";
 import {
@@ -49,13 +50,13 @@ export function modulesForAudience(ctx: AudienceCtx): ModuleId[] {
   return out;
 }
 
-/** После оплаты: все дневники своей анкеты. Семёрка малыша уже первая в списке. */
+/** После оплаты: дневники своей анкеты, без opt-in вроде здоровья. */
 export function applyPayStarterModules(
   enabled: ModuleId[],
   ctx?: AudienceCtx,
 ): ModuleId[] {
   if (ctx) {
-    const base = modulesForAudience(ctx);
+    const base = modulesForAudience(ctx).filter((id) => !isOptInOnlyModule(id));
     const extra = enabled.filter(
       (id) => shouldShowModule(id, ctx) && !base.includes(id),
     );

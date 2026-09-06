@@ -73,21 +73,27 @@ export const BABY_MODULE_IDS: ModuleId[] = [
   "breastfeeding",
   "formula",
   "diaper",
-  "health",
   "vaccines",
   "solids",
   "water",
   "walk",
+  "health",
 ];
 
-/** После оплаты: семь главных. Одежду не включаем. */
+/** Сами не включаем — мама добавит в «Все дневники», если нужно. */
+export const OPT_IN_ONLY_MODULES: readonly ModuleId[] = ["health"];
+
+export function isOptInOnlyModule(id: string): boolean {
+  return (OPT_IN_ONLY_MODULES as readonly string[]).includes(id);
+}
+
+/** После оплаты: главные. Одежду и здоровье не включаем. */
 export const STARTER_ENABLED_MODULES: ModuleId[] = [
   "growth",
   "sleep",
   "breastfeeding",
   "formula",
   "diaper",
-  "health",
   "vaccines",
 ];
 

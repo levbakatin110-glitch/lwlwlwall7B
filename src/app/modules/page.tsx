@@ -121,20 +121,6 @@ export default function ModulesPage() {
         Разделы
       </h1>
 
-      <Link
-        href="/recipes"
-        className="mt-5 flex items-center gap-3 rounded-2xl border border-accent/25 bg-accent-soft/50 px-4 py-3.5 transition hover:border-accent/40"
-      >
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent text-on-accent">
-          <MayaIcon name="spark" size={18} />
-        </span>
-        <p className="font-display min-w-0 flex-1 text-base font-semibold leading-snug">
-          Рецепты
-        </p>
-        <span className="text-xs text-muted">каталог</span>
-        <span className="text-sm font-semibold text-accent">→</span>
-      </Link>
-
       <p className="mb-3 mt-8 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
         Виджеты
       </p>
