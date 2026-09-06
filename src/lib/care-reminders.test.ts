@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   advanceAfterFire,
   computeNextAt,
+  ensureCoreCareReminders,
   formatHhMm,
   isQuietAt,
   nextIntervalAt,
@@ -237,5 +238,34 @@ describe("resolveScheduleWrite", () => {
       now,
     );
     expect(out.nextAt).toBe(nextCycle);
+  });
+});
+
+describe("ensureCoreCareReminders", () => {
+  it("adds feed and sleep only when there is a child", () => {
+    expect(ensureCoreCareReminders([], false)).toEqual([]);
+    const next = ensureCoreCareReminders([], true);
+    expect(next.map((r) => r.kind).sort()).toEqual(["feed", "sleep"]);
+    expect(next.every((r) => r.enabled)).toBe(true);
+  });
+
+  it("does not turn back on a reminder she already disabled", () => {
+    const next = ensureCoreCareReminders(
+      [
+        {
+          id: "care-feed",
+          kind: "feed",
+          enabled: false,
+          mode: "interval",
+          intervalMin: 180,
+          title: "Мая · кормление",
+          body: "x",
+          href: "/m/breastfeeding",
+        },
+      ],
+      true,
+    );
+    expect(next.find((r) => r.kind === "feed")?.enabled).toBe(false);
+    expect(next.some((r) => r.kind === "sleep" && r.enabled)).toBe(true);
   });
 });

@@ -60,6 +60,7 @@ import {
   type SubscriptionState,
 } from "./subscription";
 import { localToday } from "./local-date";
+import { ensureCoreCareReminders } from "./care-reminders";
 import {
   applyPayStarterModules,
   filterModulesForNav,
@@ -128,6 +129,8 @@ type AppState = {
   modulesAudienceFillV2?: boolean;
   /** одноразовая: здоровье не включаем сами */
   healthDiaryOptInV1?: boolean;
+  /** одноразовая: кормление и укладывание включены сами */
+  careCorePushesV1?: boolean;
   /** План диеты мамы (общий) */
   dietPlan: DietPlan | null;
   /** Лог ошибок чата / API для админки */
@@ -463,6 +466,7 @@ export const useAppStore = create<AppState>()(
           modulesPayStarterV1: false,
           modulesAudienceFillV2: false,
           healthDiaryOptInV1: true,
+          careCorePushesV1: false,
           demoWardrobeSeeded: false,
         });
       },
@@ -935,12 +939,22 @@ export const useAppStore = create<AppState>()(
           (id) => !isOptInOnlyModule(id),
         );
         const spaces = applyModulesToSpaces(s.childSpaces, list);
+        const hasChild = hasBornChild(s.children);
         set({
           onboardingDone: true,
           enabledModules: list,
-          childSpaces: spaces,
+          childSpaces: Object.fromEntries(
+            Object.entries(spaces).map(([id, sp]) => [
+              id,
+              {
+                ...sp,
+                careReminders: ensureCoreCareReminders(sp.careReminders, hasChild),
+              },
+            ]),
+          ),
           modulesAudienceFillV2: true,
           healthDiaryOptInV1: true,
+          careCorePushesV1: true,
         });
         markOnboardingDoneSticky();
         writeIdentityBackup({
@@ -1001,6 +1015,7 @@ export const useAppStore = create<AppState>()(
         modulesPayStarterV1: state.modulesPayStarterV1,
         modulesAudienceFillV2: state.modulesAudienceFillV2,
         healthDiaryOptInV1: state.healthDiaryOptInV1,
+        careCorePushesV1: state.careCorePushesV1,
         dietPlan: state.dietPlan,
         opsErrors: (state.opsErrors ?? []).slice(0, 30),
         pregnancy: state.pregnancy,
@@ -1407,6 +1422,19 @@ export const useAppStore = create<AppState>()(
             space.enabledModules = dropHealth(space.enabledModules ?? []);
           }
           state.healthDiaryOptInV1 = true;
+        }
+
+        if (!state.careCorePushesV1 && state.onboardingDone) {
+          const hasChild = hasBornChild(state.children);
+          for (const sid of Object.keys(state.childSpaces ?? {})) {
+            const space = state.childSpaces[sid];
+            if (!space) continue;
+            space.careReminders = ensureCoreCareReminders(
+              space.careReminders,
+              hasChild,
+            );
+          }
+          state.careCorePushesV1 = true;
         }
 
         {

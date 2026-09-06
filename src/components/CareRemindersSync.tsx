@@ -47,6 +47,7 @@ export function collectScheduledPushes(now = Date.now()): ScheduledPushItem[] {
     for (const r of reminders) {
       if (!r?.enabled) continue;
       const last = lastLogMs(journals, LOG_MODULES[r.kind] ?? []);
+      if (r.resetOnLog && !last) continue;
       const nextAt = computeNextAt(r, now, tz, last);
       const title =
         s.children.length > 1 ? `${r.title} · ${name}` : r.title;

@@ -283,18 +283,36 @@ export type CarePreset = {
   defaultEnabled?: boolean;
 };
 
+/** Сами включаем только это — остальное мама добавит, если нужно. */
+export const CORE_PUSH_KINDS: readonly CareReminderKind[] = ["feed", "sleep"];
+
+export function ensureCoreCareReminders(
+  reminders: CareReminder[] | undefined,
+  hasChild: boolean,
+): CareReminder[] {
+  const next = [...(reminders ?? [])];
+  if (!hasChild) return next;
+  for (const kind of CORE_PUSH_KINDS) {
+    if (next.some((r) => r.kind === kind)) continue;
+    next.push({ ...defaultReminder(kind), enabled: true });
+  }
+  return next;
+}
+
 export const CARE_PRESETS: CarePreset[] = [
   {
     kind: "feed",
     label: "Кормление",
     hint: "Напомним, если давно не было записи в ГВ, смеси или прикорме.",
     icon: "feeding",
+    defaultEnabled: true,
   },
   {
     kind: "sleep",
     label: "Укладывание",
     hint: "В выбранное время — «пора укладывать малыша».",
     icon: "sleep",
+    defaultEnabled: true,
   },
   {
     kind: "wake",
@@ -328,7 +346,7 @@ export function defaultReminder(kind: CareReminderKind): CareReminder {
     return {
       id,
       kind,
-      enabled: false,
+      enabled: true,
       mode: "interval",
       intervalMin: 180,
       title: "Мая · кормление",
@@ -341,7 +359,7 @@ export function defaultReminder(kind: CareReminderKind): CareReminder {
     return {
       id,
       kind,
-      enabled: false,
+      enabled: true,
       mode: "times",
       times: ["21:00"],
       title: "Мая · сон",
