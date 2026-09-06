@@ -62,3 +62,7 @@ export function designModel() {
 export function visionModel() {
   return process.env.OPENAI_VISION_MODEL?.trim() || "gpt-4.1-mini";
 }
+
+export function transcribeModel() {
+  return process.env.OPENAI_TRANSCRIBE_MODEL?.trim() || "whisper-1";
+}
