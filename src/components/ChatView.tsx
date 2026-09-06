@@ -446,10 +446,18 @@ export function ChatView() {
     const ios =
       /iPad|iPhone|iPod/.test(ua) ||
       (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-    if (ios) {
-      return "Включите микрофон: кнопка «аА» вверху → Сайт → Микрофон";
+    const standalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      Boolean(
+        (navigator as Navigator & { standalone?: boolean }).standalone,
+      );
+    if (ios && standalone) {
+      return "Разрешите микрофон во всплывающем окне. Нет окна — Настройки → Мая → Микрофон";
     }
-    return "Включите микрофон: замок слева от адреса → Микрофон → Разрешить";
+    if (ios) {
+      return "Разрешите микрофон во всплывающем окне. Нет окна — Настройки → Safari → Микрофон";
+    }
+    return "Разрешите микрофон во всплывающем окне браузера";
   }
 
   async function requestMicrophone(): Promise<boolean> {
@@ -491,7 +499,7 @@ export function ChatView() {
 
     setListening(false);
     setError(null);
-    showMicHint(micFindHint());
+    setMicHint(null);
     const allowed = await requestMicrophone();
     if (!allowed) return;
 
