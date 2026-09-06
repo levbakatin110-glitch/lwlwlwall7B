@@ -74,7 +74,7 @@ export const DIARY_HINTS: Record<string, DiaryHint> = {
 };
 
 export const CUSTOM_DIARY_HINT: DiaryHint = {
-  body: "Пишите сюда или скажите Мае в чате.",
+  body: "Пишите сюда или напишите Мае в чате.",
   examples: [
     {
       label: "Спросить Маю",

@@ -1,13 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import {
-  useEffect,
-  useRef,
-  useState,
-  useTransition,
-  type ChangeEvent,
-} from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { JournalEntryChip } from "@/components/JournalEntryChip";
 import type { LogPreviewData } from "@/components/LogPreviewSheet";
 import { MayaChatText } from "@/components/MayaChatText";
@@ -40,7 +34,6 @@ import { useAppStore } from "@/lib/store";
 import { trackEvent } from "@/lib/analytics-client";
 import type { ModuleBlueprint, ModuleId, WeatherSnapshot } from "@/lib/types";
 import { decodeWeatherHeader } from "@/lib/weather";
-import { isAppleMobile } from "@/lib/media-mime";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -135,24 +128,6 @@ function isRetryableChatNetwork(e: unknown) {
   );
 }
 
-type SpeechRec = {
-  lang: string;
-  interimResults: boolean;
-  continuous: boolean;
-  start: () => void;
-  stop: () => void;
-  abort: () => void;
-  onresult: ((ev: {
-    resultIndex: number;
-    results: {
-      length: number;
-      [i: number]: { [j: number]: { transcript: string } };
-    };
-  }) => void) | null;
-  onerror: ((ev: { error?: string }) => void) | null;
-  onend: (() => void) | null;
-};
-
 export function ChatView() {
   const messages = useAppStore((s) => s.messages ?? []);
   const profile = useAppStore((s) => s.profile);
@@ -191,8 +166,6 @@ export function ChatView() {
   } | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [logPreview, setLogPreview] = useState<LogPreviewData | null>(null);
-  const [listening, setListening] = useState(false);
-  const [voiceSupported, setVoiceSupported] = useState(false);
   const [coords, setCoords] = useState<{
     latitude: number;
     longitude: number;
@@ -204,16 +177,6 @@ export function ChatView() {
   const listRef = useRef<HTMLDivElement>(null);
   const chatPanelRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const recognitionRef = useRef<SpeechRec | null>(null);
-  const mediaRecRef = useRef<MediaRecorder | null>(null);
-  const mediaStreamRef = useRef<MediaStream | null>(null);
-  const voiceChunksRef = useRef<Blob[]>([]);
-  const voiceBaseRef = useRef("");
-  const voiceFileRef = useRef<HTMLInputElement>(null);
-  const gumFailedRef = useRef(false);
-  const [micHint, setMicHint] = useState<string | null>(null);
-  const [transcribing, setTranscribing] = useState(false);
-  const micHintTimerRef = useRef(0);
   /** Плавная «печать»: цель с сети → показываем догоняющим rAF */
   const [streamingId, setStreamingId] = useState<string | null>(null);
   const [streamShown, setStreamShown] = useState("");
@@ -428,301 +391,10 @@ export function ChatView() {
   }, [messages, pending, streamShown]);
 
   useEffect(() => {
-    const w = window as Window & {
-      SpeechRecognition?: new () => SpeechRec;
-      webkitSpeechRecognition?: new () => SpeechRec;
-    };
-    const hasSr = Boolean(w.SpeechRecognition || w.webkitSpeechRecognition);
-    const hasRec =
-      typeof MediaRecorder !== "undefined" &&
-      Boolean(navigator.mediaDevices?.getUserMedia);
-    setVoiceSupported(hasRec || hasSr || isAppleMobile());
-  }, []);
-
-  useEffect(() => {
     if (!pendingChatPrompt) return;
     setInput(pendingChatPrompt);
     setPendingChatPrompt(null);
   }, [pendingChatPrompt, setPendingChatPrompt]);
-
-  useEffect(() => {
-    return () => {
-      recognitionRef.current?.abort();
-      if (mediaRecRef.current?.state === "recording") {
-        try {
-          mediaRecRef.current.stop();
-        } catch {
-          /* ignore */
-        }
-      }
-      mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
-      window.clearTimeout(micHintTimerRef.current);
-    };
-  }, []);
-
-  function showMicHint(text: string, ms = 3000) {
-    setMicHint(text);
-    window.clearTimeout(micHintTimerRef.current);
-    micHintTimerRef.current = window.setTimeout(() => setMicHint(null), ms);
-  }
-
-  function micFindHint(): string {
-    const standalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      Boolean(
-        (navigator as Navigator & { standalone?: boolean }).standalone,
-      );
-    if (isAppleMobile() && standalone) {
-      return "Не меню сайта. Настройки iPhone → Мая → Микрофон. Потом нажмите микрофон ещё раз — откроется запись телефона.";
-    }
-    if (isAppleMobile()) {
-      return "Не меню «аА» на сайте. Настройки iPhone → Safari → Микрофон. Потом нажмите микрофон ещё раз — откроется запись телефона.";
-    }
-    return "Разрешите микрофон во всплывающем окне браузера";
-  }
-
-  function pickVoiceMime(): string {
-    if (typeof MediaRecorder === "undefined") return "";
-    const apple = isAppleMobile();
-    const types = apple
-      ? ["audio/mp4", "audio/aac", "audio/webm;codecs=opus", "audio/webm"]
-      : ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"];
-    return types.find((t) => MediaRecorder.isTypeSupported(t)) || "";
-  }
-
-  function releaseVoiceStream() {
-    mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
-    mediaStreamRef.current = null;
-    mediaRecRef.current = null;
-  }
-
-  async function transcribeBlob(blob: Blob) {
-    setTranscribing(true);
-    try {
-      const ext =
-        blob.type.includes("mp4") ||
-        blob.type.includes("aac") ||
-        isAppleMobile()
-          ? "m4a"
-          : "webm";
-      const fd = new FormData();
-      fd.append("file", blob, `voice.${ext}`);
-      const res = await fetch("/api/transcribe", {
-        method: "POST",
-        credentials: "include",
-        body: fd,
-      });
-      const data = (await res.json()) as { text?: string; error?: string };
-      if (!res.ok) {
-        showMicHint(data.error || "Не разобрала речь. Скажите ещё раз.");
-        return;
-      }
-      const text = (data.text || "").trim();
-      if (!text) {
-        showMicHint("Не разобрала — нажмите микрофон и скажите ещё раз.");
-        return;
-      }
-      const base = voiceBaseRef.current;
-      setInput(base ? `${base} ${text}`.trim() : text);
-    } catch {
-      showMicHint("Нет связи. Попробуйте ещё раз или напишите.");
-    } finally {
-      setTranscribing(false);
-      setListening(false);
-    }
-  }
-
-  function openPhoneRecorder() {
-    voiceFileRef.current?.click();
-  }
-
-  function onVoiceFile(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file || file.size < 400) {
-      if (file) showMicHint("Слишком коротко — запишите фразу ещё раз.");
-      return;
-    }
-    voiceBaseRef.current = input.trim();
-    void transcribeBlob(file);
-  }
-
-  /** iPhone: getUserMedia только в том же нажатии, иначе Safari врёт «нельзя». */
-  function beginAppleVoice() {
-    if (pending || transcribing) return;
-    if (listening && mediaRecRef.current?.state === "recording") {
-      mediaRecRef.current.stop();
-      return;
-    }
-    setError(null);
-    if (gumFailedRef.current) {
-      openPhoneRecorder();
-      return;
-    }
-    if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
-      openPhoneRecorder();
-      return;
-    }
-    let streamPromise: Promise<MediaStream>;
-    try {
-      streamPromise = navigator.mediaDevices.getUserMedia({ audio: true });
-    } catch {
-      gumFailedRef.current = true;
-      openPhoneRecorder();
-      return;
-    }
-    void finishRecordedVoice(streamPromise);
-  }
-
-  async function startRecordedVoice() {
-    if (!window.isSecureContext) {
-      showMicHint("Голос только на https. Пока напишите текстом.");
-      return;
-    }
-    if (!navigator.mediaDevices?.getUserMedia) {
-      showMicHint("Этот браузер не даёт микрофон.");
-      return;
-    }
-    await finishRecordedVoice(
-      navigator.mediaDevices.getUserMedia({ audio: true }),
-    );
-  }
-
-  async function finishRecordedVoice(streamPromise: Promise<MediaStream>) {
-    let stream: MediaStream;
-    try {
-      stream = await streamPromise;
-    } catch {
-      gumFailedRef.current = true;
-      showMicHint(micFindHint(), 12000);
-      return;
-    }
-    gumFailedRef.current = false;
-    const mime = pickVoiceMime();
-    let rec: MediaRecorder;
-    try {
-      rec = mime
-        ? new MediaRecorder(stream, { mimeType: mime })
-        : new MediaRecorder(stream);
-    } catch {
-      stream.getTracks().forEach((t) => t.stop());
-      gumFailedRef.current = true;
-      showMicHint(
-        "Нажмите микрофон ещё раз — откроется запись телефона.",
-        8000,
-      );
-      return;
-    }
-    mediaStreamRef.current = stream;
-    mediaRecRef.current = rec;
-    voiceChunksRef.current = [];
-    voiceBaseRef.current = input.trim();
-    rec.ondataavailable = (ev) => {
-      if (ev.data.size > 0) voiceChunksRef.current.push(ev.data);
-    };
-    rec.onerror = () => {
-      releaseVoiceStream();
-      setListening(false);
-      showMicHint("Не удалось записать голос. Попробуйте ещё раз.");
-    };
-    rec.onstop = () => {
-      const chunks = voiceChunksRef.current;
-      releaseVoiceStream();
-      const blob = new Blob(chunks, { type: rec.mimeType || mime || "audio/webm" });
-      if (blob.size < 800) {
-        setListening(false);
-        showMicHint("Слишком коротко — нажмите микрофон и скажите фразу.");
-        return;
-      }
-      void transcribeBlob(blob);
-    };
-    rec.start();
-    setListening(true);
-    window.setTimeout(() => {
-      if (mediaRecRef.current === rec && rec.state === "recording") rec.stop();
-    }, 20_000);
-  }
-
-  async function toggleVoice() {
-    if (pending || transcribing) return;
-
-    if (listening && mediaRecRef.current?.state === "recording") {
-      mediaRecRef.current.stop();
-      return;
-    }
-    if (listening && recognitionRef.current) {
-      recognitionRef.current.stop();
-      return;
-    }
-
-    setError(null);
-    setMicHint(null);
-
-    if (isAppleMobile()) {
-      beginAppleVoice();
-      return;
-    }
-
-    const w = window as Window & {
-      SpeechRecognition?: new () => SpeechRec;
-      webkitSpeechRecognition?: new () => SpeechRec;
-    };
-    const SR = w.SpeechRecognition || w.webkitSpeechRecognition;
-    if (!SR) {
-      await startRecordedVoice();
-      return;
-    }
-
-    const rec = new SR();
-    recognitionRef.current = rec;
-    rec.lang = "ru-RU";
-    rec.interimResults = true;
-    rec.continuous = false;
-    voiceBaseRef.current = input.trim();
-
-    rec.onresult = (ev) => {
-      let transcript = "";
-      for (let i = ev.resultIndex; i < ev.results.length; i++) {
-        transcript += ev.results[i]![0]!.transcript;
-      }
-      const base = voiceBaseRef.current;
-      setInput(base ? `${base} ${transcript}`.trim() : transcript.trim());
-    };
-    rec.onerror = (ev) => {
-      setListening(false);
-      const code = ev.error || "";
-      if (code === "aborted") return;
-      if (code === "not-allowed" || code === "service-not-allowed") {
-        void startRecordedVoice();
-        return;
-      }
-      if (code === "no-speech") {
-        showMicHint("Не услышала — нажмите микрофон и говорите чуть громче.");
-        return;
-      }
-      if (code === "audio-capture") {
-        void startRecordedVoice();
-        return;
-      }
-      if (code === "network") {
-        void startRecordedVoice();
-        return;
-      }
-      showMicHint("Не распознала. Нажмите микрофон ещё раз или напишите.");
-    };
-    rec.onend = () => {
-      setListening(false);
-      recognitionRef.current = null;
-    };
-
-    try {
-      setListening(true);
-      rec.start();
-    } catch {
-      setListening(false);
-      void startRecordedVoice();
-    }
-  }
 
   async function send() {
     const text = input.trim();
@@ -1577,15 +1249,6 @@ export function ChatView() {
             <div ref={bottomRef} />
           </div>
 
-          {micHint && (
-            <div
-              role="status"
-              className="mx-4 mb-2 shrink-0 rounded-xl border border-accent/35 bg-accent-soft px-3 py-2 text-sm text-foreground"
-            >
-              {micHint}
-            </div>
-          )}
-
           {error && (
             <div className="mx-4 mb-2 shrink-0 rounded-xl border border-blush/40 bg-blush-soft px-3 py-2 text-sm">
               <p>{error}</p>
@@ -1642,11 +1305,6 @@ export function ChatView() {
             className="flex shrink-0 gap-2 border-t border-line p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
             onSubmit={(e) => {
               e.preventDefault();
-              if (listening && mediaRecRef.current?.state === "recording") {
-                mediaRecRef.current.stop();
-                return;
-              }
-              if (listening) recognitionRef.current?.stop();
               void send();
             }}
           >
@@ -1655,66 +1313,9 @@ export function ChatView() {
                 ref={inputRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder={
-                  transcribing
-                    ? "Распознаю…"
-                    : listening
-                      ? "Слушаю… нажмите ещё раз"
-                      : "Напишите или скажите Мае…"
-                }
-                className="w-full rounded-2xl border border-line bg-background py-3.5 pl-4 pr-12 text-base text-foreground outline-none transition placeholder:text-muted/80 focus:border-accent/50 focus:shadow-[0_0_0_3px_rgba(50,215,175,0.22)]"
+                placeholder="Напишите Мае…"
+                className="w-full rounded-2xl border border-line bg-background py-3.5 px-4 text-base text-foreground outline-none transition placeholder:text-muted/80 focus:border-accent/50 focus:shadow-[0_0_0_3px_rgba(50,215,175,0.22)]"
               />
-              <input
-                ref={voiceFileRef}
-                type="file"
-                accept="audio/*"
-                capture="user"
-                className="hidden"
-                aria-hidden
-                tabIndex={-1}
-                onChange={onVoiceFile}
-              />
-              {voiceSupported && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (isAppleMobile()) {
-                      beginAppleVoice();
-                      return;
-                    }
-                    void toggleVoice();
-                  }}
-                  disabled={pending || transcribing}
-                  aria-label={
-                    transcribing
-                      ? "Распознаю речь"
-                      : listening
-                        ? "Остановить запись"
-                        : "Голосовой ввод"
-                  }
-                  aria-pressed={listening}
-                  className={`absolute right-2 flex h-9 w-9 items-center justify-center rounded-xl transition disabled:opacity-50 ${
-                    listening
-                      ? "maya-mic-live bg-accent text-[#ffffff]"
-                      : "text-muted hover:bg-accent-soft hover:text-accent-hot"
-                  }`}
-                >
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden
-                  >
-                    <path d="M12 3.5a3 3 0 0 1 3 3v5a3 3 0 0 1-6 0v-5a3 3 0 0 1 3-3Z" />
-                    <path d="M6.5 11.5a5.5 5.5 0 0 0 11 0M12 17v3.5" />
-                  </svg>
-                </button>
-              )}
             </div>
             <button
               type="submit"

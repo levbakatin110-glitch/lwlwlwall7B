@@ -624,20 +624,6 @@ body::before {
   }
 }
 
-@keyframes maya-mic-pulse {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent);
-  }
-  50% {
-    box-shadow: 0 0 0 8px transparent;
-  }
-}
-
-.maya-mic-live {
-  animation: maya-mic-pulse 1.2s ease-out infinite;
-}
-
 @keyframes maya-noise-pulse {
   0%,
   100% {
