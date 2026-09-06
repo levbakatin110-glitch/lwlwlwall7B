@@ -11,11 +11,15 @@ import {
   RECIPES_CATALOG_LABEL,
 } from "@/lib/recipes";
 import { pushServerOpsError } from "@/lib/ops-log";
+import { requirePaidSession } from "@/lib/require-paid-session";
 import type { ModuleBlueprint } from "@/lib/types";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
+  const gate = requirePaidSession(req);
+  if (!gate.ok) return gate.response;
+
   const openai = createOpenAI();
   if (!openai) {
     return Response.json(

@@ -160,21 +160,6 @@ export async function POST(req: Request) {
     let quotaHeaders: Record<string, string> = {};
 
     try {
-      const stream = await openai.chat.completions.create({
-        model: chatModel(),
-        stream: true,
-        messages: [
-          { role: "system", content: system },
-          ...body.messages.map((m) => ({
-            role: m.role,
-            content: m.content,
-          })),
-        ],
-        temperature: 0.65,
-        max_tokens: 1800,
-      });
-
-      // Списываем только после того, как провайдер принял запрос
       if (premium && quotaKey) {
         const consumed = tryConsumeChatQuota(quotaKey);
         if (!consumed.ok) {
@@ -194,6 +179,20 @@ export async function POST(req: Request) {
           "X-Maya-Chat-Allowance": String(consumed.view.allowance),
         };
       }
+
+      const stream = await openai.chat.completions.create({
+        model: chatModel(),
+        stream: true,
+        messages: [
+          { role: "system", content: system },
+          ...body.messages.map((m) => ({
+            role: m.role,
+            content: m.content,
+          })),
+        ],
+        temperature: 0.65,
+        max_tokens: 1800,
+      });
 
       trackAnalyticsEvent({
         name: "chat_send",

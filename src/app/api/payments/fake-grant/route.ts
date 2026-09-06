@@ -28,9 +28,9 @@ export async function POST(req: Request) {
   }
 
   const session = readSessionFromRequest(req);
-  const email = (session?.email || body.email || "").trim().toLowerCase();
+  const email = session?.email?.trim().toLowerCase() || "";
   if (!email || !email.includes("@")) {
-    return Response.json({ error: "Нужен email" }, { status: 401 });
+    return Response.json({ error: "Нужен вход в аккаунт" }, { status: 401 });
   }
 
   const row = grantPaidPlan({

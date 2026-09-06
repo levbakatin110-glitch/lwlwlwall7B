@@ -21,13 +21,21 @@ export function prodamusSign(data: unknown, secret: string): string {
   return createHmac("sha256", secret).update(payload).digest("hex");
 }
 
+export function stripProdamusSign(data: unknown): unknown {
+  if (!data || typeof data !== "object" || Array.isArray(data)) return data;
+  const out = { ...(data as Record<string, unknown>) };
+  delete out.sign;
+  delete out.signature;
+  return out;
+}
+
 export function prodamusVerify(
   data: unknown,
   secret: string,
   sign: string | null | undefined,
 ): boolean {
   if (!sign || !secret) return false;
-  const expected = prodamusSign(data, secret);
+  const expected = prodamusSign(stripProdamusSign(data), secret);
   try {
     const a = Buffer.from(expected, "utf8");
     const b = Buffer.from(String(sign).toLowerCase(), "utf8");

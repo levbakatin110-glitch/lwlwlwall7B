@@ -9,6 +9,7 @@ import {
   CHAT_TOPUP_RUB,
   CHAT_COST_PER_MSG_RUB,
 } from "@/lib/chat-quota";
+import { claimPaymentRef } from "@/lib/payment-idempotency";
 import { normalizeEmail } from "@/lib/paid-store";
 import { recordSale, saleAmountForTopup } from "@/lib/sales-store";
 
@@ -117,6 +118,9 @@ export function refundChatQuota(email: string): ChatQuotaView {
 export function grantChatTopup(email: string, orderId?: string): ChatQuotaView {
   const month = chatMonthKey();
   const key = quotaKey(email);
+  if (orderId && !claimPaymentRef(orderId, "chat_topup", key)) {
+    return getChatQuotaView(email);
+  }
   const db = getDb();
   db.exec("BEGIN IMMEDIATE");
   try {

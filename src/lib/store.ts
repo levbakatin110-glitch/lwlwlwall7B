@@ -1255,16 +1255,18 @@ export const useAppStore = create<AppState>()(
         // Один раз: досеять стартовый набор. Дальше мама сама включает/выключает.
         let seededDefaults = false;
         if (!state.modulesDefaultsSeededV1) {
-          // чистый старт — только дефолты, без старого «всего сразу»
-          next.length = 0;
-          next.push(...defaults);
+          if (next.length === 0) {
+            next.push(...defaults);
+            seededDefaults = true;
+          }
           for (const sid of Object.keys(state.childSpaces ?? {})) {
             const space = state.childSpaces[sid];
             if (!space) continue;
-            space.enabledModules = [...defaults];
+            if (!(space.enabledModules ?? []).length) {
+              space.enabledModules = [...defaults];
+            }
           }
           state.modulesDefaultsSeededV1 = true;
-          seededDefaults = true;
         }
 
         // Старый сид care-трекеров больше не раздувает бесплатный тариф
@@ -1465,7 +1467,10 @@ export const useAppStore = create<AppState>()(
           const space = state.childSpaces?.[sid];
           if (space) {
             state.customModules = space.customModules;
-            state.journals = space.journals;
+            state.journals = overlayMomJournals(
+              space.journals,
+              state.momJournals ?? {},
+            );
           }
         }
         if (

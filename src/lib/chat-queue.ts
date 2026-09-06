@@ -97,6 +97,13 @@ function tryRegisterWaiter(id: string): boolean {
   db.exec("BEGIN IMMEDIATE");
   try {
     cleanup(db, now);
+    const waiting = (
+      db.prepare("SELECT COUNT(*) AS c FROM chat_waiters").get() as { c: number }
+    ).c;
+    if (waiting >= CHAT_MAX_WAITING) {
+      db.exec("COMMIT");
+      return false;
+    }
     db.prepare("INSERT INTO chat_waiters (id, created_at) VALUES (?, ?)").run(
       id,
       now,
@@ -193,9 +200,19 @@ export async function acquireChatSlot(
 
   const waiterId = newId();
   try {
-    tryRegisterWaiter(waiterId);
+    if (!tryRegisterWaiter(waiterId)) {
+      return {
+        ok: false,
+        reason: "queue_full",
+        snapshot: chatQueueSnapshot(),
+      };
+    }
   } catch {
-    /* очередь всё равно ждём, даже если таблица не записалась */
+    return {
+      ok: false,
+      reason: "queue_full",
+      snapshot: chatQueueSnapshot(),
+    };
   }
 
   const started = Date.now();

@@ -343,22 +343,32 @@ export const durableStateStorage: StateStorage = {
       return fromLs;
     }
 
-    // LS пуст — hydrate сразу с нуля. Если в IDB есть стор — вернём и перечитаем.
-    void idbGet(name).then((fromIdb) => {
-      if (!looksLikeStore(fromIdb)) return;
-      if (name === "maya-mom-ai") {
-        if (fromIdb!.length >= HEAVY_CHARS) {
-          void idbDel(name);
-          return;
+    // LS пуст — не писать дефолты, пока IDB не ответил.
+    persistWritesAllowed = false;
+    void idbGet(name)
+      .then((fromIdb) => {
+        if (!looksLikeStore(fromIdb)) return;
+        let raw = fromIdb!;
+        if (name === "maya-mom-ai" && raw.length >= HEAVY_CHARS) {
+          try {
+            const parsed = JSON.parse(raw) as PersistPayload;
+            slimPersistPayload(parsed, { aggressive: true });
+            raw = JSON.stringify(parsed);
+            void idbSet(name, raw);
+          } catch {
+            return;
+          }
         }
-      }
-      lsSet(name, fromIdb!);
-      try {
-        window.dispatchEvent(new Event("maya-idb-restored"));
-      } catch {
-        /* ignore */
-      }
-    });
+        lsSet(name, raw);
+        try {
+          window.dispatchEvent(new Event("maya-idb-restored"));
+        } catch {
+          /* ignore */
+        }
+      })
+      .finally(() => {
+        persistWritesAllowed = true;
+      });
 
     return null;
   },
@@ -378,28 +388,14 @@ export const durableStateStorage: StateStorage = {
   },
 };
 
+let persistWritesAllowed = true;
+
 function parseAndSlim(raw: string): PersistPayload | null {
-  // Любой крупный blob — удаляем без parse (parse = OOM = «couldn't load» во всех браузерах)
-  if (raw.length >= HEAVY_CHARS) {
-    try {
-      lsDel("maya-mom-ai");
-      void idbDel("maya-mom-ai");
-    } catch {
-      /* ignore */
-    }
-    return null;
-  }
   try {
     const parsed = JSON.parse(raw) as PersistPayload;
-    slimPersistPayload(parsed, { aggressive: false });
+    slimPersistPayload(parsed, { aggressive: raw.length >= HEAVY_CHARS });
     return parsed;
   } catch {
-    try {
-      lsDel("maya-mom-ai");
-      void idbDel("maya-mom-ai");
-    } catch {
-      /* ignore */
-    }
     return null;
   }
 }
@@ -438,6 +434,13 @@ export function createSafePersistStorage(
     }
   }
 
+  if (typeof window !== "undefined") {
+    window.addEventListener("pagehide", () => flush());
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") flush();
+    });
+  }
+
   return {
     getItem: (name) => {
       try {
@@ -460,6 +463,7 @@ export function createSafePersistStorage(
       }
     },
     setItem: (name, value) => {
+      if (!persistWritesAllowed && name === "maya-mom-ai") return;
       pending = { name, value };
       if (timer != null) clearTimeout(timer);
       if (typeof window === "undefined") {

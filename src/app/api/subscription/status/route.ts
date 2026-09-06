@@ -1,13 +1,14 @@
 import { getServerSubscription } from "@/lib/paid-store";
+import { readSessionFromRequest } from "@/lib/session";
 
 export const runtime = "nodejs";
 
 export async function GET(req: Request) {
-  const email = new URL(req.url).searchParams.get("email")?.trim().toLowerCase();
-  if (!email) {
-    return Response.json({ active: false });
+  const session = readSessionFromRequest(req);
+  if (!session?.email) {
+    return Response.json({ active: false }, { status: 401 });
   }
-  const sub = getServerSubscription(email);
+  const sub = getServerSubscription(session.email);
   if (!sub) {
     return Response.json({ active: false, planId: "free", expiresAt: null });
   }

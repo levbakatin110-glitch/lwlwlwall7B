@@ -1,7 +1,11 @@
 import { getDb } from "@/lib/db";
+import { claimPaymentRef } from "@/lib/payment-idempotency";
 import { recordSale, saleAmountForPlan } from "@/lib/sales-store";
 import type { PaidPlanId, PlanId } from "@/lib/subscription";
-import { activatePaidPlan, isSubscriptionActive } from "@/lib/subscription";
+import {
+  activatePaidPlanExtending,
+  isSubscriptionActive,
+} from "@/lib/subscription";
 
 export type ServerSubscription = {
   email: string;
@@ -47,6 +51,32 @@ export function getServerSubscription(
   return row;
 }
 
+function readSubscriptionRow(email: string): ServerSubscription | null {
+  const raw = getDb()
+    .prepare(
+      `SELECT email, plan_id AS planId, expires_at AS expiresAt,
+              order_id AS orderId, updated_at AS updatedAt
+       FROM subscriptions WHERE email = ?`,
+    )
+    .get(email) as
+    | {
+        email: string;
+        planId: PlanId;
+        expiresAt: string | null;
+        orderId: string | null;
+        updatedAt: string;
+      }
+    | undefined;
+  if (!raw) return null;
+  return {
+    email: raw.email,
+    planId: raw.planId,
+    expiresAt: raw.expiresAt,
+    orderId: raw.orderId ?? undefined,
+    updatedAt: raw.updatedAt,
+  };
+}
+
 export function grantPaidPlan(opts: {
   email: string;
   planId: PaidPlanId;
@@ -54,7 +84,19 @@ export function grantPaidPlan(opts: {
   source?: "prodamus" | "fake";
 }): ServerSubscription {
   const email = normalizeEmail(opts.email);
-  const activated = activatePaidPlan(opts.planId);
+  const existing = readSubscriptionRow(email);
+  if (opts.orderId && !claimPaymentRef(opts.orderId, "subscription", email)) {
+    if (existing) return existing;
+    return {
+      email,
+      planId: opts.planId,
+      expiresAt: null,
+      orderId: opts.orderId,
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
+  const activated = activatePaidPlanExtending(opts.planId, existing?.expiresAt);
   const row: ServerSubscription = {
     email,
     planId: activated.planId,

@@ -122,15 +122,25 @@ export function isAllowedRussianEmail(email: string): boolean {
 export const RUSSIAN_EMAIL_HINT =
   "Только российская почта: Mail.ru, Яндекс, Rambler или адрес на .ru";
 
-export function createEmailCode(email: string): string {
+export function createEmailCode(email: string): { code: string; reused: boolean } {
   const key = normalizeEmail(email);
-  const code = String(Math.floor(100000 + Math.random() * 900000));
+  const existing = getEntry(key);
+  if (existing && existing.expiresAt - 9 * 60_000 > Date.now()) {
+    return { code: existing.code, reused: true };
+  }
+  const n = new Uint32Array(1);
+  crypto.getRandomValues(n);
+  const code = String(100000 + (n[0]! % 900000));
   setEntry(key, {
     code,
     expiresAt: Date.now() + 10 * 60_000,
     attempts: 0,
   });
-  return code;
+  return { code, reused: false };
+}
+
+export function forgetEmailCode(email: string) {
+  delEntry(normalizeEmail(email));
 }
 
 export function verifyEmailCode(

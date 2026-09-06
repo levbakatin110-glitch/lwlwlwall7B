@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { showPaywallHint } from "@/components/PaywallHint";
 import { isSubscriptionActive, PAID_ONLY } from "@/lib/subscription";
 import { useAppStore } from "@/lib/store";
@@ -28,11 +28,23 @@ export function PremiumGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const subscription = useAppStore((s) => s.subscription);
   const onboardingDone = useAppStore((s) => s.onboardingDone);
+  const [hydrated, setHydrated] = useState(() =>
+    Boolean(useAppStore.persist?.hasHydrated?.()),
+  );
   const active = isSubscriptionActive(subscription);
   const hintedForPath = useRef<string | null>(null);
 
   useEffect(() => {
+    if (useAppStore.persist.hasHydrated()) {
+      setHydrated(true);
+      return;
+    }
+    return useAppStore.persist.onFinishHydration(() => setHydrated(true));
+  }, []);
+
+  useEffect(() => {
     if (!PAID_ONLY) return;
+    if (!hydrated) return;
 
     if (!onboardingDone && isPricingPath(pathname)) {
       router.replace("/");
@@ -48,7 +60,15 @@ export function PremiumGate({ children }: { children: React.ReactNode }) {
       showPaywallHint();
     }
     router.replace("/pricing");
-  }, [onboardingDone, active, pathname, router]);
+  }, [hydrated, onboardingDone, active, pathname, router]);
+
+  if (!hydrated) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-background text-sm text-muted">
+        Мая…
+      </div>
+    );
+  }
 
   if (!PAID_ONLY || !onboardingDone || active || isAllowedPath(pathname)) {
     return <>{children}</>;

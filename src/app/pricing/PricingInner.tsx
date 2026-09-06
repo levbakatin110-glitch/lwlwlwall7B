@@ -39,9 +39,7 @@ export default function PricingInner() {
     if (search.get("paid") !== "1") return;
     setPaidHint(true);
     if (!accountEmail) return;
-    void fetch(
-      `/api/subscription/status?email=${encodeURIComponent(accountEmail)}`,
-    )
+    void fetch("/api/subscription/status", { credentials: "include" })
       .then((r) => r.json())
       .then(
         (data: {

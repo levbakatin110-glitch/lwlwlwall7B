@@ -77,7 +77,7 @@ export async function POST(req: Request) {
     }
 
     const status = String(data.payment_status || "").toLowerCase();
-    if (status && status !== "success") {
+    if (status !== "success") {
       return new Response("ok", { status: 200 });
     }
 
@@ -118,8 +118,7 @@ export async function POST(req: Request) {
         detail: `${email}|${extra}|${orderNum}`,
         status: 400,
       });
-      // всё равно 200, чтобы не долбили ретраями при кривых тестовых хуках
-      return new Response("ok", { status: 200 });
+      return new Response("missing email or plan", { status: 500 });
     }
 
     grantPaidPlan({

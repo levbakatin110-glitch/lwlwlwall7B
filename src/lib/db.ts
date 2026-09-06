@@ -143,6 +143,13 @@ function migrateSchema(db: DatabaseSync) {
       samples INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS processed_payments (
+      payment_ref TEXT PRIMARY KEY,
+      kind TEXT NOT NULL,
+      email TEXT,
+      created_at TEXT NOT NULL
+    );
   `);
   const cols = db.prepare("PRAGMA table_info(plan_orders)").all() as {
     name: string;

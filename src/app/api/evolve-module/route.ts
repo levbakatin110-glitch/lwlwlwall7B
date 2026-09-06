@@ -2,11 +2,15 @@ import { designModel, createOpenAI } from "@/lib/openai";
 import { validateBlueprint } from "@/lib/blueprint-health";
 import { normalizeBlueprint } from "@/lib/module-schema";
 import { pushServerOpsError } from "@/lib/ops-log";
+import { requirePaidSession } from "@/lib/require-paid-session";
 import type { CustomModule, ModuleBlueprint } from "@/lib/types";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
+  const gate = requirePaidSession(req);
+  if (!gate.ok) return gate.response;
+
   const openai = createOpenAI();
   if (!openai) {
     return Response.json(

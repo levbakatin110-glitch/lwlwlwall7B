@@ -108,8 +108,7 @@ export function planPaymentsLive(): boolean {
 
 export function planPaymentsBypass(): boolean {
   if (planPaymentsLive()) return false;
-  if (process.env.PLAN_ORDERS_BYPASS_PAYMENT === "false") return false;
-  return true;
+  return process.env.PLAN_ORDERS_BYPASS_PAYMENT === "true";
 }
 
 export const ORDER_STATUS_MOM: Record<string, string> = {

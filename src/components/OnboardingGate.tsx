@@ -100,10 +100,7 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
           if (data.email) {
             useAppStore.getState().setAccountEmail(data.email);
             await restoreCloudBackup();
-            if (!cancelled) {
-              if (!useAppStore.getState().onboardingDone) {
-                useAppStore.getState().completeOnboarding();
-              }
+            if (!cancelled && useAppStore.getState().onboardingDone) {
               setStickyDone(true);
             }
           }

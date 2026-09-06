@@ -25,6 +25,10 @@ export async function POST(req: Request) {
 }
 
 export async function DELETE(req: Request) {
+  const session = readSessionFromRequest(req);
+  if (!session) {
+    return Response.json({ error: "Войдите" }, { status: 401 });
+  }
   try {
     const body = (await req.json()) as { endpoint?: string };
     if (body.endpoint) removePushSubscription(body.endpoint);

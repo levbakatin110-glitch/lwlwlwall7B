@@ -9,7 +9,7 @@ export function SubscriptionSync() {
   const email = useAppStore((s) => s.accountEmail);
   const emailVerified = useAppStore((s) => s.emailVerified);
   const activateSubscription = useAppStore((s) => s.activateSubscription);
-  const subscription = useAppStore((s) => s.subscription);
+  const clearSubscription = useAppStore((s) => s.clearSubscription);
 
   useEffect(() => {
     if (!emailVerified || !email) return;
@@ -17,24 +17,28 @@ export function SubscriptionSync() {
 
     async function sync() {
       try {
-        const res = await fetch(
-          `/api/subscription/status?email=${encodeURIComponent(email!)}`,
-        );
-        if (!res.ok || cancelled) return;
+        const res = await fetch("/api/subscription/status", {
+          credentials: "include",
+        });
+        if (cancelled) return;
+        if (res.status === 401) return;
+        if (!res.ok) return;
         const data = (await res.json()) as {
           active?: boolean;
           planId?: string;
           expiresAt?: string | null;
         };
-        if (!data.active || !data.planId || data.planId === "free") return;
+        const local = useAppStore.getState().subscription;
+        if (!data.active || !data.planId || data.planId === "free") {
+          if (local.planId !== "free") clearSubscription();
+          return;
+        }
         if (
-          subscription.planId === data.planId &&
-          subscription.expiresAt === data.expiresAt
+          local.planId === data.planId &&
+          local.expiresAt === data.expiresAt
         ) {
           return;
         }
-        // активируем локально тем же planId (срок пересчитается;
-        // ниже подставим expiresAt с сервера)
         activateSubscription(data.planId as PaidPlanId);
         if (data.expiresAt) {
           useAppStore.setState({
@@ -55,13 +59,7 @@ export function SubscriptionSync() {
       cancelled = true;
       window.clearInterval(t);
     };
-  }, [
-    email,
-    emailVerified,
-    activateSubscription,
-    subscription.planId,
-    subscription.expiresAt,
-  ]);
+  }, [email, emailVerified, activateSubscription, clearSubscription]);
 
   return null;
 }

@@ -242,10 +242,9 @@ export function ChatView() {
       return;
     }
     try {
-      const res = await fetch(
-        `/api/chat/quota?email=${encodeURIComponent(accountEmail)}`,
-        { credentials: "include" },
-      );
+      const res = await fetch("/api/chat/quota", {
+        credentials: "include",
+      });
       if (!res.ok) return;
       const data = (await res.json()) as {
         remaining?: number;
@@ -608,10 +607,12 @@ export function ChatView() {
           pregnancy,
         };
 
-        const busyUntil = Date.now() + 60 * 60 * 1000;
+        const busyUntil = Date.now() + 2 * 60 * 1000;
         let pause = 2000;
+        let attempts = 0;
         let res: Response | null = null;
         while (!res) {
+          attempts += 1;
           try {
             const attempt = await fetch("/api/chat", {
               method: "POST",
@@ -629,9 +630,14 @@ export function ChatView() {
               const data = (await attempt.clone().json().catch(() => null)) as {
                 code?: string;
               } | null;
+              if (data?.code === "queue_full") {
+                res = attempt;
+                break;
+              }
               if (
                 isChatOverloadStatus(attempt, data) &&
-                Date.now() < busyUntil
+                Date.now() < busyUntil &&
+                attempts < 6
               ) {
                 await sleepMs(pause);
                 pause = Math.min(pause + 500, 4000);
@@ -640,7 +646,11 @@ export function ChatView() {
             }
             res = attempt;
           } catch (e) {
-            if (isRetryableChatNetwork(e) && Date.now() < busyUntil) {
+            if (
+              isRetryableChatNetwork(e) &&
+              Date.now() < busyUntil &&
+              attempts < 6
+            ) {
               await sleepMs(pause);
               pause = Math.min(pause + 500, 4000);
               continue;

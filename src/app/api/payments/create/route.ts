@@ -1,34 +1,34 @@
 import { CHAT_TOPUP_MSGS, CHAT_TOPUP_RUB } from "@/lib/chat-quota";
 import { grantChatTopup } from "@/lib/chat-quota-store";
+import { fetchWithTimeout } from "@/lib/fetch-timeout";
 import { planPaymentsBypass } from "@/lib/plan-products";
 import { prodamusConfig, prodamusSign } from "@/lib/prodamus";
-import { planById, type PaidPlanId } from "@/lib/subscription";
+import { readSessionFromRequest } from "@/lib/session";
+import { FAKE_PAYMENTS, planById, type PaidPlanId } from "@/lib/subscription";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
-  let body: { planId?: string; email?: string; kind?: string };
+  const session = readSessionFromRequest(req);
+  const email = session?.email?.trim().toLowerCase() || "";
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return Response.json({ error: "Войдите в аккаунт" }, { status: 401 });
+  }
+
+  let body: { planId?: string; kind?: string };
   try {
     body = (await req.json()) as {
       planId?: string;
-      email?: string;
       kind?: string;
     };
   } catch {
     return Response.json({ error: "Некорректный запрос" }, { status: 400 });
   }
 
-  const email = String(body.email || "")
-    .trim()
-    .toLowerCase();
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return Response.json({ error: "Нужна почта аккаунта" }, { status: 400 });
-  }
-
   /** Доплата за пакет чата */
   if (body.kind === "chat_boost") {
     const orderId = `maya-chatboost-${Date.now()}`;
-    if (planPaymentsBypass()) {
+    if (FAKE_PAYMENTS || planPaymentsBypass()) {
       const quota = grantChatTopup(email, orderId);
       return Response.json({
         ok: true,
@@ -69,32 +69,25 @@ export async function POST(req: Request) {
     data.signature = prodamusSign(data, secret);
 
     try {
-      const res = await fetch(payform + "/", {
+      const res = await fetchWithTimeout(payform + "/", {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
         },
         body: toFormBody(data),
+        timeoutMs: 10_000,
       });
       const text = (await res.text()).trim();
       if (text.startsWith("http")) {
         return Response.json({ url: text, orderId });
       }
     } catch {
-      /* fallback */
+      /* fail closed */
     }
-
-    const q = new URLSearchParams();
-    q.set("order_id", orderId);
-    q.set("customer_email", email);
-    q.set("customer_extra", `chat_boost:${orderId}`);
-    q.set("products[0][name]", `Maya · пакет чата +${CHAT_TOPUP_MSGS}`);
-    q.set("products[0][price]", String(CHAT_TOPUP_RUB));
-    q.set("products[0][quantity]", "1");
-    q.set("urlSuccess", `${site}/?chatTopup=1`);
-    q.set("urlReturn", `${site}/`);
-    q.set("do", "pay");
-    return Response.json({ url: `${payform}/?${q.toString()}`, orderId });
+    return Response.json(
+      { error: "Не удалось создать ссылку на оплату. Попробуйте ещё раз." },
+      { status: 502 },
+    );
   }
 
   const { secret, payform, site } = prodamusConfig();
@@ -138,37 +131,27 @@ export async function POST(req: Request) {
 
   data.signature = prodamusSign(data, secret);
 
-  try {
-    const res = await fetch(payform + "/", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-      },
-      body: toFormBody(data),
-    });
-    const text = (await res.text()).trim();
-    if (text.startsWith("http")) {
-      return Response.json({ url: text, orderId });
+    try {
+      const res = await fetchWithTimeout(payform + "/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+        },
+        body: toFormBody(data),
+        timeoutMs: 10_000,
+      });
+      const text = (await res.text()).trim();
+      if (text.startsWith("http")) {
+        return Response.json({ url: text, orderId });
+      }
+    } catch {
+      /* fail closed */
     }
-  } catch {
-    // fallback ниже
-  }
 
-  const q = new URLSearchParams();
-  q.set("order_id", orderId);
-  q.set("customer_email", email);
-  q.set("customer_extra", planId);
-  q.set("products[0][name]", `Maya Premium · ${plan.label}`);
-  q.set("products[0][price]", String(plan.priceRub));
-  q.set("products[0][quantity]", "1");
-  q.set("urlSuccess", `${site}/pricing?paid=1`);
-  q.set("urlReturn", `${site}/pricing`);
-  q.set("do", "pay");
-
-  return Response.json({
-    url: `${payform}/?${q.toString()}`,
-    orderId,
-  });
+    return Response.json(
+      { error: "Не удалось создать ссылку на оплату. Попробуйте ещё раз." },
+      { status: 502 },
+    );
 }
 
 function toFormBody(data: Record<string, unknown>, prefix = ""): string {

@@ -1,4 +1,5 @@
 import { createOpenAI, visionModel } from "@/lib/openai";
+import { requirePaidSession } from "@/lib/require-paid-session";
 
 export const runtime = "nodejs";
 
@@ -13,6 +14,9 @@ export type MedicalScanResult = {
 const MAX_IMAGE_CHARS = 1_800_000; // ~1.3MB base64
 
 export async function POST(req: Request) {
+  const gate = requirePaidSession(req);
+  if (!gate.ok) return gate.response;
+
   const openai = createOpenAI();
   if (!openai) {
     return Response.json(

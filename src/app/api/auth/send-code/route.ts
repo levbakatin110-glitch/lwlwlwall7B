@@ -1,5 +1,6 @@
 import {
   createEmailCode,
+  forgetEmailCode,
   isAllowedRussianEmail,
   isValidEmail,
   normalizeEmail,
@@ -25,9 +26,13 @@ export async function POST(req: Request) {
     return Response.json({ error: RUSSIAN_EMAIL_HINT }, { status: 400 });
   }
 
-  const code = createEmailCode(email);
+  const { code, reused } = createEmailCode(email);
+  if (reused) {
+    return Response.json({ ok: true });
+  }
   const sent = await sendRegistrationCodeEmail({ to: email, code });
   if (!sent.ok) {
+    forgetEmailCode(email);
     return Response.json({ error: sent.error }, { status: 500 });
   }
 

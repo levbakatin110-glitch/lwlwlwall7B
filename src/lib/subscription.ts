@@ -153,6 +153,20 @@ export function activatePaidPlan(planId: PaidPlanId, from = new Date()): Subscri
   };
 }
 
+/** Живую подписку продлеваем от текущего срока, иначе от сейчас. */
+export function activatePaidPlanExtending(
+  planId: PaidPlanId,
+  existingExpiresAt: string | null | undefined,
+  now = new Date(),
+): SubscriptionState {
+  const existing = existingExpiresAt ? Date.parse(existingExpiresAt) : NaN;
+  const from =
+    Number.isFinite(existing) && existing > now.getTime()
+      ? new Date(existing)
+      : now;
+  return activatePaidPlan(planId, from);
+}
+
 export function formatRub(n: number): string {
   return `${n.toLocaleString("ru-RU")} ₽`;
 }
