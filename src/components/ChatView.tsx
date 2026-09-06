@@ -199,6 +199,8 @@ export function ChatView() {
   const inputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<SpeechRec | null>(null);
   const voiceBaseRef = useRef("");
+  const [micHint, setMicHint] = useState<string | null>(null);
+  const micHintTimerRef = useRef(0);
   /** Плавная «печать»: цель с сети → показываем догоняющим rAF */
   const [streamingId, setStreamingId] = useState<string | null>(null);
   const [streamShown, setStreamShown] = useState("");
@@ -429,8 +431,46 @@ export function ChatView() {
   useEffect(() => {
     return () => {
       recognitionRef.current?.abort();
+      window.clearTimeout(micHintTimerRef.current);
     };
   }, []);
+
+  function showMicHint(text: string) {
+    setMicHint(text);
+    window.clearTimeout(micHintTimerRef.current);
+    micHintTimerRef.current = window.setTimeout(() => setMicHint(null), 3000);
+  }
+
+  function micFindHint(): string {
+    const ua = navigator.userAgent || "";
+    const ios =
+      /iPad|iPhone|iPod/.test(ua) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    if (ios) {
+      return "Включите микрофон: кнопка «аА» вверху → Сайт → Микрофон";
+    }
+    return "Включите микрофон: замок слева от адреса → Микрофон → Разрешить";
+  }
+
+  async function requestMicrophone(): Promise<boolean> {
+    if (!window.isSecureContext) {
+      showMicHint("Голос только на https. Пока напишите текстом.");
+      return false;
+    }
+    if (!navigator.mediaDevices?.getUserMedia) {
+      showMicHint("Этот браузер не даёт микрофон. Откройте в Chrome или Safari.");
+      return false;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach((t) => t.stop());
+      setMicHint(null);
+      return true;
+    } catch {
+      showMicHint(micFindHint());
+      return false;
+    }
+  }
 
   async function toggleVoice() {
     if (pending) return;
@@ -440,7 +480,7 @@ export function ChatView() {
     };
     const SR = w.SpeechRecognition || w.webkitSpeechRecognition;
     if (!SR) {
-      setError("Голос здесь не работает — откройте в Chrome или Edge.");
+      showMicHint("Голос здесь не работает — откройте в Chrome или Safari.");
       return;
     }
 
@@ -449,26 +489,11 @@ export function ChatView() {
       return;
     }
 
-    // Сначала явно просим микрофон — появляется системное «Разрешить?»
-    try {
-      if (!navigator.mediaDevices?.getUserMedia) {
-        throw new Error("no-media");
-      }
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getTracks().forEach((t) => t.stop());
-    } catch {
-      setListening(false);
-      if (typeof window !== "undefined" && !window.isSecureContext) {
-        setError(
-          "Браузер не даёт микрофон на незащищённом адресе (http). Нужен https — пока напишите текстом, Мая так же поймёт.",
-        );
-        return;
-      }
-      setError(
-        "Браузер спросил доступ к микрофону — нажмите «Разрешить». Если окошка не было: рядом с адресом сайта откройте значок и включите микрофон.",
-      );
-      return;
-    }
+    setListening(false);
+    setError(null);
+    showMicHint(micFindHint());
+    const allowed = await requestMicrophone();
+    if (!allowed) return;
 
     const rec = new SR();
     recognitionRef.current = rec;
@@ -490,9 +515,7 @@ export function ChatView() {
       const code = ev.error || "";
       if (code === "aborted") return;
       if (code === "not-allowed" || code === "service-not-allowed") {
-        setError(
-          "Нужно разрешить микрофон. Нажмите на микрофон ещё раз — должно появиться «Разрешить». Если уже запретили: у адреса сайта включите микрофон и попробуйте снова.",
-        );
+        showMicHint(micFindHint());
         return;
       }
       if (code === "no-speech") {
@@ -532,7 +555,7 @@ export function ChatView() {
       rec.start();
     } catch {
       setListening(false);
-      setError("Не удалось включить микрофон. Нажмите ещё раз — браузер спросит разрешение.");
+      showMicHint("Нажмите микрофон ещё раз — браузер спросит разрешение.");
     }
   }
 
@@ -1388,6 +1411,15 @@ export function ChatView() {
             ))}
             <div ref={bottomRef} />
           </div>
+
+          {micHint && (
+            <div
+              role="status"
+              className="mx-4 mb-2 shrink-0 rounded-xl border border-accent/35 bg-accent-soft px-3 py-2 text-sm text-foreground"
+            >
+              {micHint}
+            </div>
+          )}
 
           {error && (
             <div className="mx-4 mb-2 shrink-0 rounded-xl border border-blush/40 bg-blush-soft px-3 py-2 text-sm">

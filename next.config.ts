@@ -97,6 +97,10 @@ const nextConfig: NextConfig = {
             key: "Cache-Control",
             value: "private, no-cache",
           },
+          {
+            key: "Permissions-Policy",
+            value: "microphone=(self)",
+          },
         ],
       },
       {
