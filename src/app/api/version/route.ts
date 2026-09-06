@@ -20,6 +20,13 @@ export async function GET() {
     buildId: readBuildId(),
     mailFrom: resendFromAddress(),
     betterstack: Boolean(process.env.NEXT_PUBLIC_BETTERSTACK_DSN?.trim()),
-    features: ["email-register", "feedback", "betterstack", "chat", "push"],
+    features: [
+      "email-register",
+      "feedback",
+      "betterstack",
+      "chat",
+      "push",
+      "transcribe",
+    ],
   });
 }

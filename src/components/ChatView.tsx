@@ -1,7 +1,13 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useRef, useState, useTransition } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+  type ChangeEvent,
+} from "react";
 import { JournalEntryChip } from "@/components/JournalEntryChip";
 import type { LogPreviewData } from "@/components/LogPreviewSheet";
 import { MayaChatText } from "@/components/MayaChatText";
@@ -203,6 +209,8 @@ export function ChatView() {
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const voiceChunksRef = useRef<Blob[]>([]);
   const voiceBaseRef = useRef("");
+  const voiceFileRef = useRef<HTMLInputElement>(null);
+  const gumFailedRef = useRef(false);
   const [micHint, setMicHint] = useState<string | null>(null);
   const [transcribing, setTranscribing] = useState(false);
   const micHintTimerRef = useRef(0);
@@ -428,7 +436,7 @@ export function ChatView() {
     const hasRec =
       typeof MediaRecorder !== "undefined" &&
       Boolean(navigator.mediaDevices?.getUserMedia);
-    setVoiceSupported(hasRec || hasSr);
+    setVoiceSupported(hasRec || hasSr || isAppleMobile());
   }, []);
 
   useEffect(() => {
@@ -452,27 +460,23 @@ export function ChatView() {
     };
   }, []);
 
-  function showMicHint(text: string) {
+  function showMicHint(text: string, ms = 3000) {
     setMicHint(text);
     window.clearTimeout(micHintTimerRef.current);
-    micHintTimerRef.current = window.setTimeout(() => setMicHint(null), 3000);
+    micHintTimerRef.current = window.setTimeout(() => setMicHint(null), ms);
   }
 
   function micFindHint(): string {
-    const ua = navigator.userAgent || "";
-    const ios =
-      /iPad|iPhone|iPod/.test(ua) ||
-      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
     const standalone =
       window.matchMedia("(display-mode: standalone)").matches ||
       Boolean(
         (navigator as Navigator & { standalone?: boolean }).standalone,
       );
-    if (ios && standalone) {
-      return "Разрешите микрофон во всплывающем окне. Нет окна — Настройки → Мая → Микрофон";
+    if (isAppleMobile() && standalone) {
+      return "Не меню сайта. Настройки iPhone → Мая → Микрофон. Потом нажмите микрофон ещё раз — откроется запись телефона.";
     }
-    if (ios) {
-      return "Разрешите микрофон во всплывающем окне. Нет окна — Настройки → Safari → Микрофон";
+    if (isAppleMobile()) {
+      return "Не меню «аА» на сайте. Настройки iPhone → Safari → Микрофон. Потом нажмите микрофон ещё раз — откроется запись телефона.";
     }
     return "Разрешите микрофон во всплывающем окне браузера";
   }
@@ -528,6 +532,48 @@ export function ChatView() {
     }
   }
 
+  function openPhoneRecorder() {
+    voiceFileRef.current?.click();
+  }
+
+  function onVoiceFile(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || file.size < 400) {
+      if (file) showMicHint("Слишком коротко — запишите фразу ещё раз.");
+      return;
+    }
+    voiceBaseRef.current = input.trim();
+    void transcribeBlob(file);
+  }
+
+  /** iPhone: getUserMedia только в том же нажатии, иначе Safari врёт «нельзя». */
+  function beginAppleVoice() {
+    if (pending || transcribing) return;
+    if (listening && mediaRecRef.current?.state === "recording") {
+      mediaRecRef.current.stop();
+      return;
+    }
+    setError(null);
+    if (gumFailedRef.current) {
+      openPhoneRecorder();
+      return;
+    }
+    if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+      openPhoneRecorder();
+      return;
+    }
+    let streamPromise: Promise<MediaStream>;
+    try {
+      streamPromise = navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch {
+      gumFailedRef.current = true;
+      openPhoneRecorder();
+      return;
+    }
+    void finishRecordedVoice(streamPromise);
+  }
+
   async function startRecordedVoice() {
     if (!window.isSecureContext) {
       showMicHint("Голос только на https. Пока напишите текстом.");
@@ -537,13 +583,21 @@ export function ChatView() {
       showMicHint("Этот браузер не даёт микрофон.");
       return;
     }
+    await finishRecordedVoice(
+      navigator.mediaDevices.getUserMedia({ audio: true }),
+    );
+  }
+
+  async function finishRecordedVoice(streamPromise: Promise<MediaStream>) {
     let stream: MediaStream;
     try {
-      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream = await streamPromise;
     } catch {
-      showMicHint(micFindHint());
+      gumFailedRef.current = true;
+      showMicHint(micFindHint(), 12000);
       return;
     }
+    gumFailedRef.current = false;
     const mime = pickVoiceMime();
     let rec: MediaRecorder;
     try {
@@ -552,7 +606,11 @@ export function ChatView() {
         : new MediaRecorder(stream);
     } catch {
       stream.getTracks().forEach((t) => t.stop());
-      showMicHint("Запись голоса здесь не поддерживается. Напишите текстом.");
+      gumFailedRef.current = true;
+      showMicHint(
+        "Нажмите микрофон ещё раз — откроется запись телефона.",
+        8000,
+      );
       return;
     }
     mediaStreamRef.current = stream;
@@ -600,9 +658,8 @@ export function ChatView() {
     setError(null);
     setMicHint(null);
 
-    // iPhone: встроенное распознавание врёт «нет разрешения», даже если микрофон открыт.
     if (isAppleMobile()) {
-      await startRecordedVoice();
+      beginAppleVoice();
       return;
     }
 
@@ -1607,10 +1664,26 @@ export function ChatView() {
                 }
                 className="w-full rounded-2xl border border-line bg-background py-3.5 pl-4 pr-12 text-base text-foreground outline-none transition placeholder:text-muted/80 focus:border-accent/50 focus:shadow-[0_0_0_3px_rgba(50,215,175,0.22)]"
               />
+              <input
+                ref={voiceFileRef}
+                type="file"
+                accept="audio/*"
+                capture="user"
+                className="hidden"
+                aria-hidden
+                tabIndex={-1}
+                onChange={onVoiceFile}
+              />
               {voiceSupported && (
                 <button
                   type="button"
-                  onClick={() => toggleVoice()}
+                  onClick={() => {
+                    if (isAppleMobile()) {
+                      beginAppleVoice();
+                      return;
+                    }
+                    void toggleVoice();
+                  }}
                   disabled={pending || transcribing}
                   aria-label={
                     transcribing
