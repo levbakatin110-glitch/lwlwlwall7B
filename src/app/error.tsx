@@ -2,11 +2,7 @@
 
 import { useEffect } from "react";
 import { captureBetterStackException } from "@/lib/betterstack-sentry-browser";
-
-function isChunkLoadError(error: Error) {
-  const msg = `${error.name} ${error.message}`;
-  return /ChunkLoadError|Loading chunk \d+ failed/i.test(msg);
-}
+import { isStaleChunkError } from "@/lib/stale-chunk-error";
 
 /** Ловит падения React на маршруте — вместо «This page couldn't load» */
 export default function Error({
@@ -19,7 +15,7 @@ export default function Error({
   useEffect(() => {
     console.error("[maya] route error", error);
     captureBetterStackException(error);
-    if (!isChunkLoadError(error)) return;
+    if (!isStaleChunkError(error)) return;
     const key = "maya-chunk-reload";
     if (sessionStorage.getItem(key)) return;
     sessionStorage.setItem(key, "1");

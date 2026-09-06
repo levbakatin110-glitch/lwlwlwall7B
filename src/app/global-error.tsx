@@ -10,7 +10,7 @@ import { captureBetterStackException } from "@/lib/betterstack-sentry-browser";
  */
 function isStaleBuildError(error: Error) {
   const msg = `${error?.name ?? ""} ${error?.message ?? ""}`;
-  return /ChunkLoadError|Loading chunk|Failed to fetch dynamically imported module|error loading dynamically imported module/i.test(
+  return /ChunkLoadError|CSS_CHUNK_LOAD_FAILED|Loading chunk|Failed to fetch dynamically imported module|error loading dynamically imported module|Loading CSS chunk|Failed to fetch.*\/_next\/static|Не удалось получить.*\/_next\/static|Ошибка загрузки.*\/_next\/static/i.test(
     msg,
   );
 }
