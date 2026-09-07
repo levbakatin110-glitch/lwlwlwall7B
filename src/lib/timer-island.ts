@@ -9,7 +9,7 @@ const ISLAND_ART: Record<IslandKind, string> = {
   sleep: "/icons/island-sleep.png?v=2",
   preg_sleep: "/icons/island-sleep.png?v=2",
   bf: "/icons/island-feeding.png?v=2",
-  walk: "/icons/island-walk.png?v=2",
+  walk: "/icons/island-walk.png?v=3",
   contractions: "/icons/island-pulse.png?v=2",
   timer: "/icons/island-timer.png?v=2",
 };

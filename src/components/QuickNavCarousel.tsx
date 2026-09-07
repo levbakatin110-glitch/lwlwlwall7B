@@ -189,7 +189,7 @@ export function QuickNavCarousel({ className = "" }: { className?: string }) {
                     : "bg-accent-soft/80 text-foreground ring-1 ring-line"
                 }`}
               >
-                <MayaIcon name={item.icon} size={16} />
+                <MayaIcon name={item.icon} size={18} />
               </span>
               <span
                 className={`w-full truncate text-center text-[9px] font-semibold leading-tight tracking-tight ${

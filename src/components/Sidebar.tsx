@@ -236,7 +236,7 @@ export function Sidebar({
             : pathname === item.href || pathname.startsWith(`${item.href}/`),
         )}
       >
-        <MayaIcon name={item.icon} size={17} />
+        <MayaIcon name={item.icon} size={18} />
         <span>{item.label}</span>
       </Link>
     ));
@@ -305,7 +305,7 @@ export function Sidebar({
             className={linkClass(false)}
             title={LEGAL_OPERATOR.supportEmail}
           >
-            <MayaIcon name="notes" size={17} />
+            <MayaIcon name="notes" size={18} />
             <span>Поддержка</span>
           </a>
         </div>
@@ -342,7 +342,7 @@ export function Sidebar({
                     pathname === item.href || pathname.startsWith(`${item.href}/`),
                   )}
                 >
-                  <MayaIcon name={item.icon} size={17} />
+                  <MayaIcon name={item.icon} size={18} />
                   <span>{item.label}</span>
                 </Link>
               ))}
@@ -362,7 +362,7 @@ export function Sidebar({
                     pathname === item.href || pathname.startsWith(`${item.href}/`),
                   )}
                 >
-                  <MayaIcon name={item.icon} size={17} />
+                  <MayaIcon name={item.icon} size={18} />
                   <span>{item.label}</span>
                 </Link>
               ))}
@@ -377,7 +377,7 @@ export function Sidebar({
                 onClick={(e) => onNavClick(e, href)}
                 className={linkClass(pathname === href)}
               >
-                <MayaIcon name={mod.icon} size={17} />
+                <MayaIcon name={mod.icon} size={18} />
                 <span>{mod.shortTitle}</span>
               </Link>
             );
