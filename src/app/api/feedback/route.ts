@@ -29,7 +29,7 @@ export async function POST(req: Request) {
   const message = String(body.message || "").trim();
   if (message.length < 4) {
     return Response.json(
-      { error: "Напишите хотя бы пару слов — что не нравится или что улучшить" },
+      { error: "Напишите хотя бы пару слов, что не нравится или что улучшить" },
       { status: 400 },
     );
   }

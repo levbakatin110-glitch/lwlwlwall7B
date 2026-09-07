@@ -1,6 +1,6 @@
 /**
  * Генератор шума через Web Audio API (без файлов).
- * Singleton — переживает навигацию по приложению.
+ * Singleton, переживает навигацию по приложению.
  */
 
 export type NoiseKind = "white" | "pink" | "brown" | "rain";

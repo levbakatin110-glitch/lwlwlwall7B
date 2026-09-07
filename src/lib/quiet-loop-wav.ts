@@ -1,4 +1,4 @@
-/** Тихий зацикленный WAV — iPhone берёт в островок только HTML-аудио, не Web Audio. */
+/** Тихий зацикленный WAV, iPhone берёт в островок только HTML-аудио, не Web Audio. */
 export function buildQuietLoopWav(): Blob {
   const sampleRate = 22050;
   const seconds = 2;

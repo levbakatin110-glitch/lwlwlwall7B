@@ -268,7 +268,7 @@ export function DiaryPage({
   stickyPad: _stickyPad,
 }: {
   children: ReactNode;
-  /** @deprecated CTA больше не fixed — отступ не нужен */
+  /** @deprecated CTA больше не fixed, отступ не нужен */
   stickyPad?: boolean;
 }) {
   return (

@@ -10,7 +10,7 @@ function canUse() {
   return typeof window !== "undefined";
 }
 
-/** Отдельное хранилище чата — не режется при slim основного стора */
+/** Отдельное хранилище чата, не режется при slim основного стора */
 export function loadChatMessages(childId: string): ChatMessage[] {
   if (!canUse() || !childId) return [];
   try {

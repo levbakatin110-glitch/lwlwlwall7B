@@ -74,7 +74,7 @@ export async function POST(req: Request) {
       return Response.json(
         {
           error:
-            "Чтобы писать Мае по подписке, войдите в аккаунт — так считаем пакет сообщений.",
+            "Чтобы писать Мае по подписке, войдите в аккаунт, так считаем пакет сообщений.",
           code: "auth_required",
         },
         { status: 401 },
@@ -84,7 +84,7 @@ export async function POST(req: Request) {
     if (peek.remaining <= 0) {
       return Response.json(
         {
-            error: `Пакет чата на месяц закончился. Доплата ${CHAT_TOPUP_RUB} ₽ — можно писать дальше.`,
+            error: `Пакет чата на месяц закончился. Доплата ${CHAT_TOPUP_RUB} ₽, можно писать дальше.`,
             code: "chat_quota",
             quota: peek,
         },
@@ -166,7 +166,7 @@ export async function POST(req: Request) {
           lease.release();
           return Response.json(
             {
-              error: `Пакет чата на месяц закончился. Доплата ${CHAT_TOPUP_RUB} ₽ — можно писать дальше.`,
+              error: `Пакет чата на месяц закончился. Доплата ${CHAT_TOPUP_RUB} ₽, можно писать дальше.`,
               code: "chat_quota",
               quota: consumed.view,
             },

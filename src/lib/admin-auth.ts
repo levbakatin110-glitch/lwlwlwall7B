@@ -65,7 +65,7 @@ export function adminClearCookie(): string {
  * x-admin-password ИЛИ cookie maya_admin=1 вместе с x-admin-password на критичных DELETE.
  *
  * Упростим: любая операция админки требует заголовок x-admin-password.
- * Cookie — только чтобы UI помнил «уже вошли» и подставлял пароль из sessionStorage.
+ * Cookie, только чтобы UI помнил «уже вошли» и подставлял пароль из sessionStorage.
  */
 export function requireAdmin(req: Request): boolean {
   return adminPasswordOk(req.headers.get("x-admin-password"));

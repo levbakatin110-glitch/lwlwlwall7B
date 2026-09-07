@@ -108,7 +108,7 @@ export function replaceScheduleForEmail(
   }
 }
 
-/** Забирает просроченные слоты и сразу двигает next_at — чтобы два воркера не слали дважды. */
+/** Забирает просроченные слоты и сразу двигает next_at, чтобы два воркера не слали дважды. */
 export function claimDuePushes(now = Date.now(), limit = 80): ScheduleRow[] {
   const db = getDb();
   const claimed: ScheduleRow[] = [];

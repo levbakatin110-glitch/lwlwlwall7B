@@ -107,7 +107,7 @@ export function assessGrowth(opts: {
       signal: "unknown",
       title: "Нужны данные малыша",
       detail:
-        "Чтобы сказать, нормально ли растёт ребёнок, укажите дату рождения и текущие рост (см) и вес (кг) — не только «+1 кг».",
+        "Чтобы сказать, нормально ли растёт ребёнок, укажите дату рождения и текущие рост (см) и вес (кг), не только «+1 кг».",
       needs,
     };
   }
@@ -120,7 +120,7 @@ export function assessGrowth(opts: {
   });
   const gainKg = recentDeltas.reduce((s, p) => s + (p.weight?.kg ?? 0), 0);
 
-  // Сначала просим недостающее — иначе оценка бессмысленна
+  // Сначала просим недостающее, иначе оценка бессмысленна
   const missing: GrowthNeed[] = [];
   if (months == null) missing.push("birthDate");
   if (!hasAbsHeight) missing.push("height");
@@ -136,7 +136,7 @@ export function assessGrowth(opts: {
     }
     return {
       signal: "unknown",
-      title: "Укажите данные — тогда скажу про норму",
+      title: "Укажите данные, тогда скажу про норму",
       detail: `Пока вижу только обрывки. Нужно: ${asks.join("; ")}. После этого смогу сказать, спокойно ли идёт рост.`,
       needs: missing,
     };
@@ -157,7 +157,7 @@ export function assessGrowth(opts: {
       signal: "unknown",
       title: "Нужна дата рождения",
       detail:
-        "Укажите дату рождения в профиле «Малыш» — сверю прибавки с типичными ориентирами для возраста.",
+        "Укажите дату рождения в профиле «Малыш», сверю прибавки с типичными ориентирами для возраста.",
       needs: ["birthDate"],
     };
   }
@@ -166,7 +166,7 @@ export function assessGrowth(opts: {
   const hExp = expectedHeightGainCmPerMonth(months);
 
   if (recentDeltas.length >= 1) {
-    // Если несколько прибавок в один день на 3+ кг — «странно»
+    // Если несколько прибавок в один день на 3+ кг, «странно»
     const byDay = new Map<string, number>();
     for (const p of recentDeltas) {
       const day = p.at.slice(0, 10);
@@ -177,7 +177,7 @@ export function assessGrowth(opts: {
       return {
         signal: "hot",
         title: "Слишком большая прибавка за день",
-        detail: `В дневнике за один день набралось ≈ ${maxDay.toFixed(1)} кг. Так обычно не бывает — проверьте, не продублировались ли записи из чата.`,
+        detail: `В дневнике за один день набралось ≈ ${maxDay.toFixed(1)} кг. Так обычно не бывает, проверьте, не продублировались ли записи из чата.`,
       };
     }
 
@@ -186,7 +186,7 @@ export function assessGrowth(opts: {
       return {
         signal: "watch",
         title: "Прибавка выше обычного",
-        detail: `За последнее время ≈ +${monthly.toFixed(1)} кг. Для ~${months} мес. ориентир примерно ${wExp.min}…${wExp.max} кг/мес. Это не диагноз — при сомнениях к педиатру.`,
+        detail: `За последнее время ≈ +${monthly.toFixed(1)} кг. Для ~${months} мес. ориентир примерно ${wExp.min}…${wExp.max} кг/мес. Это не диагноз, при сомнениях к педиатру.`,
         needs: hasAbsHeight ? undefined : ["height"],
       };
     }
@@ -201,7 +201,7 @@ export function assessGrowth(opts: {
       return {
         signal: "ok",
         title: "Прибавка выглядит спокойно",
-        detail: `Около ${monthly >= 0 ? "+" : ""}${monthly.toFixed(1)} кг за последнее время — в пределах грубого ориентира для ~${months} мес. (${wExp.min}…${wExp.max} кг/мес). Не замена осмотру.`,
+        detail: `Около ${monthly >= 0 ? "+" : ""}${monthly.toFixed(1)} кг за последнее время, в пределах грубого ориентира для ~${months} мес. (${wExp.min}…${wExp.max} кг/мес). Не замена осмотру.`,
         needs: hasAbsHeight ? undefined : ["height"],
       };
     }
@@ -253,8 +253,8 @@ export function assessGrowth(opts: {
   if (absHeights.length === 1 && !hasAbsWeight) {
     return {
       signal: "unknown",
-      title: "Есть рост — нужен вес",
-      detail: `Рост ${absHeights[0]!.height!.cm} см записан. Добавьте ещё текущий вес в кг — тогда сверю оба показателя.`,
+      title: "Есть рост, нужен вес",
+      detail: `Рост ${absHeights[0]!.height!.cm} см записан. Добавьте ещё текущий вес в кг, тогда сверю оба показателя.`,
       needs: ["weight"],
     };
   }
@@ -262,8 +262,8 @@ export function assessGrowth(opts: {
   if (absWeights.length === 1 && !hasAbsHeight) {
     return {
       signal: "unknown",
-      title: "Есть вес — нужен рост",
-      detail: `Вес ${absWeights[0]!.weight!.kg} кг записан. Добавьте рост в см (например: 68 см) — без роста полную картину не собрать.`,
+      title: "Есть вес, нужен рост",
+      detail: `Вес ${absWeights[0]!.weight!.kg} кг записан. Добавьте рост в см (например: 68 см), без роста полную картину не собрать.`,
       needs: ["height"],
     };
   }
@@ -272,7 +272,7 @@ export function assessGrowth(opts: {
     signal: "unknown",
     title: "Мало точек для оценки",
     detail:
-      "Добавьте рост в см и вес в кг с датой (лучше два измерения с разницей) — индикатор станет понятнее.",
+      "Добавьте рост в см и вес в кг с датой (лучше два измерения с разницей), индикатор станет понятнее.",
     needs: [
       ...(hasAbsHeight ? [] : (["height"] as GrowthNeed[])),
       ...(hasAbsWeight ? [] : (["weight"] as GrowthNeed[])),

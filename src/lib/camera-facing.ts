@@ -37,7 +37,7 @@ function videoSize(size: { width?: number; height?: number }) {
   };
 }
 
-/** После первого разрешения лейблы устройств доступны — кэшируем front/back. */
+/** После первого разрешения лейблы устройств доступны, кэшируем front/back. */
 export async function rememberCameraIds(
   currentDeviceId?: string,
 ): Promise<CameraIds> {
@@ -89,7 +89,7 @@ export async function getFacingAvStream(
 
 /**
  * Сменить только видео на том же MediaStream (микрофон не трогаем).
- * Старый видеотрек гасим ДО нового getUserMedia — иначе Android шлёт тосты
+ * Старый видеотрек гасим ДО нового getUserMedia, иначе Android шлёт тосты
  * и часто блокирует вторую камеру.
  * Ровно один getUserMedia на переключение.
  */
@@ -103,7 +103,7 @@ export async function switchStreamFacing(
   const ids = await rememberCameraIds(currentId);
   let targetId = idForFacing(facing, ids);
 
-  // Нет label — берём «другую» камеру
+  // Нет label, берём «другую» камеру
   if (!targetId || targetId === currentId) {
     const devices = await navigator.mediaDevices.enumerateDevices();
     const cams = devices.filter((d) => d.kind === "videoinput" && d.deviceId);

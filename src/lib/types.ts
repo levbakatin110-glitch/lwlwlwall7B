@@ -3,7 +3,7 @@ export type Sex = "girl" | "boy" | "unknown";
 export type ChildProfile = {
   id: string;
   name: string;
-  /** Имя ещё не выбрали — зовём «малыш» */
+  /** Имя ещё не выбрали, зовём «малыш» */
   namePending?: boolean;
   /** data URL сжатого фото */
   photoData?: string;
@@ -96,7 +96,7 @@ export type SmartPanel = {
   scaleMaxLabel?: string;
   scaleFieldKey?: string;
   streakLabel?: string;
-  /** для timer — подпись кнопки / что логируем */
+  /** для timer, подпись кнопки / что логируем */
   timerLabel?: string;
   timerUnit?: string;
 };

@@ -32,9 +32,9 @@ export default function LegalIndexPage() {
         </p>
       </div>
       <p className="rounded-xl border border-rose-500/25 bg-rose-500/5 px-3 py-2 text-xs leading-relaxed text-muted">
-        Мая — информационный сервис, не врач и не медицинская помощь. Ответы ИИ
-        могут быть неточными. Решения о здоровье — только ваши и лечащего
-        врача. Подробности — в{" "}
+        Мая, информационный сервис, не врач и не медицинская помощь. Ответы ИИ
+        могут быть неточными. Решения о здоровье, только ваши и лечащего
+        врача. Подробности, в{" "}
         <Link href="/legal/offer" className="text-accent underline">
           оферте
         </Link>

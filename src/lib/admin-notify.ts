@@ -71,7 +71,7 @@ export function isAdminTelegramUser(username?: string): boolean {
 async function sendAdminEmail(subject: string, html: string, text: string) {
   const resend = getResend();
   if (!resend) {
-    console.warn("[admin-notify] RESEND_API_KEY не задан — письмо не отправлено");
+    console.warn("[admin-notify] RESEND_API_KEY не задан, письмо не отправлено");
     return;
   }
   const to = adminNotifyEmail();

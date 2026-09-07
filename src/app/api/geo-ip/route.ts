@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
   const ip = clientIpFromRequest(req);
   const geo = ip ? await lookupIpGeo(ip) : null;
   if (!geo) {
-    // запас: спросить ip-api без IP — определит IP исходящего запроса сервера (хуже),
+    // запас: спросить ip-api без IP, определит IP исходящего запроса сервера (хуже),
     // но на VPS без proxy иногда client IP не виден; клиент тогда пробует публичный API.
     return Response.json(
       { ok: false, error: "ip_unknown", ip: ip || null },

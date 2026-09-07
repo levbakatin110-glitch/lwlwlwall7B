@@ -9,7 +9,7 @@ import {
 
 export const runtime = "nodejs";
 
-/** Временная «оплата» без кассы — только пока FAKE_PAYMENTS = true. */
+/** Временная «оплата» без кассы, только пока FAKE_PAYMENTS = true. */
 export async function POST(req: Request) {
   if (!FAKE_PAYMENTS) {
     return Response.json({ error: "Фейковая оплата выключена" }, { status: 403 });

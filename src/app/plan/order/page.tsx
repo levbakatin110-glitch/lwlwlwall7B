@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { Suspense, useEffect } from "react";
 
-/** Продажа консультантов отключена — тихо на тарифы. */
+/** Продажа консультантов отключена, тихо на тарифы. */
 function CheckoutInner() {
   const router = useRouter();
 

@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { captureBetterStackException } from "@/lib/betterstack-sentry-browser";
 import { isStaleChunkError } from "@/lib/stale-chunk-error";
 
-/** Ловит падения React на маршруте — вместо «This page couldn't load» */
+/** Ловит падения React на маршруте, вместо «This page couldn't load» */
 export default function Error({
   error,
   reset,

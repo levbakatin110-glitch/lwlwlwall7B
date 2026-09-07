@@ -44,7 +44,7 @@ export function ChatChart({
       <div className="maya-msg-in mt-3 rounded-xl bg-accent-soft/60 p-3 text-sm text-foreground">
         <p className="flex items-center gap-2 font-medium">
           <MayaIcon name={module.icon} size={16} />
-          {module.title} — {fieldLabel}
+          {module.title}, {fieldLabel}
         </p>
         <p className="mt-1 text-xs text-muted">
           Пока мало точек для графика (нужно хотя бы 2 записи с числом).

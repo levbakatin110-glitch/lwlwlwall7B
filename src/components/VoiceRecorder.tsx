@@ -173,7 +173,7 @@ export function VoiceRecorder({ onCancel, onReady }: Props) {
           : "webm";
       const file = new File([blob], `voice.${ext}`, { type });
       if (file.size > VOICE_MAX_UPLOAD_BYTES) {
-        setError("Слишком длинное голосовое — короче");
+        setError("Слишком длинное голосовое, короче");
         setPhase("booting");
         return;
       }

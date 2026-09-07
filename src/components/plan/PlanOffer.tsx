@@ -173,7 +173,7 @@ export function SpecialistChat({ orderId }: { orderId: string }) {
       <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
         <p className="font-display text-lg font-semibold">Ожидаем оплату…</p>
         <p className="mt-2 text-sm text-muted">
-          Если вы уже оплатили — подождите несколько секунд.
+          Если вы уже оплатили, подождите несколько секунд.
         </p>
         <Link
           href={`/plan/order/success?order=${orderId}`}
@@ -370,7 +370,7 @@ export function SpecialistChat({ orderId }: { orderId: string }) {
               rows={2}
               placeholder={
                 consultant
-                  ? "Сон, кормление, режим, ваш день — спросите что угодно…"
+                  ? "Сон, кормление, режим, ваш день, спросите что угодно…"
                   : "Ваш вопрос…"
               }
               className="min-h-[44px] flex-1 resize-none rounded-2xl border border-line bg-background px-3 py-2 text-sm"

@@ -183,7 +183,7 @@ export default function WardrobePage() {
       setError(null);
     } catch {
       setError(
-        "Не удалось сохранить — слишком много фото в браузере. Удалите лишние вещи.",
+        "Не удалось сохранить, слишком много фото в браузере. Удалите лишние вещи.",
       );
     }
   }
@@ -331,7 +331,7 @@ export default function WardrobePage() {
             Зачем бирка
           </p>
           <p className="mt-1.5 text-[13px] leading-relaxed text-foreground/80">
-            По ярлыку Мая точнее поймёт материал и температуру — без бирки оценит только по виду
+            По ярлыку Мая точнее поймёт материал и температуру, без бирки оценит только по виду
             вещи.
           </p>
         </div>
@@ -359,7 +359,7 @@ export default function WardrobePage() {
             className="mt-1 w-full rounded-xl border border-line bg-card px-3 py-2 text-sm transition-opacity"
           />
           <span className="mt-1 block text-[11px] text-muted">
-            Пишите как обычно — температуру и нюансы Мая поймёт из текста.
+            Пишите как обычно, температуру и нюансы Мая поймёт из текста.
           </span>
         </label>
 
@@ -398,7 +398,7 @@ export default function WardrobePage() {
       <ul className="mt-6 grid gap-3 sm:grid-cols-2">
         {wardrobe.length === 0 && (
           <li className="rounded-2xl border border-dashed border-line bg-card/40 px-4 py-8 text-center text-sm text-muted sm:col-span-2">
-            Пока пусто — сфотографируйте боди, комбинезон или куртку малыша.
+            Пока пусто, сфотографируйте боди, комбинезон или куртку малыша.
           </li>
         )}
         {wardrobe.map((item, i) => (

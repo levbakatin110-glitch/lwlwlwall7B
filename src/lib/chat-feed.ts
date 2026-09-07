@@ -92,13 +92,13 @@ function analyzeGrowth(entries: JournalEntry[], seed: number): FeedItem | null {
             : pick(seed + 1, ["Прибавка в весе", "Вес растёт", "Набирает"]),
           body: sharp
             ? pick(seed + 2, [
-                `За ~${span} дн. +${delta} кг (сейчас ~${newest.kg} кг). Если так и задумывали — ок; если резко — сверьте записи.`,
-                `Прибавка +${delta} кг за короткий срок. Иногда это дубль записи — загляните в рост и вес.`,
+                `За ~${span} дн. +${delta} кг (сейчас ~${newest.kg} кг). Если так и задумывали, ок; если резко, сверьте записи.`,
+                `Прибавка +${delta} кг за короткий срок. Иногда это дубль записи, загляните в рост и вес.`,
                 `Малыш прибавил ~${delta} кг. Имеет смысл глянуть динамику на графике.`,
               ])
             : pick(seed + 2, [
                 `За период ~${span} дн. вес ${older.kg} → ${newest.kg} кг (+${delta}).`,
-                `Сейчас ~${newest.kg} кг — плюс ${delta} кг к прошлому замеру.`,
+                `Сейчас ~${newest.kg} кг, плюс ${delta} кг к прошлому замеру.`,
                 `Вес подрос на ${delta} кг. Можно сверить с предыдущими точками.`,
               ]),
           href: "/m/growth",
@@ -112,7 +112,7 @@ function analyzeGrowth(entries: JournalEntry[], seed: number): FeedItem | null {
         eyebrow: pick(seed, ["Сводка", "По росту"]),
         title: pick(seed + 1, ["Вес снизился", "Минус в весе", "Убавил"]),
         body: pick(seed + 2, [
-          `За ~${span} дн. ${older.kg} → ${newest.kg} кг (${delta} кг). Если кормите / болеете — держите на радаре.`,
+          `За ~${span} дн. ${older.kg} → ${newest.kg} кг (${delta} кг). Если кормите / болеете, держите на радаре.`,
           `Сейчас ~${newest.kg} кг (${delta} кг к прошлому замеру).`,
         ]),
         href: "/m/growth",
@@ -140,9 +140,9 @@ function analyzeGrowth(entries: JournalEntry[], seed: number): FeedItem | null {
             ? pick(seed + 2, [
                 `Рост ~${older.cm} → ${newest.cm} см (+${delta}). Проверьте, не тесна ли одежда.`,
                 `Прибавил ~${delta} см. Имеет смысл глянуть гардероб.`,
-                `Сейчас ~${newest.cm} см — плюс ${delta} см к прошлому замеру.`,
+                `Сейчас ~${newest.cm} см, плюс ${delta} см к прошлому замеру.`,
               ])
-            : `Рост ${older.cm} → ${newest.cm} см (${delta}). Сверьте записи — иногда это опечатка.`,
+            : `Рост ${older.cm} → ${newest.cm} см (${delta}). Сверьте записи, иногда это опечатка.`,
         href: "/m/growth",
         badge: `${delta > 0 ? "+" : ""}${delta} см`,
         tone: "care",
@@ -158,8 +158,8 @@ function analyzeGrowth(entries: JournalEntry[], seed: number): FeedItem | null {
       eyebrow: pick(seed, ["Рост", "Сводка", "Динамика"]),
       title: pick(seed + 1, ["Прибавка в росте", "Вырос", "Стал выше"]),
       body: pick(seed + 2, [
-        `В дневнике уже +${Number(recentHeightGain.toFixed(1))} см (последнее: +${last.cm} см). Как с весом — копим динамику.`,
-        `Записана прибавка роста: +${last.cm} см. Можно добавить точный рост в см — график станет понятнее.`,
+        `В дневнике уже +${Number(recentHeightGain.toFixed(1))} см (последнее: +${last.cm} см). Как с весом, копим динамику.`,
+        `Записана прибавка роста: +${last.cm} см. Можно добавить точный рост в см, график станет понятнее.`,
         `Рост отмечается: суммарно ~+${Number(recentHeightGain.toFixed(1))} см по последним записям.`,
       ]),
       href: "/m/growth",
@@ -175,7 +175,7 @@ function analyzeGrowth(entries: JournalEntry[], seed: number): FeedItem | null {
       eyebrow: "Сейчас",
       title: pick(seed, ["Рост на контроле", "Последний рост", "Точка роста"]),
       body: pick(seed + 1, [
-        `Последняя запись: ~${heights[0].cm} см. Добавьте ещё замер — появится динамика.`,
+        `Последняя запись: ~${heights[0].cm} см. Добавьте ещё замер, появится динамика.`,
         `Сейчас в дневнике ~${heights[0].cm} см.`,
       ]),
       href: "/m/growth",
@@ -191,7 +191,7 @@ function analyzeGrowth(entries: JournalEntry[], seed: number): FeedItem | null {
       eyebrow: "Сейчас",
       title: pick(seed, ["Вес на контроле", "Последний вес", "Точка веса"]),
       body: pick(seed + 1, [
-        `Последняя запись: ~${weights[0].kg} кг. Добавьте ещё замер — появится динамика.`,
+        `Последняя запись: ~${weights[0].kg} кг. Добавьте ещё замер, появится динамика.`,
         `Сейчас в дневнике ~${weights[0].kg} кг.`,
       ]),
       href: "/m/growth",
@@ -227,7 +227,7 @@ function analyzeDiet(
   const avg =
     recent.reduce((s, [, k]) => s + k, 0) / Math.max(1, recent.length);
 
-  // «похудели» — если цель ниже нормы и человек в среднем около/ниже цели
+  // «похудели», если цель ниже нормы и человек в среднем около/ниже цели
   if (planKcal && planKcal > 800 && recent.length >= 2) {
     const underDays = recent.filter(([, k]) => k > 0 && k <= planKcal + 80).length;
     const overDays = recent.filter(([, k]) => k > planKcal + 250).length;
@@ -242,7 +242,7 @@ function analyzeDiet(
           "Идёте по плану",
         ]),
         body: pick(seed + 2, [
-          `В среднем ~${Math.round(avg)} ккал/день при цели ${planKcal}. Так обычно и худеют — мягко, без срывов.`,
+          `В среднем ~${Math.round(avg)} ккал/день при цели ${planKcal}. Так обычно и худеют, мягко, без срывов.`,
           `Чаще попадаете в цель (~${planKcal} ккал). Среднее за дни: ~${Math.round(avg)}.`,
           `Калории под контролем: среднее ~${Math.round(avg)} при ориентире ${planKcal}.`,
         ]),
@@ -262,7 +262,7 @@ function analyzeDiet(
           "Ориентир уплывает",
         ]),
         body: pick(seed + 2, [
-          `За последние дни среднее ~${Math.round(avg)} ккал при цели ${planKcal}. Можно чуть урезать перекусы — без жёсткости.`,
+          `За последние дни среднее ~${Math.round(avg)} ккал при цели ${planKcal}. Можно чуть урезать перекусы, без жёсткости.`,
           `Несколько дней заметно выше ${planKcal} ккал. Взгляните на «Сегодня» в диете.`,
         ]),
         href: "/m/diet",
@@ -298,7 +298,7 @@ function analyzeDiet(
     eyebrow: "Диета",
     title: pick(seed, ["Диета ведётся", "Есть записи по питанию"]),
     body: pick(seed + 1, [
-      `Уже ${byDay.size} дн. с записями. Среднее ~${Math.round(avg)} ккал — смотрите динамику в разделе.`,
+      `Уже ${byDay.size} дн. с записями. Среднее ~${Math.round(avg)} ккал, смотрите динамику в разделе.`,
       `Питание отмечается: среднее за дни ~${Math.round(avg)} ккал.`,
     ]),
     href: "/m/diet",
@@ -332,7 +332,7 @@ function analyzeSleep(entries: JournalEntry[], seed: number): FeedItem | null {
     eyebrow: pick(seed, ["Сон", "Режим"]),
     title: pick(seed + 1, ["Как спит", "Сон за дни", "Режим сна"]),
     body: pick(seed + 2, [
-      `По последним записям в среднем ~${avg.toFixed(1)} ч. Если ночи рваные — отметьте это в дневнике сна.`,
+      `По последним записям в среднем ~${avg.toFixed(1)} ч. Если ночи рваные, отметьте это в дневнике сна.`,
       `Средняя длительность ~${avg.toFixed(1)} ч по свежим записям.`,
     ]),
     href: "/m/sleep",
@@ -381,7 +381,7 @@ export function buildChatFeed(input: {
       title: pick(seed, ["Пока мало данных", "Тихо в дневниках", "Ждём записей"]),
       body: pick(seed + 1, [
         "Записи из дневников появятся здесь.",
-        "Отметьте день в разделе — и лента оживёт.",
+        "Отметьте день в разделе, и лента оживёт.",
       ]),
       href: anyEnabled ? `/m/${anyEnabled}` : "/modules",
       tone: "notice",

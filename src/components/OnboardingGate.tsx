@@ -31,7 +31,7 @@ function peekLikelyOnboarded(): boolean {
   }
   try {
     const raw = localStorage.getItem("maya-mom-ai");
-    // не JSON.parse всего стора — на телефоне это подвисает
+    // не JSON.parse всего стора, на телефоне это подвисает
     if (raw && raw.includes('"onboardingDone":true')) return true;
   } catch {
     /* ignore */
@@ -47,7 +47,7 @@ function peekLikelyOnboarded(): boolean {
 
 /**
  * Показывает онбординг новым пользователям.
- * Если уже есть сессия (иконка на рабочем столе) — тянем бэкап, анкету не просим.
+ * Если уже есть сессия (иконка на рабочем столе), тянем бэкап, анкету не просим.
  */
 export function OnboardingGate({ children }: { children: React.ReactNode }) {
   const onboardingDone = useAppStore((s) => s.onboardingDone);

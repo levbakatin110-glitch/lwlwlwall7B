@@ -16,7 +16,7 @@ function fieldKeys(fields: { key: string }[] | undefined): Set<string> {
   return new Set((fields ?? []).map((f) => f.key).filter(Boolean));
 }
 
-/** Проверка чертежа / своего дневника — без «тихого» проглатывания дыр */
+/** Проверка чертежа / своего дневника, без «тихого» проглатывания дыр */
 export function validateBlueprint(
   bp: Partial<ModuleBlueprint> | null | undefined,
 ): BlueprintHealth {
@@ -87,7 +87,7 @@ export function validateBlueprint(
     issues.push({
       code: "no_smart",
       severity: "warn",
-      message: "Нет умного виджета — будет подставлен шаблон",
+      message: "Нет умного виджета, будет подставлен шаблон",
     });
   } else {
     issues.push(...validateSmart(smart, keys));
@@ -177,7 +177,7 @@ export function validateCustomModule(mod: CustomModule): BlueprintHealth {
   });
 }
 
-/** Локальная починка через normalize — без вызова ИИ */
+/** Локальная починка через normalize, без вызова ИИ */
 export function repairBlueprintLocally(mod: CustomModule): ModuleBlueprint {
   return normalizeBlueprint(
     {

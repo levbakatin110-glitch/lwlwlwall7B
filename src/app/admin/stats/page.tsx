@@ -244,7 +244,7 @@ export default function AnalyticsPage() {
               {!data?.byDay.length && (
                 <tr>
                   <td colSpan={9} className="px-3 py-6 text-muted">
-                    Пока пусто — появятся после трафика.
+                    Пока пусто, появятся после трафика.
                   </td>
                 </tr>
               )}
@@ -252,7 +252,7 @@ export default function AnalyticsPage() {
           </table>
         </div>
         <p className="mt-2 text-[11px] text-muted">
-          * Пока оплата локальная (кнопка на сайте). Когда подключим ЮKassa —
+          * Пока оплата локальная (кнопка на сайте). Когда подключим ЮKassa.
           сюда же лягут реальные платежи.
         </p>
       </section>

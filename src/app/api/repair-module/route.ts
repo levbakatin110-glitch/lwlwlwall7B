@@ -12,7 +12,7 @@ import type { CustomModule, ModuleBlueprint } from "@/lib/types";
 
 export const runtime = "nodejs";
 
-/** Чинит битый свой дневник: сначала локально, при необходимости — ИИ */
+/** Чинит битый свой дневник: сначала локально, при необходимости, ИИ */
 export async function POST(req: Request) {
   if (!requireAdmin(req)) {
     return Response.json({ error: "Нет доступа" }, { status: 401 });
@@ -58,7 +58,7 @@ export async function POST(req: Request) {
         mode,
         changeSummary:
           changeSummary +
-          " Полная починка через ИИ недоступна (нет ключа) — примените локальный вариант.",
+          " Полная починка через ИИ недоступна (нет ключа), примените локальный вариант.",
         aiSkipped: true,
       });
     }
@@ -82,7 +82,7 @@ export async function POST(req: Request) {
   "smart": { "kind":"timer|milestones|goal|scale|streak|tips", "title":"...", "...":"по kind" },
   "changeSummary": "что починила"
 }
-Обязателен рабочий smart. Для milestones — 6–12 пунктов. Для timer — поле minutes. Только JSON.`,
+Обязателен рабочий smart. Для milestones, 6–12 пунктов. Для timer, поле minutes. Только JSON.`,
           },
           {
             role: "user",

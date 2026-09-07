@@ -4,7 +4,7 @@ import type { JournalEntry } from "@/lib/types";
 
 /** С какого дня дневника можно предлагать разбор */
 export const PLAN_OFFER_DAY_MIN = 3;
-/** Самостоятельный заказ — минимум дней с записями */
+/** Самостоятельный заказ, минимум дней с записями */
 export const PLAN_SELF_SERVE_MIN_DAYS = 2;
 
 export type PlanOfferEligibility = {
@@ -85,7 +85,7 @@ function dateHasTopicConcern(input: {
   return feeds < 4 || feeds > 10;
 }
 
-/** Отклонение сегодня или вчера — только если в тот день есть записи */
+/** Отклонение сегодня или вчера, только если в тот день есть записи */
 function recentTopicConcern(input: {
   entries: JournalEntry[];
   topic: PlanTopic;
@@ -131,7 +131,7 @@ export function evaluatePlanSelfServeEligibility(input: {
   };
 }
 
-/** Яркий оффер в дневнике — только при реальных отклонениях */
+/** Яркий оффер в дневнике, только при реальных отклонениях */
 export function evaluatePlanOfferEligibility(input: {
   topic: PlanTopic;
   entries: JournalEntry[];

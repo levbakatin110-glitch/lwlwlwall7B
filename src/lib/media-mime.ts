@@ -1,6 +1,6 @@
 import type { CommunityMediaKind } from "@/lib/community-store";
 
-/** Определяем реальный формат по заголовку файла — iOS часто шлёт application/octet-stream. */
+/** Определяем реальный формат по заголовку файла, iOS часто шлёт application/octet-stream. */
 export function sniffMediaMime(
   buf: Buffer,
   kind?: CommunityMediaKind,

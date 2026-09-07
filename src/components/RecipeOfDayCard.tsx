@@ -5,7 +5,7 @@ import { useMemo } from "react";
 import { MayaIcon } from "@/components/icons/MayaIcon";
 import { formatTime, getRecipeOfDay } from "@/lib/recipes";
 
-/** Рецепт дня — один на календарный день, меняется сам */
+/** Рецепт дня, один на календарный день, меняется сам */
 export function RecipeOfDayCard({
   compact = false,
 }: {

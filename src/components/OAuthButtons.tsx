@@ -83,7 +83,7 @@ export function OAuthButtons({
         {busy
           ? "Перенаправляю…"
           : mailruOk
-            ? "Войти с Mail.ru — без кода"
+            ? "Войти с Mail.ru, без кода"
             : "Mail.ru (нужна настройка)"}
       </button>
     </div>

@@ -5,7 +5,7 @@ import { KitchenCarousel } from "@/components/KitchenCarousel";
 import { SiteFeedbackBox } from "@/components/SiteFeedbackBox";
 import { TodayPulse } from "@/components/TodayPulse";
 
-/** Кухня, лента и отзыв — отдельный чанк, грузится только когда доскроллили. */
+/** Кухня, лента и отзыв, отдельный чанк, грузится только когда доскроллили. */
 export function ChatBelowFold({
   onOpenChat,
 }: {

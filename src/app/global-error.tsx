@@ -6,7 +6,7 @@ import { captureBetterStackException } from "@/lib/betterstack-sentry-browser";
 /**
  * Падение root layout. Часто это не «баг страницы», а старый JS после деплоя
  * (телефон держит прошлый чанк). Тогда один жёсткий reload чинит.
- * Логика здесь inline — общий импорт сам может не загрузиться.
+ * Логика здесь inline, общий импорт сам может не загрузиться.
  */
 function isStaleBuildError(error: Error) {
   const msg = `${error?.name ?? ""} ${error?.message ?? ""}`;
@@ -72,7 +72,7 @@ export default function GlobalError({
           </p>
           <p style={{ fontSize: 14, opacity: 0.7, margin: "10px 0 0" }}>
             Часто это старая версия после обновления сайта. Нажмите «Попробовать
-            снова» — подтянем свежий код. Данные не трогаем.
+            снова», подтянем свежий код. Данные не трогаем.
           </p>
           <div
             style={{

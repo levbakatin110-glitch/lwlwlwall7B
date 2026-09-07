@@ -44,7 +44,7 @@ export function RemindersPeek() {
       <ul className="relative mt-3 flex-1 space-y-1.5">
         {on.length === 0 ? (
           <li className="text-sm leading-relaxed text-muted">
-            Кормление, укладывание, прогулка — нажмите, чтобы включить.
+            Кормление, укладывание, прогулка, нажмите, чтобы включить.
           </li>
         ) : (
           on.slice(0, 4).map((p) => (

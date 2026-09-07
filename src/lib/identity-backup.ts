@@ -1,4 +1,4 @@
-/** Лёгкий «паспорт» сессии — cookie + ключ, если основной стор пустой. */
+/** Лёгкий «паспорт» сессии, cookie + ключ, если основной стор пустой. */
 
 export type MayaIdentity = {
   v: 1;
@@ -11,7 +11,7 @@ export type MayaIdentity = {
 
 const LS_KEY = "maya-identity-v1";
 const COOKIE = "maya_id";
-/** Отдельный флаг «анкета уже пройдена» — не сбрасывается при сбое стора */
+/** Отдельный флаг «анкета уже пройдена», не сбрасывается при сбое стора */
 const ONBOARDED_KEY = "maya-onboarded-v1";
 
 function canUseDom() {
@@ -106,7 +106,7 @@ export function writeIdentityBackup(input: {
     );
     const secure =
       window.location.protocol === "https:" ? "; Secure" : "";
-    // 400 дней — как «постоянный» вход на том же сайте / PWA
+    // 400 дней, как «постоянный» вход на том же сайте / PWA
     document.cookie = `${COOKIE}=${value}; path=/; max-age=34560000; SameSite=Lax${secure}`;
   } catch {
     /* ignore */

@@ -5,8 +5,8 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Мая",
     short_name: "Мая",
     description:
-      "ИИ для мам: рост, кормление, сон и режим ребёнка — не просто записи.",
-    // Без query — тот же origin/хранилище, что у вкладки в браузере
+      "Рост, кормление, сон и режим ребёнка. Не просто записи.",
+    // Без query, тот же origin/хранилище, что у вкладки в браузере
     start_url: "/",
     scope: "/",
     id: "/",

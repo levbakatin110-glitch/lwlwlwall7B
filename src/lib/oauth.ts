@@ -51,7 +51,7 @@ export function siteOrigin(): string {
     process.env.MAILRU_REDIRECT_URI?.trim() ||
     "";
   let origin = raw.replace(/\/$/, "");
-  // Публичный домен — никогда не отдаём IP:3000 (браузер ломается на https://IP)
+  // Публичный домен, никогда не отдаём IP:3000 (браузер ломается на https://IP)
   if (
     !origin ||
     /194\.67\.101\.192/.test(origin) ||
@@ -88,7 +88,7 @@ export function providerConfigured(provider: OAuthProvider): boolean {
 
 export function providersStatus(): {
   mailru: boolean;
-  /** Точный redirect_uri, который уходит в Mail.ru — скопируй в кабинет 1:1 */
+  /** Точный redirect_uri, который уходит в Mail.ru, скопируй в кабинет 1:1 */
   mailruRedirectUri: string;
 } {
   return {
@@ -171,7 +171,7 @@ export function parseOAuthState(
       return { ok: false, error: "Неизвестный провайдер" };
     }
     if (Date.now() - data.t > 15 * 60_000) {
-      return { ok: false, error: "Сессия входа устарела — попробуйте снова" };
+      return { ok: false, error: "Сессия входа устарела, попробуйте снова" };
     }
     return { ok: true, data };
   } catch {
@@ -200,14 +200,14 @@ export function takePkceSession(
 ): { ok: true; verifier: string; deviceId: string } | { ok: false; error: string } {
   const entry = pkceStore().get(nonce);
   if (!entry) {
-    return { ok: false, error: "Сессия входа не найдена — начните снова" };
+    return { ok: false, error: "Сессия входа не найдена, начните снова" };
   }
   pkceStore().delete(nonce);
   if (entry.provider !== provider) {
     return { ok: false, error: "Некорректная сессия входа" };
   }
   if (Date.now() > entry.expiresAt) {
-    return { ok: false, error: "Сессия входа устарела — попробуйте снова" };
+    return { ok: false, error: "Сессия входа устарела, попробуйте снова" };
   }
   return { ok: true, verifier: entry.verifier, deviceId: entry.deviceId };
 }
@@ -237,11 +237,11 @@ export function consumeOAuthTicket(
 ): { ok: true; email: string } | { ok: false; error: string } {
   const entry = tickets().get(ticket);
   if (!entry) {
-    return { ok: false, error: "Ссылка входа недействительна — войдите снова" };
+    return { ok: false, error: "Ссылка входа недействительна, войдите снова" };
   }
   tickets().delete(ticket);
   if (Date.now() > entry.expiresAt) {
-    return { ok: false, error: "Ссылка входа устарела — войдите снова" };
+    return { ok: false, error: "Ссылка входа устарела, войдите снова" };
   }
   if (!isAllowedRussianEmail(entry.email)) {
     return { ok: false, error: RUSSIAN_EMAIL_HINT };

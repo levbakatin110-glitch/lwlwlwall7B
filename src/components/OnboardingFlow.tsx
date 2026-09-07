@@ -214,7 +214,7 @@ export function OnboardingFlow({
     setProgressReady(true);
   }, [mode]);
 
-  // После сборки flow — встать на сохранённый шаг; почту пропустить, если уже вошли
+  // После сборки flow, встать на сохранённый шаг; почту пропустить, если уже вошли
   useEffect(() => {
     if (!progressReady) return;
     const key = restoredStep.current;
@@ -233,7 +233,7 @@ export function OnboardingFlow({
     setCanPersist(true);
   }, [progressReady, flow, emailVerified]);
 
-  // Если вошли через Mail.ru прямо на шаге email — сразу дальше
+  // Если вошли через Mail.ru прямо на шаге email, сразу дальше
   useEffect(() => {
     if (!canPersist) return;
     if (flowStep === "email" && emailVerified) {
@@ -412,7 +412,7 @@ export function OnboardingFlow({
         seedCurrentGrowth();
         babySaved.current = true;
       } else {
-        // Беременность и/или цикл без ребёнка — плейсхолдер профиля
+        // Беременность и/или цикл без ребёнка, плейсхолдер профиля
         setProfile(
           emptyChildProfile({
             id: activeChildId,
@@ -434,7 +434,7 @@ export function OnboardingFlow({
     if (flowStep === "preg" && !validatePreg()) return;
     if (flowStep === "baby1" && !validateStep2()) return;
     if (flowStep === "email" && !(emailOk || emailVerified)) {
-      setEmailError("Подтвердите почту — без неё не сохранить данные и круг мам");
+      setEmailError("Подтвердите почту, без неё не сохранить данные и круг мам");
       return;
     }
     setStepIdx((s) => Math.min(flow.length - 1, s + 1));
@@ -931,7 +931,7 @@ export function OnboardingFlow({
                   Ещё чуть-чуть
                 </h1>
                 <p className="mt-1.5 text-sm text-muted">
-                  Дата рождения — для норм роста. Погоду Мая берёт по геолокации.
+                  Дата рождения, для норм роста. Погоду Мая берёт по геолокации.
                 </p>
               </div>
 
@@ -1069,7 +1069,7 @@ export function OnboardingFlow({
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder={
                         authMode === "login"
-                          ? "Если задавали — войти без кода"
+                          ? "Если задавали, войти без кода"
                           : "От 6 символов (можно задать после кода)"
                       }
                       className="mt-1 w-full rounded-xl border border-line bg-card/70 px-3 py-3 text-sm outline-none focus:border-accent/50"
@@ -1217,14 +1217,14 @@ export function OnboardingFlow({
                 {mode === "add"
                   ? "Ребёнок сохранён. Можно сразу добавить ещё одного или вернуться в Маю."
                   : PAID_ONLY && !TEMP_UNLOCK_ALL
-                    ? "Анкета готова. Дальше — выбрать период доступа: после оплаты откроются Мая, дневники и общение."
+                    ? "Анкета готова. Дальше, выбрать период доступа: после оплаты откроются Мая, дневники и общение."
                     : isPregnant && !hasChild
                     ? "Открыли недели, схватки и сон мамы. После родов добавите малыша в профиле."
                     : trackCycle && !hasChild && !isPregnant
                       ? "Трекер цикла готов. Можно писать Мае про самочувствие."
                       : isPregnant && hasChild
-                        ? "И беременность, и малыш — Мая будет в курсе обоих контекстов."
-                        : "Всё готово — можно начинать. Ещё одного ребёнка добавите позже в профиле."}
+                        ? "И беременность, и малыш, Мая будет в курсе обоих контекстов."
+                        : "Всё готово, можно начинать. Ещё одного ребёнка добавите позже в профиле."}
               </p>
               {accountEmail && (
                 <p className="mt-2 text-xs text-muted">Аккаунт: {accountEmail}</p>

@@ -154,18 +154,18 @@ export function WhoGrowthChart({
       {hint && last && (
         <p className="mt-2 text-sm leading-relaxed text-foreground/90">
           <span className="font-semibold">{hint.label}</span>
-          {" — "}
+          {", "}
           {hint.detail}
         </p>
       )}
       {!birthDate && (
         <p className="mt-2 text-xs text-muted">
-          Укажите дату рождения в профиле — точки встанут на возраст.
+          Укажите дату рождения в профиле, точки встанут на возраст.
         </p>
       )}
       {birthDate && childPts.length === 0 && (
         <p className="mt-2 text-xs text-muted">
-          Добавьте абсолютный вес/рост (не только «+100 г») — появится точка на
+          Добавьте абсолютный вес/рост (не только «+100 г»), появится точка на
           графике.
         </p>
       )}

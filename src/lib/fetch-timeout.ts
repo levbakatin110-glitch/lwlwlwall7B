@@ -1,4 +1,4 @@
-/** fetch с таймаутом — чтобы чат не висел на погоде/гео минутами */
+/** fetch с таймаутом, чтобы чат не висел на погоде/гео минутами */
 
 export async function fetchWithTimeout(
   input: RequestInfo | URL,

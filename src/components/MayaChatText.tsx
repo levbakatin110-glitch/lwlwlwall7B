@@ -2,6 +2,7 @@
 
 import { Fragment, type ReactNode } from "react";
 import { LinkifiedText } from "@/components/LinkifiedText";
+import { deAiDash } from "@/lib/de-ai-dash";
 
 /** Лёгкий markdown для пузыря Маи: **жирный**, списки, переносы */
 function renderInline(text: string): ReactNode[] {
@@ -92,19 +93,20 @@ function renderBlock(text: string): ReactNode {
 
 type Props = {
   text: string;
-  /** Идёт стрим — курсор и мягкая «печать» */
+  /** Идёт стрим, курсор и мягкая «печать» */
   live?: boolean;
 };
 
 export function MayaChatText({ text, live }: Props) {
   if (!text) return null;
+  const shown = deAiDash(text);
   return (
     <div
       className={`maya-chat-text text-[15px] leading-relaxed ${
         live ? "maya-chat-text--live" : ""
       }`}
     >
-      {renderBlock(text)}
+      {renderBlock(shown)}
       {live ? <span className="maya-stream-caret" aria-hidden /> : null}
     </div>
   );

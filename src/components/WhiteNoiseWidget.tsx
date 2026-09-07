@@ -52,7 +52,7 @@ export function NoiseWaveIcon({
   );
 }
 
-/** Шум для сна — виджет (не дневник), общий engine */
+/** Шум для сна, виджет (не дневник), общий engine */
 export function WhiteNoiseWidget({
   compact = false,
   className = "",
@@ -143,7 +143,7 @@ export function WhiteNoiseWidget({
         compact ? "p-3.5" : "p-4"
       } ${className}`}
       role="region"
-      aria-label="Шум для сна — виджет"
+      aria-label="Шум для сна, виджет"
     >
       <div className="flex items-start justify-between gap-3">
         {!compact ? (

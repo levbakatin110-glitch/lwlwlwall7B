@@ -159,7 +159,7 @@ export async function geocodeCity(
 
   let place = geo.results?.[0];
 
-  // Если с countryCode=RU пусто — пробуем без фильтра
+  // Если с countryCode=RU пусто, пробуем без фильтра
   if (!place) {
     const fallback = new URL("https://geocoding-api.open-meteo.com/v1/search");
     fallback.searchParams.set("name", q);
@@ -257,13 +257,13 @@ export type WeatherResolveResult = {
   vpnSuspect: boolean;
   source: "city" | "coords" | "none";
   needCity: boolean;
-  /** Город, определённый по GPS — можно сохранить в профиль */
+  /** Город, определённый по GPS, можно сохранить в профиль */
   detectedCity?: string | null;
 };
 
 /**
  * Как в приложениях погоды: сначала точные координаты телефона/GPS,
- * иначе — город из профиля.
+ * иначе, город из профиля.
  */
 export async function resolveWeather(opts: {
   city?: string | null;
@@ -276,7 +276,7 @@ export async function resolveWeather(opts: {
     Number.isFinite(coords!.latitude) &&
     Number.isFinite(coords!.longitude);
 
-  // 1) GPS телефона — как Яндекс.Погода / Gismeteo
+  // 1) GPS телефона, как Яндекс.Погода / Gismeteo
   if (hasCoords) {
     const place = await reverseGeocode(
       coords!.latitude,
@@ -311,7 +311,7 @@ export async function resolveWeather(opts: {
     };
   }
 
-  // 2) Запасной вариант — город из профиля
+  // 2) Запасной вариант, город из профиля
   if (city) {
     const place = await geocodeCity(city).catch(() => null);
     if (!place) {

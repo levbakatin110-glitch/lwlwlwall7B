@@ -222,7 +222,7 @@ function GrowthStatusCard({
       )}
 
       <p className="mt-2 text-[11px] text-muted">
-        Ориентир, не диагноз. При тревоге — к педиатру.
+        Ориентир, не диагноз. При тревоге, к педиатру.
       </p>
     </div>
   );
@@ -322,7 +322,7 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
           {RECIPES_CATALOG_LABEL}
         </h1>
         <p className="mt-3 text-sm text-muted">
-          Рецепты — это каталог блюд для просмотра, не дневник с записями. Откройте
+          Рецепты, это каталог блюд для просмотра, не дневник с записями. Откройте
           каталог или удалите старый раздел «{mod.title}».
         </p>
         <div className="mt-5 flex flex-wrap gap-2">
@@ -569,7 +569,7 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
         <PlanOfferBanner moduleId={moduleId} />
       )}
 
-      {/* Подсказка только в пустом «простом» дневнике — трекерам не нужна */}
+      {/* Подсказка только в пустом «простом» дневнике, трекерам не нужна */}
       {entries.length === 0 &&
         !isDietPage &&
         ![
@@ -720,7 +720,7 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
         </div>
       )}
 
-      {/* Профессиональный калькулятор — и для /m/diet, и для старых «своих» диет */}
+      {/* Профессиональный калькулятор, и для /m/diet, и для старых «своих» диет */}
       {isDietPage && (
         <div className="mt-4">
           <DietTracker journalId={moduleId === "diet" ? "diet" : moduleId} />
@@ -907,7 +907,7 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
       </form>
       )}
 
-      {/* У трекеров свой таймлайн — общий список не дублируем */}
+      {/* У трекеров свой таймлайн, общий список не дублируем */}
       {moduleId !== "vaccines" &&
         !isDietPage &&
         ![
@@ -939,8 +939,8 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
         {entries.length === 0 && (
           <li className="rounded-2xl border border-dashed border-line bg-card/40 px-4 py-5 text-center text-sm text-muted">
             {isDietPage
-              ? "После расчёта можно записывать приёмы — они появятся здесь"
-              : "Пока пусто — запишите как удобно"}
+              ? "После расчёта можно записывать приёмы, они появятся здесь"
+              : "Пока пусто, запишите как удобно"}
           </li>
         )}
         {entries.map((e, i) => (

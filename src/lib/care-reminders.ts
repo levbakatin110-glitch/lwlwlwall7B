@@ -219,7 +219,7 @@ export function minGapAfterFireMs(item: {
 
 /**
  * Клиент каждые пару секунд заново шлёт nextAt «уже пора».
- * Если только что отправили — не возвращаем слот в прошлое, иначе тик
+ * Если только что отправили, не возвращаем слот в прошлое, иначе тик
  * шлёт снова каждую минуту.
  */
 export function resolveScheduleWrite(
@@ -283,7 +283,7 @@ export type CarePreset = {
   defaultEnabled?: boolean;
 };
 
-/** Сами включаем только это — остальное мама добавит, если нужно. */
+/** Сами включаем только это, остальное мама добавит, если нужно. */
 export const CORE_PUSH_KINDS: readonly CareReminderKind[] = ["feed", "sleep"];
 
 export function ensureCoreCareReminders(
@@ -310,14 +310,14 @@ export const CARE_PRESETS: CarePreset[] = [
   {
     kind: "sleep",
     label: "Укладывание",
-    hint: "В выбранное время — «пора укладывать малыша».",
+    hint: "В выбранное время, «пора укладывать малыша».",
     icon: "sleep",
     defaultEnabled: true,
   },
   {
     kind: "wake",
     label: "Бодрствование",
-    hint: "Если малыш давно не спал — мягко напомним про сон.",
+    hint: "Если малыш давно не спал, мягко напомним про сон.",
     icon: "sleep",
   },
   {
@@ -350,7 +350,7 @@ export function defaultReminder(kind: CareReminderKind): CareReminder {
       mode: "interval",
       intervalMin: 180,
       title: "Мая · кормление",
-      body: "Пора покормить малыша. Если уже покормили — отметьте в дневнике.",
+      body: "Пора покормить малыша. Если уже покормили, отметьте в дневнике.",
       href: "/m/breastfeeding",
       resetOnLog: true,
     };
@@ -375,7 +375,7 @@ export function defaultReminder(kind: CareReminderKind): CareReminder {
       mode: "interval",
       intervalMin: 120,
       title: "Мая · бодрствование",
-      body: "Окно бодрствования подходит к концу — можно готовить ко сну.",
+      body: "Окно бодрствования подходит к концу, можно готовить ко сну.",
       href: "/m/sleep",
       resetOnLog: true,
     };

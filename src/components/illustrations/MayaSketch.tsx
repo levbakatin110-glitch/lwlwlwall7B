@@ -1,8 +1,8 @@
-/** Ручные SVG-скетчи для атмосферы Маи — розовый ink, не emoji. */
+/** Ручные SVG-скетчи для атмосферы Маи, розовый ink, не emoji. */
 
 type SketchProps = {
   className?: string;
-  /** blush | ink — цвет через currentColor или accent */
+  /** blush | ink, цвет через currentColor или accent */
   tone?: "accent" | "muted" | "soft";
 };
 
@@ -12,7 +12,7 @@ function toneClass(tone: SketchProps["tone"] = "accent") {
   return "text-accent";
 }
 
-/** Портрет Маи — мягкий скетч */
+/** Портрет Маи, мягкий скетч */
 export function SketchMaya({ className = "", tone }: SketchProps) {
   return (
     <svg
@@ -161,7 +161,7 @@ export function SketchSprig({ className = "", tone }: SketchProps) {
   );
 }
 
-/** Луна и звёзды — сон */
+/** Луна и звёзды, сон */
 export function SketchMoon({ className = "", tone }: SketchProps) {
   return (
     <svg

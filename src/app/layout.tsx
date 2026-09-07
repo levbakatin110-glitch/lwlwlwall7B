@@ -18,14 +18,14 @@ const nunito = Nunito({
 export const metadata: Metadata = {
   metadataBase: new URL("https://hey-maya.ru"),
   title: {
-    default: "Мая — ИИ-помощница для мам",
+    default: "Мая для мам",
     template: "%s · Мая",
   },
   description:
-    "ИИ для мам: сон, кормление, рост, гардероб и напоминания. Помнит вашего малыша и отвечает по делу.",
+    "Сон, кормление, рост, гардероб и напоминания. Помнит вашего малыша и отвечает по делу.",
   applicationName: "Мая",
   keywords: [
-    "ИИ для мам",
+    "помощница для мам",
     "дневник ребёнка",
     "трекер сна",
     "кормление",
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
     locale: "ru_RU",
     url: "https://hey-maya.ru",
     siteName: "Мая",
-    title: "Мая — ИИ-помощница для мам",
+    title: "Мая для мам",
     description:
       "Помнит сон, кормление и гардероб малыша. Напоминания на телефоне. Круг мам.",
     images: [
@@ -54,7 +54,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary",
-    title: "Мая — ИИ-помощница для мам",
+    title: "Мая для мам",
     description:
       "Помнит сон, кормление и гардероб малыша. Напоминания на телефоне.",
     images: ["/icons/icon-512.png"],

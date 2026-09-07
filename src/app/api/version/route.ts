@@ -12,7 +12,7 @@ function readBuildId(): string | null {
   }
 }
 
-/** Smoke: /api/version — жив ли сервер и какой билд */
+/** Smoke: /api/version, жив ли сервер и какой билд */
 export async function GET() {
   return Response.json({
     ok: true,

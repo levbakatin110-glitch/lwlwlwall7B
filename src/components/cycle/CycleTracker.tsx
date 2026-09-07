@@ -261,7 +261,7 @@ export function CycleTracker() {
           onClick={() => markPeriodStart(today)}
           className="mt-3 w-full rounded-xl bg-accent py-2.5 text-sm font-semibold text-white"
         >
-          Сегодня — 1-й день цикла
+          Сегодня, 1-й день цикла
         </button>
       </div>
     </div>

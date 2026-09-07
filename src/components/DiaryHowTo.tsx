@@ -23,13 +23,13 @@ export function DiaryHowTo({
     setReady(true);
   }, []);
 
-  // После первого нормального просмотра — больше не показываем
+  // После первого нормального просмотра, больше не показываем
   useEffect(() => {
     if (!ready || dismissed) return;
     shownRef.current = true;
     const mountedAt = Date.now();
     return () => {
-      // Strict Mode размонтирует почти сразу — не считаем это «увидели»
+      // Strict Mode размонтирует почти сразу, не считаем это «увидели»
       if (shownRef.current && Date.now() - mountedAt > 400) {
         useAppStore.getState().dismissDiaryHint(hintId);
       }

@@ -32,9 +32,9 @@ const MUTE_MS = [0, 60 * 60_000, 24 * 60 * 60_000]; // 1-й страйк → 1ч
 const SPAM_WINDOW_MS = 10 * 60_000;
 const SPAM_SAME_COUNT = 6;
 const FLOOD_WINDOW_MS = 60_000;
-/** Мягкое предупреждение — без страйка */
+/** Мягкое предупреждение, без страйка */
 const FLOOD_WARN = 28;
-/** Жёсткий стоп на минуту — без страйка */
+/** Жёсткий стоп на минуту, без страйка */
 const FLOOD_HARD = 40;
 
 const MEDIA_PLACEHOLDERS = new Set([
@@ -45,7 +45,7 @@ const MEDIA_PLACEHOLDERS = new Set([
   "[media]",
 ]);
 
-/** Маркетплейсы и «нормальные» магазины — ссылки можно */
+/** Маркетплейсы и «нормальные» магазины, ссылки можно */
 const ALLOWED_HOST_SUFFIXES = [
   "hey-maya.ru",
   "wildberries.ru",
@@ -153,12 +153,12 @@ export function checkCommunityText(text: string): {
           error: "Такую ссылку нельзя",
         };
       }
-      // IP в ссылке — подозрительно
+      // IP в ссылке, подозрительно
       if (/^\d{1,3}(\.\d{1,3}){3}$/.test(u.hostname)) {
         return {
           ok: false,
           reason: "bad_link",
-          error: "Ссылки на IP нельзя — только обычные магазины",
+          error: "Ссылки на IP нельзя, только обычные магазины",
         };
       }
       if (!hostAllowed(u.hostname)) {
@@ -203,11 +203,11 @@ function applyStrike(
   if (count >= 3) {
     kicked = true;
     error =
-      "Повторное нарушение — кик из общения. Напишите в Поддержку, если ошиблись.";
+      "Повторное нарушение, кик из общения. Напишите в Поддержку, если ошиблись.";
   } else if (count === 2) {
     mutedUntil = Date.now() + MUTE_MS[2]!;
     error =
-      "Снова нарушение. Молчанка на 24 часа. Ещё раз — кик.";
+      "Снова нарушение. Молчанка на 24 часа. Ещё раз, кик.";
   } else {
     mutedUntil = Date.now() + MUTE_MS[1]!;
     error =
@@ -267,13 +267,13 @@ function checkFlood(
   if (flood >= FLOOD_HARD) {
     return {
       ok: false,
-      error: "Очень много сообщений за минуту — подождите пару минут",
+      error: "Очень много сообщений за минуту, подождите пару минут",
     };
   }
   if (flood >= FLOOD_WARN) {
     return {
       ok: false,
-      error: "Вы пишете очень часто — чуть медленнее, без молчанки",
+      error: "Вы пишете очень часто, чуть медленнее, без молчанки",
     };
   }
   return { ok: true };
@@ -291,7 +291,7 @@ function isDuplicateSpam(store: ModStore, authorKey: string, text: string): bool
 }
 
 /**
- * Проверка перед постом. Мат можно. Спам / мусорные ссылки — страйк.
+ * Проверка перед постом. Мат можно. Спам / мусорные ссылки, страйк.
  */
 export function moderateCommunityPost(input: {
   email: string;
@@ -376,7 +376,7 @@ export function listModerationStrikes(): ModerationStrikeRow[] {
     });
 }
 
-/** Снимает мут и кик — можно снова писать. */
+/** Снимает мут и кик, можно снова писать. */
 export function clearModerationStrike(authorKey: string): boolean {
   const key = authorKey.trim().slice(0, 32);
   if (!key) return false;

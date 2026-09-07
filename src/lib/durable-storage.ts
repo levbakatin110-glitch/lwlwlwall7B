@@ -1,7 +1,7 @@
 /**
  * Надёжное хранилище для zustand persist.
  *
- * Главная причина «This page couldn't load» в Яндексе — раздутый
+ * Главная причина «This page couldn't load» в Яндексе, раздутый
  * maya-mom-ai (фото base64 + дубли journals/messages). При чтении/записи
  * стор ужимаем; в layout есть аварийный скрипт до React.
  */
@@ -13,7 +13,7 @@ const DB_NAME = "maya-durable-v1";
 const STORE = "kv";
 const THEME_KEY = "maya-theme";
 const WRITE_DEBOUNCE_MS = 400;
-/** Выше — режем base64 и дубли агрессивнее */
+/** Выше, режем base64 и дубли агрессивнее */
 const HEAVY_CHARS = 500_000;
 const MAX_DATA_URL = 12_000;
 const MAX_MESSAGES = 100;
@@ -222,7 +222,7 @@ export function slimPersistPayload(
 
     const aggressive = Boolean(opts?.aggressive);
 
-    // старые зеркала — в childSpaces уже есть
+    // старые зеркала, в childSpaces уже есть
     delete state.journals;
     delete state.messages;
     delete state.wardrobe;
@@ -310,7 +310,7 @@ export function emergencySlimLocalStore(): void {
     void idbSet("maya-mom-ai", next);
   } catch {
     try {
-      // крайний случай — лучше потерять тяжёлые фото, чем вкладку
+      // крайний случай, лучше потерять тяжёлые фото, чем вкладку
       localStorage.removeItem("maya-mom-ai");
     } catch {
       /* ignore */
@@ -343,7 +343,7 @@ export const durableStateStorage: StateStorage = {
       return fromLs;
     }
 
-    // LS пуст — не писать дефолты, пока IDB не ответил.
+    // LS пуст, не писать дефолты, пока IDB не ответил.
     persistWritesAllowed = false;
     void idbGet(name)
       .then((fromIdb) => {
@@ -377,7 +377,7 @@ export const durableStateStorage: StateStorage = {
     const ok = lsSet(name, value);
     void idbSet(name, value);
     if (!ok) {
-      console.warn("[maya] localStorage full — пробую IndexedDB");
+      console.warn("[maya] localStorage full, пробую IndexedDB");
     }
     syncIdentityFromPersistValue(name, value);
   },

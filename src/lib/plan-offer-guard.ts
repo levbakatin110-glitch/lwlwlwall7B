@@ -15,7 +15,7 @@ export function assertPlanOfferEligible(input: {
   clientEntries?: JournalEntry[];
   /** Только если PLAN_OFFER_INSTANT=true на сервере */
   requestInstant?: boolean;
-  /** Самостоятельный заказ со страницы /plan/order — без триггера «плохо» */
+  /** Самостоятельный заказ со страницы /plan/order, без триггера «плохо» */
   voluntary?: boolean;
 }): PlanOfferGuardResult {
   const serverInstant = process.env.PLAN_OFFER_INSTANT === "true";
@@ -58,7 +58,7 @@ export function assertPlanOfferEligible(input: {
       ok: false,
       code: "not_eligible",
       error:
-        "Консультанта подключаем, когда по дневнику видно, что вам тяжело. Пока можно просто вести записи — этого достаточно.",
+        "Консультанта подключаем, когда по дневнику видно, что вам тяжело. Пока можно просто вести записи, этого достаточно.",
     };
   }
 

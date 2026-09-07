@@ -49,7 +49,7 @@ export function HomeWeatherCard({
     } else if (cityName) {
       params.set("city", cityName);
     }
-    // без params — сервер возьмёт приблизительное место по IP
+    // без params, сервер возьмёт приблизительное место по IP
 
     void fetch(`/api/weather?${params}`, { cache: "no-store" })
       .then(async (res) => {
@@ -133,7 +133,7 @@ export function HomeWeatherCard({
           погода
         </p>
         <p className="mt-1 text-sm leading-relaxed text-foreground">
-          Разрешите геолокацию — Мая подставит ваш город сама. Если браузер
+          Разрешите геолокацию, Мая подставит ваш город сама. Если браузер
           запретил (часто на http://), укажите город вручную.
         </p>
         <div className="mt-2.5 flex flex-wrap items-center gap-2">

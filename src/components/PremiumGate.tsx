@@ -6,7 +6,7 @@ import { showPaywallHint } from "@/components/PaywallHint";
 import { isSubscriptionActive, PAID_ONLY } from "@/lib/subscription";
 import { useAppStore } from "@/lib/store";
 
-/** Юр. и админ — без подписки. Тарифы — только после онбординга. */
+/** Юр. и админ, без подписки. Тарифы, только после онбординга. */
 const ALLOW_WITHOUT_PREMIUM = ["/legal", "/admin"];
 
 function isAllowedPath(pathname: string): boolean {

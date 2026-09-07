@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-/** true после простоя главного потока — чтобы не грузить лишний JS на первом кадре телефона. */
+/** true после простоя главного потока, чтобы не грузить лишний JS на первом кадре телефона. */
 export function useIdleReady(timeoutMs = 1400) {
   const [ready, setReady] = useState(false);
 

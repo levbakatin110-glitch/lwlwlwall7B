@@ -62,7 +62,7 @@ function trimOldEvents() {
   }
 }
 
-/** Быстрый INSERT в SQLite — не блокирует чат перезаписью большого JSON */
+/** Быстрый INSERT в SQLite, не блокирует чат перезаписью большого JSON */
 export function trackAnalyticsEvent(input: {
   name: string;
   visitorId?: string;

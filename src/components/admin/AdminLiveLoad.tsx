@@ -192,7 +192,7 @@ export function AdminLiveLoad() {
         <p className="mt-2 text-xs leading-relaxed text-muted">
           Это если все одновременно пишут в ИИ. На сайте при этом могут сидеть
           примерно {data.capacity.siteTypical.toLocaleString("ru-RU")} человек
-          — в чат в одну секунду пишет не каждый. Круг мам очередь не создаёт,
+         , в чат в одну секунду пишет не каждый. Круг мам очередь не создаёт,
           это обычные сообщения.
           {data.capacity.nowWaitSec > 0
             ? ` Сейчас очередь ≈ ${data.capacity.nowWaitSec} сек.`
@@ -227,11 +227,11 @@ export function AdminLiveLoad() {
         />
       </div>
       <p className="mt-3 text-xs leading-relaxed text-muted">
-        {Math.round(data.server.systemUsedPct)}% занято — это не гости. Linux,
+        {Math.round(data.server.systemUsedPct)}% занято, это не гости. Linux,
         кэш диска и система сразу едят сотни мегабайт на пустом сервере. Мая
         сейчас занимает {data.server.rssMb} МБ (
         {data.server.mayaPct}% RAM). Сто гостей не умножат это на сто: чат ест
-        память, только пока отвечает. Тревога с ~78%. 100% — кончилась
+        память, только пока отвечает. Тревога с ~78%. 100%, кончилась
         оперативка, не «в десять раз больше людей».
       </p>
 

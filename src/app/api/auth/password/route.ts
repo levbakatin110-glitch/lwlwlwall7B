@@ -70,7 +70,7 @@ export async function POST(req: Request) {
   if (action === "set" || action === "reset") {
     if (!passwordLooksOk(password)) {
       return Response.json(
-        { error: "Пароль — от 6 символов" },
+        { error: "Пароль, от 6 символов" },
         { status: 400 },
       );
     }

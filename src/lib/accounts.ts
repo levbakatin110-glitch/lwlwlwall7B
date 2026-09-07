@@ -68,7 +68,7 @@ export function setAccountPassword(
   password: string,
 ): { ok: true } | { ok: false; error: string } {
   if (!passwordLooksOk(password)) {
-    return { ok: false, error: "Пароль — от 6 символов" };
+    return { ok: false, error: "Пароль, от 6 символов" };
   }
   const key = normalizeEmail(email);
   const store = load();

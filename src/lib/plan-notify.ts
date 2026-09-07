@@ -16,7 +16,7 @@ async function sendMomEmail(
 ) {
   const resend = getResend();
   if (!resend) {
-    console.warn("[plan-notify] RESEND_API_KEY не задан — письмо маме не отправлено");
+    console.warn("[plan-notify] RESEND_API_KEY не задан, письмо маме не отправлено");
     return;
   }
   try {
@@ -72,7 +72,7 @@ export async function notifyMomPlanTeamReply(
 /** Уведомление маме: план готов к просмотру (первый PDF) */
 export async function notifyMomPlanReady(order: PlanOrder) {
   await notifyMomPlanTeamReply(order, {
-    text: "Ваш персональный план готов — откройте чат, чтобы скачать PDF.",
+    text: "Ваш персональный план готов, откройте чат, чтобы скачать PDF.",
     hasPdf: true,
   });
 }

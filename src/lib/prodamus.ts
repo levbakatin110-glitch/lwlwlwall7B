@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from "crypto";
 
-/** Рекурсивная сортировка ключей — как в Hmac.php Prodamus */
+/** Рекурсивная сортировка ключей, как в Hmac.php Prodamus */
 export function prodamusSort(data: unknown): unknown {
   if (Array.isArray(data)) {
     return data.map((item) => prodamusSort(item));

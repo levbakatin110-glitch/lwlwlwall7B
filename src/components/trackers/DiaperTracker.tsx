@@ -137,7 +137,7 @@ export function DiaperTracker() {
           }`}
         >
           {rashNext
-            ? "Следующая запись — с раздражением"
+            ? "Следующая запись, с раздражением"
             : "Отметить раздражение на следующую смену"}
         </button>
 
@@ -202,7 +202,7 @@ export function DiaperTracker() {
             </DiaryTimeline>
           </div>
         ) : (
-          <DiaryEmpty>Тип смены — в историю</DiaryEmpty>
+          <DiaryEmpty>Тип смены, в историю</DiaryEmpty>
         )}
     </DiaryPage>
   );

@@ -68,7 +68,7 @@ export function classifyLoad(input: {
     reasons.push("Очередь ИИ уже больше минуты");
   } else if (input.estimatedWaitSec >= 15) {
     verdict = "busy";
-    reasons.push("Очередь ИИ растёт — до минуты ещё терпимо");
+    reasons.push("Очередь ИИ растёт, до минуты ещё терпимо");
   }
 
   if (input.systemUsedPct >= 90) {
@@ -109,7 +109,7 @@ function verdictCopy(
       verdictLabel: "Не вывозим",
       hint:
         reasons[0] ||
-        "Нагрузка высокая — лучше подождать, не слать рассылки.",
+        "Нагрузка высокая, лучше подождать, не слать рассылки.",
     };
   }
   if (verdict === "busy") {
@@ -117,7 +117,7 @@ function verdictCopy(
       verdictLabel: "На грани",
       hint:
         reasons[0] ||
-        "Пока держимся. Минута ожидания в ИИ ещё норма, дальше — уже нет.",
+        "Пока держимся. Минута ожидания в ИИ ещё норма, дальше, уже нет.",
     };
   }
   if (nowWaitSec > 0) {
@@ -129,7 +129,7 @@ function verdictCopy(
   const people =
     online === 0
       ? "Сейчас почти никого нет."
-      : `Сейчас ${online} ${online === 1 ? "человек" : "человек"} на сайте — спокойно вывозим.`;
+      : `Сейчас ${online} ${online === 1 ? "человек" : "человек"} на сайте, спокойно вывозим.`;
   return { verdictLabel: "Вывозим", hint: people };
 }
 

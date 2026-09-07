@@ -90,7 +90,7 @@ export default function ProfilePage() {
       const data = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(data.error || "Не удалось отправить код");
       setCodeSent(true);
-      setEmailMsg("Код отправлен — проверьте почту");
+      setEmailMsg("Код отправлен, проверьте почту");
     } catch (e) {
       setEmailError(authFetchErrorMessage(e, "Ошибка"));
     } finally {
@@ -161,7 +161,7 @@ export default function ProfilePage() {
       </p>
       <h1 className="font-display mt-1.5 text-3xl font-semibold">Малыши</h1>
       <p className="mt-1.5 max-w-lg text-sm leading-relaxed text-muted">
-        Можно вести нескольких детей. У каждого — свои дневники, гардероб и чат с
+        Можно вести нескольких детей. У каждого, свои дневники, гардероб и чат с
         Маей.
       </p>
 
@@ -188,7 +188,7 @@ export default function ProfilePage() {
               Привязана: <span className="font-medium">{accountEmail}</span>
             </p>
             <p className="text-xs text-muted">
-              Пароль — чтобы входить без кода с почты.
+              Пароль, чтобы входить без кода с почты.
             </p>
             <div className="flex flex-wrap gap-2">
               <input
@@ -218,7 +218,7 @@ export default function ProfilePage() {
                       const data = (await res.json()) as { error?: string };
                       if (!res.ok) throw new Error(data.error || "Не удалось");
                       setNewPassword("");
-                      setEmailMsg("Пароль сохранён — можно входить без кода");
+                      setEmailMsg("Пароль сохранён, можно входить без кода");
                     } catch (e) {
                       setEmailError(
                         e instanceof Error ? e.message : "Ошибка",
@@ -245,7 +245,7 @@ export default function ProfilePage() {
         ) : (
           <div className="mt-3 space-y-3">
             <p className="text-sm text-muted">
-              Привяжите почту — для входа и подписки.
+              Привяжите почту, для входа и подписки.
             </p>
             <input
               type="email"

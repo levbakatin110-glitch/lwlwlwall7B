@@ -199,7 +199,7 @@ export function ChatView() {
         return;
       }
       const lag = target.length - shown.length;
-      // Догоняем быстрее, если сеть ушла далеко — без рывков по 1 символу
+      // Догоняем быстрее, если сеть ушла далеко, без рывков по 1 символу
       const step = lag > 80 ? 12 : lag > 30 ? 6 : lag > 10 ? 3 : 2;
       shown = target.slice(0, Math.min(target.length, shown.length + step));
       streamShownRef.current = shown;
@@ -384,7 +384,7 @@ export function ChatView() {
   }
 
   useEffect(() => {
-    // Крутим только ленту сообщений внутри окна чата — не всю страницу вниз
+    // Крутим только ленту сообщений внутри окна чата, не всю страницу вниз
     const el = listRef.current;
     if (!el) return;
     el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
@@ -407,7 +407,7 @@ export function ChatView() {
     }
     if (premium && needTopup) {
       setError(
-        `Пакет чата на месяц закончился. Доплата ${CHAT_TOPUP_RUB} ₽ — можно писать дальше.`,
+        `Пакет чата на месяц закончился. Доплата ${CHAT_TOPUP_RUB} ₽, можно писать дальше.`,
       );
       return;
     }
@@ -577,7 +577,7 @@ export function ChatView() {
           full += decoder.decode(value, { stream: true });
           const { text: live } = stripSuggestMarker(full);
           pushStreamTarget(live);
-          // В store реже — меньше лагов списка; на экране — плавная печать
+          // В store реже, меньше лагов списка; на экране, плавная печать
           const now = performance.now();
           if (now - lastStoreAt > 80) {
             lastStoreAt = now;
@@ -599,7 +599,7 @@ export function ChatView() {
         const fromUser = userMentionsDiaryFact
           ? inferLogDraftsFromUserText(text)
           : [];
-        // Текст мамы — главный источник (модель часто забывает LOG_ENTRY на рост/сон/смесь)
+        // Текст мамы, главный источник (модель часто забывает LOG_ENTRY на рост/сон/смесь)
         let drafts = mergeDiaryDrafts(fromUser, fromAi);
 
         const loggedEntries: {
@@ -709,7 +709,7 @@ export function ChatView() {
                 moduleId: parsed.suggestedModuleId,
                 mode: "enable" as const,
                 title: MODULE_BY_ID[parsed.suggestedModuleId]?.title || "Дневник",
-                body: "Могу вести это в дневнике — будет удобно писать факты в чат.",
+                body: "Могу вести это в дневнике, будет удобно писать факты в чат.",
                 cta: "Завести дневник",
               }
             : null);
@@ -744,7 +744,7 @@ export function ChatView() {
                     ? "Пока нечего надеть на эту погоду"
                     : "Добавьте фото одежды",
                   body: state.wardrobe.length
-                    ? "Мая советует только из ваших фото. Сейчас подходящих нет — добавьте лёгкую одежду под жару или то, что реально носите."
+                    ? "Мая советует только из ваших фото. Сейчас подходящих нет, добавьте лёгкую одежду под жару или то, что реально носите."
                     : "Когда спросите в чате «что надеть», Мая подберёт по погоде из того, что вы сохраните здесь.",
                   cta: "Добавить одежду",
                 }
@@ -779,7 +779,7 @@ export function ChatView() {
         const msg =
           e instanceof Error &&
           (e.name === "TimeoutError" || /aborted|timeout/i.test(raw))
-            ? "Мая не успела ответить — попробуйте ещё раз"
+            ? "Мая не успела ответить, попробуйте ещё раз"
             : raw;
         refundAiChatQuota();
         pushOpsError({
@@ -819,7 +819,7 @@ export function ChatView() {
     titleHint?: string,
   ) {
     if (!isSubscriptionActive(useAppStore.getState().subscription)) {
-      setError("Создание своих дневников — только в Premium.");
+      setError("Создание своих дневников, только в Premium.");
       router.push("/pricing");
       return;
     }
@@ -841,7 +841,7 @@ export function ChatView() {
         router.push("/recipes");
         addMessage({
           role: "assistant",
-          content: `Открыла каталог «${RECIPES_CATALOG_LABEL}» — просто смотрите блюда и готовьте. Записи вести не нужно; в чате можно спросить про замены и прикорм.`,
+          content: `Открыла каталог «${RECIPES_CATALOG_LABEL}», просто смотрите блюда и готовьте. Записи вести не нужно; в чате можно спросить про замены и прикорм.`,
         });
         return;
       }
@@ -862,7 +862,7 @@ export function ChatView() {
         });
         addMessage({
           role: "assistant",
-          content: `Открыла готовый раздел «${title}» — там уже есть умный инструмент, отдельно анкету создавать не нужно.`,
+          content: `Открыла готовый раздел «${title}», там уже есть умный инструмент, отдельно анкету создавать не нужно.`,
         });
         return;
       }
@@ -886,7 +886,7 @@ export function ChatView() {
       });
       addMessage({
         role: "assistant",
-        content: `Готово — «${data.title}» создан${
+        content: `Готово, «${data.title}» создан${
           data.smart ? ` с блоком «${data.smart.title}»` : ""
         }. Можно писать сюда или открыть раздел.`,
       });
@@ -905,7 +905,7 @@ export function ChatView() {
     instruction: string,
   ) {
     if (!isSubscriptionActive(useAppStore.getState().subscription)) {
-      setError("Изменение дневников через ИИ — в подписке.");
+      setError("Изменение дневников через ИИ, в подписке.");
       router.push("/pricing");
       return;
     }
@@ -955,7 +955,7 @@ export function ChatView() {
   return (
     <div className="relative flex h-full min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain">
       <div className="relative z-10 mx-auto flex w-full max-w-3xl min-h-full flex-1 flex-col px-2 md:px-4">
-        {/* На всю высоту main — кухня и лента ниже по скроллу */}
+        {/* На всю высоту main, кухня и лента ниже по скроллу */}
         <div
           ref={chatPanelRef}
           className="maya-sketch-frame maya-chat-paper flex min-h-full flex-1 flex-col overflow-hidden rounded-[var(--radius-panel)] border border-line shadow-sm backdrop-blur-xl"
@@ -999,7 +999,7 @@ export function ChatView() {
                       className="mt-3 inline-flex items-center gap-2 rounded-2xl border border-accent/25 bg-accent-soft/70 px-4 py-2.5 text-sm font-semibold text-foreground transition hover:border-accent/40"
                     >
                       <MayaIcon name="circle" size={18} className="text-accent" />
-                      Общение — чат с другими в Мае
+                      Общение, чат с другими в Мае
                     </Link>
                   </div>
                 </div>

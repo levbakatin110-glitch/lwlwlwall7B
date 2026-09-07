@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
       ? { latitude: lat, longitude: lon }
       : null;
 
-  // IP — только если нет ни GPS, ни города. Иначе VPN подставляет чужую страну.
+  // IP, только если нет ни GPS, ни города. Иначе VPN подставляет чужую страну.
   if (!coords && !city) {
     const ipGeo = await lookupIpGeo(clientIpFromRequest(req));
     if (ipGeo) {

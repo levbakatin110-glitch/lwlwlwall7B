@@ -1,4 +1,4 @@
-/** Крупный счётчик для заставки «сейчас играет» — iPhone берёт title и обложку. */
+/** Крупный счётчик для заставки «сейчас играет», iPhone берёт title и обложку. */
 
 export function formatLockClock(sec: number): string {
   const s = Math.max(0, Math.floor(sec));

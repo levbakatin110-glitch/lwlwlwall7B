@@ -237,7 +237,7 @@ export function PressureTracker() {
           </DiaryTimeline>
         </div>
       ) : (
-        <DiaryEmpty>Запишите давление — утром и вечером</DiaryEmpty>
+        <DiaryEmpty>Запишите давление, утром и вечером</DiaryEmpty>
       )}
 
       <DiaryStickyCta>

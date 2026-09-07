@@ -61,7 +61,7 @@ export default function ModulesPage() {
     e.preventDefault();
     if (!prompt.trim()) return;
     if (!isSubscriptionActive(useAppStore.getState().subscription)) {
-      setError("Создание своих дневников — в подписке.");
+      setError("Создание своих дневников, в подписке.");
       router.push("/pricing");
       return;
     }
@@ -208,8 +208,8 @@ export default function ModulesPage() {
                     <p className="mt-1 text-sm text-muted">
                       «{suggestBuiltinLabel(blueprint.suggestBuiltin)}»
                       {blueprint.suggestBuiltin === RECIPES_BUILTIN_SUGGEST
-                        ? " — каталог блюд без записей."
-                        : " — с умным инструментом внутри. Не нужно создавать пустую анкету."}
+                        ? ", каталог блюд без записей."
+                        : ", с умным инструментом внутри. Не нужно создавать пустую анкету."}
                     </p>
                     <button
                       type="button"
@@ -366,7 +366,7 @@ export default function ModulesPage() {
                     </Link>
                   ) : (
                     <p className="mt-2 text-xs text-muted">
-                      Выключен — в меню слева не показывается
+                      Выключен, в меню слева не показывается
                     </p>
                   )}
                 </div>
@@ -442,7 +442,7 @@ export default function ModulesPage() {
                     </Link>
                   ) : (
                     <p className="mt-2 text-xs text-muted">
-                      Выключен — в меню слева не показывается
+                      Выключен, в меню слева не показывается
                     </p>
                   )}
                 </div>
@@ -518,7 +518,7 @@ export default function ModulesPage() {
                     </Link>
                   ) : (
                     <p className="mt-2 text-xs text-muted">
-                      Выключен — в меню слева не показывается
+                      Выключен, в меню слева не показывается
                     </p>
                   )}
                 </div>

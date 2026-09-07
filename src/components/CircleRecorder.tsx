@@ -204,8 +204,8 @@ export function CircleNotePlayer({ url }: { url: string }) {
         {broken ? (
           <span className="absolute inset-0 flex items-center justify-center bg-black/70 px-3 text-center text-[11px] leading-snug text-white/85">
             {isWebmUnsupported()
-              ? "Кружок ещё готовится — нажмите ещё раз через пару секунд"
-              : "Не удалось открыть — нажмите ещё раз"}
+              ? "Кружок ещё готовится, нажмите ещё раз через пару секунд"
+              : "Не удалось открыть, нажмите ещё раз"}
           </span>
         ) : !playing ? (
           <span className="absolute inset-0 flex items-center justify-center bg-black/25">
@@ -345,7 +345,7 @@ export function CircleRecorder({ onCancel, onReady }: Props) {
     const stream = streamRef.current;
 
     try {
-      // Сначала остановить запись — иначе смена трека «молчит» до конца кружка
+      // Сначала остановить запись, иначе смена трека «молчит» до конца кружка
       if (wasRecording && recorderRef.current) {
         try {
           const rec = recorderRef.current;
@@ -413,7 +413,7 @@ export function CircleRecorder({ onCancel, onReady }: Props) {
       const ext = type.includes("mp4") ? "mp4" : "webm";
       const file = new File([blob], `circle.${ext}`, { type });
       if (file.size > CIRCLE_MAX_UPLOAD_BYTES) {
-        setError("Слишком тяжёлый кружок — запишите короче (до 15–20 сек)");
+        setError("Слишком тяжёлый кружок, запишите короче (до 15–20 сек)");
       }
       const url = URL.createObjectURL(blob);
       setReviewFile(file);
@@ -492,7 +492,7 @@ export function CircleRecorder({ onCancel, onReady }: Props) {
   function acceptReview() {
     if (!reviewFile || !reviewUrl) return;
     if (reviewFile.size > CIRCLE_MAX_UPLOAD_BYTES) {
-      setError("Слишком тяжёлый кружок — переснимите короче");
+      setError("Слишком тяжёлый кружок, переснимите короче");
       return;
     }
     const file = reviewFile;

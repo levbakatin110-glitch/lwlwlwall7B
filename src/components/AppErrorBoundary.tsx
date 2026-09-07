@@ -8,7 +8,7 @@ type Props = { children: ReactNode };
 type State = { error: Error | null };
 
 /**
- * Ловит падения AppShell. НЕ стирает данные сама —
+ * Ловит падения AppShell. НЕ стирает данные сама.
  * авто-wipe кидал людей обратно в анкету при любом сбое.
  */
 export class AppErrorBoundary extends Component<Props, State> {

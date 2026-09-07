@@ -5,7 +5,7 @@ import { useAppStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
-/** Отдельная страница регистрации — всегда можно открыть руками */
+/** Отдельная страница регистрации, всегда можно открыть руками */
 export default function RegisterPage() {
   const emailVerified = useAppStore((s) => s.emailVerified);
   const accountEmail = useAppStore((s) => s.accountEmail);

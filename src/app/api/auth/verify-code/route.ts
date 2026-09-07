@@ -26,7 +26,7 @@ export async function POST(req: Request) {
     return Response.json({ error: RUSSIAN_EMAIL_HINT }, { status: 400 });
   }
   if (!/^\d{6}$/.test(code)) {
-    return Response.json({ error: "Код — 6 цифр из письма" }, { status: 400 });
+    return Response.json({ error: "Код, 6 цифр из письма" }, { status: 400 });
   }
 
   const result = verifyEmailCode(email, code);

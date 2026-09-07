@@ -12,7 +12,7 @@ import {
 
 export const runtime = "nodejs";
 
-/** Ответ Telegram прямо в HTTP-ответе webhook — без исходящего запроса с VPS. */
+/** Ответ Telegram прямо в HTTP-ответе webhook, без исходящего запроса с VPS. */
 function tgMethodResponse(method: string, params: Record<string, unknown>) {
   return Response.json({ method, ...params });
 }
@@ -49,7 +49,7 @@ export async function POST(req: Request) {
       const text = update.message.text.trim();
       const cmd = text.split(/\s+/)[0]?.toLowerCase().split("@")[0] ?? "";
 
-      let reply = "Нажми /start или кнопку ниже — откроется Мая.";
+      let reply = "Нажми /start или кнопку ниже, откроется Мая.";
       if (cmd === "/start" || cmd === "/help") {
         reply = welcomeText();
       } else if (cmd === "/site" || cmd === "/maya") {
@@ -59,7 +59,7 @@ export async function POST(req: Request) {
         if (isAdminTelegramUser(username)) {
           saveAdminTelegramChat(chatId, username);
           reply =
-            "Готово — уведомления о заказах планов будут приходить сюда.";
+            "Готово, уведомления о заказах планов будут приходить сюда.";
         } else {
           reply = "Эта команда только для администратора.";
         }

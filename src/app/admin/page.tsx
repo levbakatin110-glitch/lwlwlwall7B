@@ -310,7 +310,7 @@ export default function AdminPage() {
         </Link>
       </div>
       <p className="mt-2 text-sm text-muted">
-        Валидатор дневников, авто-починка и лог ошибок чата. Отдельная страница —
+        Валидатор дневников, авто-починка и лог ошибок чата. Отдельная страница.
         в меню мам её нет.{" "}
         <Link href="/admin/stats" className="text-accent underline">
           Аналитика
@@ -428,7 +428,7 @@ export default function AdminPage() {
       <section className="mt-10">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <h2 className="font-display text-xl font-semibold text-foreground">
-            Круг мам — муты и кики
+            Круг мам, муты и кики
           </h2>
           <div className="flex gap-2">
             <button
@@ -522,7 +522,7 @@ export default function AdminPage() {
           </div>
         </div>
         {mergedErrors.length === 0 ? (
-          <p className="mt-4 text-sm text-muted">Пока тихо — ошибок нет.</p>
+          <p className="mt-4 text-sm text-muted">Пока тихо, ошибок нет.</p>
         ) : (
           <ul className="mt-4 max-h-[28rem] space-y-2 overflow-y-auto">
             {mergedErrors.map((e) => (

@@ -316,13 +316,13 @@ export function ContractionsTracker() {
             ))}
           </div>
           <p className="mt-2 text-[11px] text-muted">
-            1 — чуть тянет · 5 — не проговариваешь фразу
+            1, чуть тянет · 5, не проговариваешь фразу
           </p>
         </div>
       ) : null}
 
       {timeline.length === 0 && !live && !pending ? (
-        <DiaryEmpty>Начало волны — и ещё раз, когда отпустит.</DiaryEmpty>
+        <DiaryEmpty>Начало волны, и ещё раз, когда отпустит.</DiaryEmpty>
       ) : (
         <div>
           <DiarySectionTitle left="Сегодня" right={`${timeline.length}`} />
@@ -424,7 +424,7 @@ export function ContractionsTracker() {
           <DiaryPrimaryButton onClick={start}>Схватка началась</DiaryPrimaryButton>
         )}
         <p className="text-center text-[11px] text-muted">
-          Не замена врачу. Воды, кровь, сильная боль, меньше шевелений — скорая /
+          Не замена врачу. Воды, кровь, сильная боль, меньше шевелений, скорая /
           роддом.
         </p>
       </DiaryStickyCta>

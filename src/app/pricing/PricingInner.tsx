@@ -68,7 +68,7 @@ export default function PricingInner() {
     trackEvent("subscribe_click", id);
 
     if (!emailVerified || !accountEmail) {
-      setError("Сначала войдите по почте — Premium привязывается к email.");
+      setError("Сначала войдите по почте, Premium привязывается к email.");
       return;
     }
 
@@ -128,7 +128,7 @@ export default function PricingInner() {
 
       {paidHint && (
         <p className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm">
-          Если оплата прошла — доступ включится автоматически (обновите страницу
+          Если оплата прошла, доступ включится автоматически (обновите страницу
           через несколько секунд).
         </p>
       )}

@@ -43,7 +43,7 @@ export function VpnHintBanner({
         /* ignore */
       }
 
-      // Геокод города на клиенте через /api/weather?city= — или vpn-check с city coords
+      // Геокод города на клиенте через /api/weather?city=, или vpn-check с city coords
       if (city?.trim()) {
         try {
           const geoRes = await fetch(
@@ -100,7 +100,7 @@ export function VpnHintBanner({
           <p className="font-semibold text-amber-200">VPN не мешает Мае</p>
           <p className="mt-1 text-[13px] leading-relaxed text-muted">
             Чат и дневники работают как обычно. Погоду берём из города в профиле,
-            а не с IP VPN. Если город не тот — поправьте в разделе «Малыш».
+            а не с IP VPN. Если город не тот, поправьте в разделе «Малыш».
           </p>
           <button
             type="button"

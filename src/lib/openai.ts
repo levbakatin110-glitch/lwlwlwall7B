@@ -19,7 +19,7 @@ export function createOpenAI() {
 }
 
 /**
- * Чат Маи. DeepSeek у ProxyAPI — через OpenRouter
+ * Чат Маи. DeepSeek у ProxyAPI, через OpenRouter
  * (https://api.proxyapi.ru/openrouter/v1), не через /openai/v1.
  */
 export function createChatOpenAI() {
@@ -46,7 +46,7 @@ function isOpenRouterModel(model: string) {
   return model.includes("/");
 }
 
-/** Чат с Маей — по умолчанию DeepSeek (дешевле gpt-4.1-mini) */
+/** Чат с Маей, по умолчанию DeepSeek (дешевле gpt-4.1-mini) */
 export function chatModel() {
   return (
     process.env.OPENAI_CHAT_MODEL?.trim() ||
@@ -54,7 +54,7 @@ export function chatModel() {
   );
 }
 
-/** Создание/эволюция дневников — реже, но нужна голова */
+/** Создание/эволюция дневников, реже, но нужна голова */
 export function designModel() {
   return process.env.OPENAI_DESIGN_MODEL?.trim() || "gpt-4.1";
 }

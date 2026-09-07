@@ -3,19 +3,19 @@
 import { CHAT_INCLUDED_MSGS, CHAT_TOPUP_RUB } from "@/lib/chat-quota";
 
 /**
- * Если true — всем как будто уже куплена подписка.
+ * Если true, всем как будто уже куплена подписка.
  * Сейчас выключено: после анкеты только тарифы.
  */
 export const TEMP_UNLOCK_ALL = false;
 
 /**
  * ВРЕМЕННО: кнопка «Оплатить» сразу выдаёт Premium (без Prodamus).
- * Перед боем с реальными деньгами — выключить.
+ * Перед боем с реальными деньгами, выключить.
  */
 export const FAKE_PAYMENTS = true;
 
 /**
- * Без бесплатной пробной: чат, дневники и функции — только с Premium.
+ * Без бесплатной пробной: чат, дневники и функции, только с Premium.
  */
 export const PAID_ONLY = true;
 
@@ -25,7 +25,7 @@ export type PaidPlanId = Exclude<PlanId, "free">;
 
 export type SubscriptionState = {
   planId: PlanId;
-  /** ISO — до когда действует платный период */
+  /** ISO, до когда действует платный период */
   expiresAt: string | null;
 };
 
@@ -57,7 +57,7 @@ export function clampModulesForPlan(
   premium: boolean,
 ): string[] {
   const list = [...(modules ?? [])];
-  // Без оплаты доступ режет PremiumGate, а не пустой список —
+  // Без оплаты доступ режет PremiumGate, а не пустой список.
   // иначе в шапке остаются только чат, общение и одежда.
   if (TEMP_UNLOCK_ALL || premium || PAID_ONLY) return list;
   const allowed = FREE_MODULE_IDS as readonly string[];
@@ -211,7 +211,7 @@ export function canSendAiChat(
   return { ok: true, remaining: left };
 }
 
-/** Что даёт доступ без оплаты — при PAID_ONLY ничего */
+/** Что даёт доступ без оплаты, при PAID_ONLY ничего */
 export const FREE_PERKS: readonly string[] = PAID_ONLY
   ? []
   : [
@@ -227,5 +227,5 @@ export const PAID_PERKS = [
   "Свои дневники и доработка разделов через ИИ",
   "Итог дня и графики ВОЗ",
   "Общение с другими мамами в чате",
-  `Если пакет чата кончился — доплата ${CHAT_TOPUP_RUB} ₽`,
+  `Если пакет чата кончился, доплата ${CHAT_TOPUP_RUB} ₽`,
 ] as const;

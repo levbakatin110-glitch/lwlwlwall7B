@@ -37,7 +37,7 @@ export function getPlanConsultant(id?: string | null): PlanConsultant {
   return CONSULTANTS.marina;
 }
 
-/** Роль в чате — не «только сон», а живая поддержка мамы */
+/** Роль в чате, не «только сон», а живая поддержка мамы */
 export function consultantRoleForTopic(_topic: PlanTopic): string {
   return "Консультант для мам";
 }
@@ -59,9 +59,9 @@ export function orderStatusHint(
   consultantName: string,
 ): string | null {
   const map: Record<string, string> = {
-    paid: `${consultantName} готовит разбор — до 24 часов`,
+    paid: `${consultantName} готовит разбор, до 24 часов`,
     contacted: `${consultantName} на связи`,
-    plan_sent: "План отправлен — можно уточнить в чате",
+    plan_sent: "План отправлен, можно уточнить в чате",
     clarifying: "Уточняем детали по плану",
     closed: "Разбор завершён",
     accompaniment_active: `Сопровождение с ${consultantName} · месяц`,
@@ -71,11 +71,11 @@ export function orderStatusHint(
 }
 
 export function systemIntroMessage(consultantName: string): string {
-  return `${consultantName} — живой человек, не ИИ. Посмотрит дневник и напишет план — обычно в течение суток. Потом месяц можно писать сюда: сон, кормление, режим, если вы сами вымотались. Это не врач.`;
+  return `${consultantName}, живой человек, не ИИ. Посмотрит дневник и напишет план, обычно в течение суток. Потом месяц можно писать сюда: сон, кормление, режим, если вы сами вымотались. Это не врач.`;
 }
 
 export function accompanimentIntroMessage(consultantName: string): string {
-  return `Сопровождение на 30 дней. ${consultantName} — живой человек: будет смотреть дневник и подсказывать по ходу.`;
+  return `Сопровождение на 30 дней. ${consultantName}, живой человек: будет смотреть дневник и подсказывать по ходу.`;
 }
 
 /** @deprecated */

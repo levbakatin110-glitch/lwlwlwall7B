@@ -57,13 +57,13 @@ export function InstallHint() {
     };
     window.addEventListener("beforeinstallprompt", onBip);
 
-    // Не сразу при первом заходе — после онбординга, с небольшой паузой
+    // Не сразу при первом заходе, после онбординга, с небольшой паузой
     const t = window.setTimeout(() => {
       if (isIos()) {
         setShowIos(true);
         setVisible(true);
       } else if (isAndroid()) {
-        // Chrome сам даст beforeinstallprompt; если нет — ручная подсказка
+        // Chrome сам даст beforeinstallprompt; если нет, ручная подсказка
         setShowAndroidManual(true);
         setVisible(true);
       }
@@ -109,12 +109,12 @@ export function InstallHint() {
           </p>
           <p className="mt-0.5 text-xs leading-relaxed text-muted">
             {showIos && !deferred
-              ? "Safari → Поделиться → «На экран Домой». Иконка на телефоне — без App Store."
+              ? "Safari → Поделиться → «На экран Домой». Иконка на телефоне, без App Store."
               : deferred
-                ? "Поставьте иконку из этого же браузера — профиль сохранится, без магазина."
+                ? "Поставьте иконку из этого же браузера, профиль сохранится, без магазина."
                 : showAndroidManual
                   ? "В Chrome: меню ⋮ → «Установить приложение» или «На главный экран»."
-                  : "Добавьте на рабочий стол из этого браузера — Мая вас помнит."}
+                  : "Добавьте на рабочий стол из этого браузера, Мая вас помнит."}
           </p>
           <div className="mt-2.5 flex flex-wrap gap-2">
             {deferred && (

@@ -98,7 +98,7 @@ export function fallbackSmartForTopic(text: string): SmartPanel | undefined {
     return {
       kind: "milestones",
       title: "Вехи развития",
-      subtitle: "Отмечайте, когда малыш освоил навык — можно в любом порядке.",
+      subtitle: "Отмечайте, когда малыш освоил навык, можно в любом порядке.",
       milestones: [
         { id: "hold_head", label: "Держит голову", hint: "обычно с ~2–3 мес." },
         { id: "roll", label: "Переворачивается", hint: "часто с ~4–6 мес." },
@@ -110,7 +110,7 @@ export function fallbackSmartForTopic(text: string): SmartPanel | undefined {
         { id: "point", label: "Показывает пальцем / жесты", hint: "~9–14 мес." },
       ],
       tips: [
-        "Все дети разные — вехи ориентир, не гонка.",
+        "Все дети разные, вехи ориентир, не гонка.",
         "Можно отметить дату в записи своими словами.",
       ],
       quickAdds: [
@@ -123,7 +123,7 @@ export function fallbackSmartForTopic(text: string): SmartPanel | undefined {
     return {
       kind: "timer",
       title: "Таймер занятия",
-      subtitle: "Засеките — в запись уйдёт время.",
+      subtitle: "Засеките, в запись уйдёт время.",
       timerLabel: "Занятие",
       timerUnit: "мин",
       tips: ["Можно остановить и сразу сохранить."],
@@ -133,7 +133,7 @@ export function fallbackSmartForTopic(text: string): SmartPanel | undefined {
     return {
       kind: "scale",
       title: "Как вы сегодня",
-      subtitle: "Короткая шкала — чтобы видеть динамику.",
+      subtitle: "Короткая шкала, чтобы видеть динамику.",
       scaleMinLabel: "тяжело",
       scaleMaxLabel: "спокойно",
       scaleFieldKey: "score",
@@ -144,7 +144,7 @@ export function fallbackSmartForTopic(text: string): SmartPanel | undefined {
     return {
       kind: "streak",
       title: "Серия дней",
-      subtitle: "Отмечайте день — копится серия.",
+      subtitle: "Отмечайте день, копится серия.",
       streakLabel: "Дней подряд",
       quickAdds: [
         { label: "Сделано сегодня", prefill: "Сделано" },
@@ -165,9 +165,9 @@ export function fallbackSmartForTopic(text: string): SmartPanel | undefined {
   return {
     kind: "tips",
     title: "Как вести",
-    subtitle: "Пишите свободно — кнопки лишь ускоряют.",
+    subtitle: "Пишите свободно, кнопки лишь ускоряют.",
     tips: [
-      "Можно одной фразой или подробно — как удобно.",
+      "Можно одной фразой или подробно, как удобно.",
       "В чате с Маей тоже можно диктовать факты в этот дневник.",
     ],
     quickAdds: [{ label: "Короткая запись", prefill: "" }],

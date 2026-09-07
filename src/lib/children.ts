@@ -66,7 +66,7 @@ export function emptyChildSpace(): ChildSpace {
   };
 }
 
-/** Все дневники малыша (меню и витрина). Одежда — отдельная страница, не модуль. */
+/** Все дневники малыша (меню и витрина). Одежда, отдельная страница, не модуль. */
 export const BABY_MODULE_IDS: ModuleId[] = [
   "growth",
   "sleep",
@@ -80,7 +80,7 @@ export const BABY_MODULE_IDS: ModuleId[] = [
   "health",
 ];
 
-/** Сами не включаем — мама добавит в «Все дневники», если нужно. */
+/** Сами не включаем, мама добавит в «Все дневники», если нужно. */
 export const OPT_IN_ONLY_MODULES: readonly ModuleId[] = ["health"];
 
 export function isOptInOnlyModule(id: string): boolean {
@@ -97,7 +97,7 @@ export const STARTER_ENABLED_MODULES: ModuleId[] = [
   "vaccines",
 ];
 
-/** Стартовый набор дневников малыша. Беременность и цикл — из анкеты. */
+/** Стартовый набор дневников малыша. Беременность и цикл, из анкеты. */
 export const DEFAULT_ENABLED_MODULES: ModuleId[] = [...STARTER_ENABLED_MODULES];
 
 /** Семёрка сначала, остальные как были. */
@@ -116,7 +116,7 @@ export function withStarterModulesFirst<T>(
   });
 }
 
-/** Поднимает битый/частичный space после persist — иначе journals undefined роняет UI */
+/** Поднимает битый/частичный space после persist, иначе journals undefined роняет UI */
 export function ensureChildSpace(
   sp?: Partial<ChildSpace> | null,
 ): ChildSpace {
@@ -163,7 +163,7 @@ export function validateBirthWeight(kg: number): string | null {
 
 export function validateCurrentHeight(cm: number): string | null {
   if (!Number.isFinite(cm)) return "Укажите рост в см";
-  if (cm < 40 || cm > 160) return "Рост сейчас обычно 40–160 см — проверьте значение";
+  if (cm < 40 || cm > 160) return "Рост сейчас обычно 40–160 см, проверьте значение";
   return null;
 }
 

@@ -20,7 +20,7 @@ export type CommunityMediaKind = "image" | "video" | "circle" | "voice";
 export type CommunityMessage = {
   id: string;
   createdAt: string;
-  /** Хэш почты — без сырого email в ответах клиенту */
+  /** Хэш почты, без сырого email в ответах клиенту */
   authorKey: string;
   displayName: string;
   /** мини-тег: «Ваня · 12.03.2024» */
@@ -42,7 +42,7 @@ export type CommunityReplyDto = {
   mediaKind?: CommunityMediaKind;
 };
 
-/** Ответ клиенту — без base64, только URL */
+/** Ответ клиенту, без base64, только URL */
 export type CommunityMessageDto = Omit<CommunityMessage, "mediaFile"> & {
   avatarUrl?: string;
   mediaUrl?: string;
@@ -77,7 +77,7 @@ const SEED: Omit<CommunityMessage, "id" | "createdAt">[] = [
   {
     authorKey: "maya",
     displayName: "Мая",
-    text: "Добро пожаловать. Пишите спокойно — беременность, малыш, быт. Без оценок.",
+    text: "Добро пожаловать. Пишите спокойно, беременность, малыш, быт. Без оценок.",
   },
   {
     authorKey: "seed-lena",
@@ -89,7 +89,7 @@ const SEED: Omit<CommunityMessage, "id" | "createdAt">[] = [
     authorKey: "seed-masha",
     displayName: "Маша",
     babyTag: "28 нед.",
-    text: "Если вы тоже в ожидании — вы не одна.",
+    text: "Если вы тоже в ожидании, вы не одна.",
   },
 ];
 
@@ -119,7 +119,7 @@ function load(): Store {
       return seeded;
     }
     const raw = readFileSync(DATA_FILE, "utf8");
-    // Старый гигантский JSON с data-URL аватарами — вычищаем
+    // Старый гигантский JSON с data-URL аватарами, вычищаем
     if (raw.length > 1_500_000) {
       const parsed = JSON.parse(raw) as Store;
       const cleaned: Store = {
@@ -364,7 +364,7 @@ export async function addCommunityMessage(input: {
   text?: string;
   babyTag?: string;
   replyToId?: string;
-  /** data URL — сохраняем файлом профиля */
+  /** data URL, сохраняем файлом профиля */
   avatarDataUrl?: string;
   media?: {
     kind: CommunityMediaKind;
@@ -452,7 +452,7 @@ export async function addCommunityMessage(input: {
     .reverse()
     .find((m) => m.authorKey === authorKey);
   if (last && Date.now() - new Date(last.createdAt).getTime() < 800) {
-    return { ok: false, error: "Секунду — не так быстро" };
+    return { ok: false, error: "Секунду, не так быстро" };
   }
 
   const id = `${Date.now().toString(36)}-${randomBytes(3).toString("hex")}`;
@@ -639,7 +639,7 @@ export function upsertCommunityProfile(input: {
   }
   const nick = input.nick.trim().slice(0, 32);
   if (nick.length < 2) {
-    return { ok: false, error: "Имя — минимум 2 буквы" };
+    return { ok: false, error: "Имя, минимум 2 буквы" };
   }
   const key = authorKeyFromEmail(email);
   if (input.avatarDataUrl?.startsWith("data:image/")) {

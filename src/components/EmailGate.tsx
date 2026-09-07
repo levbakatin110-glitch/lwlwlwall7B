@@ -11,7 +11,7 @@ import { useAppStore } from "@/lib/store";
 
 type AuthMode = "register" | "login" | "recover";
 
-/** Если анкету уже прошли раньше — всё равно просим почту */
+/** Если анкету уже прошли раньше, всё равно просим почту */
 export function EmailGate({ children }: { children: React.ReactNode }) {
   const emailVerified = useAppStore((s) => s.emailVerified);
   const accountEmail = useAppStore((s) => s.accountEmail);

@@ -1,4 +1,4 @@
-/** Черновик онбординга — переживает уход на Mail.ru OAuth и перезагрузку. */
+/** Черновик онбординга, переживает уход на Mail.ru OAuth и перезагрузку. */
 
 export type OnboardingDraftPersist = {
   v: 1;
@@ -36,7 +36,7 @@ export function loadOnboardingProgress(
     if (!raw) return null;
     const data = JSON.parse(raw) as OnboardingDraftPersist;
     if (!data || data.v !== 1 || data.mode !== mode) return null;
-    // старше 7 дней — выбросить
+    // старше 7 дней, выбросить
     if (Date.now() - (data.updatedAt || 0) > 7 * 24 * 60 * 60 * 1000) {
       localStorage.removeItem(KEY);
       return null;

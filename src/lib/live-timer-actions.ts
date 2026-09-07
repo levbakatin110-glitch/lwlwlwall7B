@@ -69,7 +69,7 @@ export function islandElapsedSec(t: IslandTarget, now = Date.now()): number {
   );
 }
 
-/** Что сейчас засечено — одно, самое срочное. */
+/** Что сейчас засечено, одно, самое срочное. */
 export function readIslandTarget(now = Date.now()): IslandTarget | null {
   const contraction = liveParse<ContractionLive>(LIVE_KEYS.contractions);
   if (contraction?.startMs) {

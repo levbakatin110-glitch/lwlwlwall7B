@@ -147,7 +147,7 @@ export default function RemindersPage() {
         ) : pushOk ? (
           <>
             <p className="mt-1 text-sm text-muted">
-              Включены. {emailVerified ? "Придут и при закрытой вкладке." : "Привяжите почту в профиле — тогда напомним и при закрытой вкладке."}
+              Включены. {emailVerified ? "Придут и при закрытой вкладке." : "Привяжите почту в профиле, тогда напомним и при закрытой вкладке."}
             </p>
             <button
               type="button"

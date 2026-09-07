@@ -106,7 +106,7 @@ const CHIPS: Record<string, Chip[]> = {
   ],
 };
 
-/** Быстрые действия — подсказки, не единственный сценарий */
+/** Быстрые действия, подсказки, не единственный сценарий */
 export function DiaryQuickActions({
   moduleId,
   onPrefill,
@@ -133,7 +133,7 @@ export function DiaryQuickActions({
           href="/"
           onClick={() =>
             setPendingChatPrompt(
-              "Хочу записать в дневник — помоги оформить коротко, как удобно.",
+              "Хочу записать в дневник, помоги оформить коротко, как удобно.",
             )
           }
           className="text-[11px] font-semibold text-accent hover:underline"
@@ -149,7 +149,7 @@ export function DiaryQuickActions({
             onClick={() => {
               if (chip.askMaya) {
                 setPendingChatPrompt(
-                  "По разделу хочу сделать запись — подскажи, что полезно отметить.",
+                  "По разделу хочу сделать запись, подскажи, что полезно отметить.",
                 );
                 router.push("/");
                 return;

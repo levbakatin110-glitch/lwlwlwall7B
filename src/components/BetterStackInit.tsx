@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-/** Sentry после первого кадра — не тормозит открытие на телефоне. */
+/** Sentry после первого кадра, не тормозит открытие на телефоне. */
 export function BetterStackInit() {
   useEffect(() => {
     const t = window.setTimeout(() => {

@@ -306,7 +306,7 @@ export function MomsCircleChat() {
         saveProfile(next);
         if (!cancelled) setCommProfile(next);
       } catch {
-        /* offline — localStorage */
+        /* offline, localStorage */
       }
     })();
     return () => {
@@ -516,7 +516,7 @@ export function MomsCircleChat() {
         body: JSON.stringify({ avatar }),
       });
     } catch {
-      /* offline ok — уйдёт с сообщением */
+      /* offline ok, уйдёт с сообщением */
     }
   }
 
@@ -621,10 +621,10 @@ export function MomsCircleChat() {
       if (tag) form.set("babyTag", tag);
       if (file && kind) {
         if (kind === "circle" && file.size > 2_800_000) {
-          throw new Error("Кружок слишком большой — запишите короче");
+          throw new Error("Кружок слишком большой, запишите короче");
         }
         if (kind === "voice" && file.size > 2_000_000) {
-          throw new Error("Голосовое слишком большое — короче");
+          throw new Error("Голосовое слишком большое, короче");
         }
         form.set("mediaKind", kind);
         form.set("file", file);
@@ -662,7 +662,7 @@ export function MomsCircleChat() {
         /load failed|failed to fetch|networkerror|network error|fetch/i.test(
           raw,
         )
-          ? "Не отправилось — сеть или файл слишком большой. Запишите кружок короче."
+          ? "Не отправилось, сеть или файл слишком большой. Запишите кружок короче."
           : raw,
       );
     } finally {
@@ -725,7 +725,7 @@ export function MomsCircleChat() {
             <h2 className="font-display text-2xl font-semibold tracking-tight">
               Как вас зовут?
             </h2>
-            <p className="text-sm text-muted">Фото и малыш — по желанию</p>
+            <p className="text-sm text-muted">Фото и малыш, по желанию</p>
 
             <div className="flex items-center gap-3">
               <button

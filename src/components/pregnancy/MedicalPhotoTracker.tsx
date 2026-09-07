@@ -96,7 +96,7 @@ export function MedicalPhotoTracker({
     } catch (e) {
       const msg =
         e instanceof Error && e.name === "TimeoutError"
-          ? "Слишком долго — попробуйте фото поменьше или ещё раз"
+          ? "Слишком долго, попробуйте фото поменьше или ещё раз"
           : e instanceof Error
             ? e.message
             : "Ошибка";

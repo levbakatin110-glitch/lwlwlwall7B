@@ -1,4 +1,4 @@
-/** Коды подтверждения почты — файл + память (переживают pm2 restart). */
+/** Коды подтверждения почты, файл + память (переживают pm2 restart). */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
@@ -154,12 +154,12 @@ export function verifyEmailCode(
   }
   if (Date.now() > entry.expiresAt) {
     delEntry(key);
-    return { ok: false, error: "Код устарел — запросите новый" };
+    return { ok: false, error: "Код устарел, запросите новый" };
   }
   entry.attempts += 1;
   if (entry.attempts > 8) {
     delEntry(key);
-    return { ok: false, error: "Слишком много попыток — запросите новый код" };
+    return { ok: false, error: "Слишком много попыток, запросите новый код" };
   }
   if (entry.code !== code.trim()) {
     setEntry(key, entry);

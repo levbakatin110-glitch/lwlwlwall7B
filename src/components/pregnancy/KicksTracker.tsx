@@ -223,7 +223,7 @@ export function KicksTracker() {
         <DiaryStickyCta>
           {goalReached ? (
             <DiaryPrimaryButton onClick={save}>
-              Цель {GOAL} — сохранить сессию
+              Цель {GOAL}, сохранить сессию
             </DiaryPrimaryButton>
           ) : (
             <div className="flex gap-2">

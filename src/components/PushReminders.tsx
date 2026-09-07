@@ -74,7 +74,7 @@ export function PushReminders() {
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold">Напоминания на телефоне</p>
           <p className="mt-0.5 text-xs leading-relaxed text-muted">
-            Разрешите уведомления — Мая напомнит покормить, уложить и про
+            Разрешите уведомления, Мая напомнит покормить, уложить и про
             лекарство на экране телефона, когда сайт свёрнут. На открытой
             вкладке ничего не всплывает. На iPhone: сначала «На экран Домой».
           </p>

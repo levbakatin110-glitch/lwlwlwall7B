@@ -9,7 +9,7 @@ import { WhiteNoiseWidget } from "@/components/WhiteNoiseWidget";
 const SLIDES = [
   {
     title: "Рецепты",
-    hint: "Каталог — без записей в дневник",
+    hint: "Каталог, без записей в дневник",
     href: "/recipes",
     all: "Все →",
   },

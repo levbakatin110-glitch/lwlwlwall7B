@@ -80,7 +80,7 @@ export function isRetiredModuleId(id: string): boolean {
   return id === "preg_weight" || id === "notes" || id === "preg_docs";
 }
 
-/** Какие дневники видны в меню: малыш отдельно, беременность — только если беременна. */
+/** Какие дневники видны в меню: малыш отдельно, беременность, только если беременна. */
 export function shouldShowModule(
   id: string,
   ctx: { pregnant: boolean; hasChild: boolean },

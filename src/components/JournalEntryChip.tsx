@@ -2,7 +2,7 @@
 
 import { MayaIcon } from "@/components/icons/MayaIcon";
 
-/** Единый чип «записано в дневник» — на всю ширину пузыря */
+/** Единый чип «записано в дневник», на всю ширину пузыря */
 export function JournalEntryChip({
   title,
   value,

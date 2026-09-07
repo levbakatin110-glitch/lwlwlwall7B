@@ -119,7 +119,7 @@ export function flushCareSchedule() {
   }).catch(() => undefined);
 }
 
-/** Шлёт расписание на сервер — пуши придут, даже если вкладка закрыта. */
+/** Шлёт расписание на сервер, пуши придут, даже если вкладка закрыта. */
 export function CareRemindersSync() {
   const emailVerified = useAppStore((s) => s.emailVerified);
   const childSpaces = useAppStore((s) => s.childSpaces);

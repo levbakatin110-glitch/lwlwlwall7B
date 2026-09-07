@@ -159,7 +159,7 @@ export async function ensureSafariFriendlyBuffer(
   return { buffer, mime: effective };
 }
 
-/** При отдаче: если есть кэш .mp4/.m4a — берём его, иначе конвертируем */
+/** При отдаче: если есть кэш .mp4/.m4a, берём его, иначе конвертируем */
 export async function resolvePlaybackBuffer(
   path: string,
   kind?: CommunityMediaKind,

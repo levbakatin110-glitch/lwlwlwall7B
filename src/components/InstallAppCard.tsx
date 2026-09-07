@@ -16,7 +16,7 @@ function isStandalone() {
   );
 }
 
-/** Блок «Поставить на экран» — в профиле / меню */
+/** Блок «Поставить на экран», в профиле / меню */
 export function InstallAppCard() {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(
     null,
@@ -38,7 +38,7 @@ export function InstallAppCard() {
       <div className="rounded-2xl border border-accent/25 bg-accent-soft/40 px-4 py-3 text-sm">
         <p className="font-semibold text-foreground">Мая на телефоне</p>
         <p className="mt-1 text-xs text-muted">
-          Уже как приложение — открываете с иконки на экране.
+          Уже как приложение, открываете с иконки на экране.
         </p>
       </div>
     );
@@ -50,8 +50,8 @@ export function InstallAppCard() {
         Мая как приложение
       </p>
       <p className="mt-1 text-sm text-muted">
-        Иконка на рабочий стол — без магазина. Ставьте из того же браузера, где
-        уже пользуетесь Маей (Chrome / Edge / Safari) — тогда профиль не
+        Иконка на рабочий стол, без магазина. Ставьте из того же браузера, где
+        уже пользуетесь Маей (Chrome / Edge / Safari), тогда профиль не
         потеряется.
       </p>
 

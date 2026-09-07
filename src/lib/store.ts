@@ -93,7 +93,7 @@ type AppState = {
   childSpaces: Record<string, ChildSpace>;
   onboardingDone: boolean;
 
-  /** Зеркало активного ребёнка — для существующего кода */
+  /** Зеркало активного ребёнка, для существующего кода */
   profile: ChildProfile;
   enabledModules: ModuleId[];
   customModules: CustomModule[];
@@ -106,7 +106,7 @@ type AppState = {
 
   /** Беременность (профиль мамы, общий) */
   pregnancy: PregnancyProfile;
-  /** Дневники мамы (беременность / цикл) — общие для всех профилей детей */
+  /** Дневники мамы (беременность / цикл), общие для всех профилей детей */
   momJournals: Record<string, JournalEntry[]>;
 
   sidebarOpen: boolean;
@@ -135,7 +135,7 @@ type AppState = {
   dietPlan: DietPlan | null;
   /** Лог ошибок чата / API для админки */
   opsErrors: OpsErrorLog[];
-  /** Подписка (пока без платёжки — активация в приложении) */
+  /** Подписка (пока без платёжки, активация в приложении) */
   subscription: SubscriptionState;
   /** Счётчик бесплатных ИИ-сообщений за день */
   aiChatUsage: AiChatUsage;
@@ -150,7 +150,7 @@ type AppState = {
   setDietPlan: (plan: DietPlan | null) => void;
   setAccountEmail: (email: string) => void;
   clearAccountEmail: () => void;
-  /** Выйти из почты — дневники на устройстве остаются */
+  /** Выйти из почты, дневники на устройстве остаются */
   signOutAccount: () => void;
   /** Выход: сброс профиля и данных → снова анкета */
   logoutAccount: () => void;
@@ -218,7 +218,7 @@ function spaceSlice(space: ChildSpace) {
   };
 }
 
-/** Дневники беременности и цикла — общие для мамы, не привязаны к ребёнку */
+/** Дневники беременности и цикла, общие для мамы, не привязаны к ребёнку */
 export function isMomJournalId(moduleId: string): boolean {
   return isPregnancyModuleId(moduleId) || moduleId === "cycle";
 }
@@ -267,7 +267,7 @@ function overlayMomJournals(
   return { ...(childJournals ?? {}), ...(momJournals ?? {}) };
 }
 
-/** Источник правды для дневника: беременность/цикл — momJournals */
+/** Источник правды для дневника: беременность/цикл, momJournals */
 export function getJournalEntries(
   state: Pick<AppState, "journals" | "momJournals">,
   moduleId: string,
@@ -286,7 +286,7 @@ export function getCareReminders(
   return ensureChildSpace(state.childSpaces?.[state.activeChildId]).careReminders;
 }
 
-/** После hydrate / бэкапа — зеркало journals снова с momJournals */
+/** После hydrate / бэкапа, зеркало journals снова с momJournals */
 export function remirrorJournalsFromSpaces() {
   const s = useAppStore.getState();
   const space = ensureChildSpace(s.childSpaces[s.activeChildId]);
@@ -579,7 +579,7 @@ export const useAppStore = create<AppState>()(
         const next = {
           ...profile,
           id: profile.id || id,
-          // если имя уже есть — флаг «ещё не выбрали» снимаем
+          // если имя уже есть, флаг «ещё не выбрали» снимаем
           namePending: profile.name?.trim() ? false : Boolean(profile.namePending),
         };
         set({
@@ -989,7 +989,7 @@ export const useAppStore = create<AppState>()(
     {
       name: "maya-mom-ai",
       storage: createSafePersistStorage(() => durableStateStorage),
-      // Не дублируем зеркала (journals/messages/wardrobe…) — они уже в childSpaces.
+      // Не дублируем зеркала (journals/messages/wardrobe…), они уже в childSpaces.
       // Двойная запись раздувала localStorage и роняла вкладку при сохранении дневника.
       partialize: (state) => ({
         children: state.children,
@@ -999,7 +999,7 @@ export const useAppStore = create<AppState>()(
             id,
             {
               ...sp,
-              // чат не бесконечный в LS — иначе запись прививки роняет вкладку
+              // чат не бесконечный в LS, иначе запись прививки роняет вкладку
               messages: (sp.messages ?? []).slice(-150),
             },
           ]),
@@ -1062,7 +1062,7 @@ export const useAppStore = create<AppState>()(
           state.subscription = emptySubscription();
         }
 
-        // Нормализуем все childSpaces — битый space без journals ронял RemindersHost
+        // Нормализуем все childSpaces, битый space без journals ронял RemindersHost
         if (state.childSpaces && typeof state.childSpaces === "object") {
           const fixed: Record<string, ChildSpace> = {};
           for (const [sid, sp] of Object.entries(state.childSpaces)) {
@@ -1136,7 +1136,7 @@ export const useAppStore = create<AppState>()(
           }
         }
 
-        // Если в сторе «как новый», но есть паспорт / данные профиля —
+        // Если в сторе «как новый», но есть паспорт / данные профиля.
         // не гоняем анкету снова (часто после ярлыка / PWA).
         {
           const hasLife =
@@ -1167,7 +1167,7 @@ export const useAppStore = create<AppState>()(
 
           const identity = readIdentityBackup();
           if (identity) {
-            // Не поднимать «онбординг пройден» по cookie на пустой стор —
+            // Не поднимать «онбординг пройден» по cookie на пустой стор.
             // иначе пустой чат/меню падают → «Мая споткнулась».
             if (
               identity.onboardingDone &&
@@ -1234,7 +1234,7 @@ export const useAppStore = create<AppState>()(
           state.journals = overlayMomJournals(activeSpace.journals, mom);
         }
 
-        // Чат: отдельный ключ localStorage — не теряется при slim/сбросе основного стора
+        // Чат: отдельный ключ localStorage, не теряется при slim/сбросе основного стора
         {
           const cid =
             state.activeChildId || state.children?.[0]?.id || "";
@@ -1254,7 +1254,7 @@ export const useAppStore = create<AppState>()(
           }
         }
 
-        // если имя уже есть — убрать «ещё не выбрали»
+        // если имя уже есть, убрать «ещё не выбрали»
         state.children = (state.children ?? []).map((c) =>
           c.name?.trim() ? { ...c, namePending: false } : c,
         );
@@ -1367,7 +1367,7 @@ export const useAppStore = create<AppState>()(
           state.modulesPayStarterV1 = true;
         }
 
-        // Только дневники своей анкеты. Пустой список после старого clamp — досеять.
+        // Только дневники своей анкеты. Пустой список после старого clamp, досеять.
         if (state.onboardingDone) {
           const ctx = audienceFromState({
             pregnancy: state.pregnancy,
@@ -1554,7 +1554,7 @@ export const useAppStore = create<AppState>()(
               tempSource: "ai",
               weatherTags: ["ветер"],
               aiDescription:
-                "Демисезонный комбинезон с капюшоном — для прохладной погоды около 0…+12°C.",
+                "Демисезонный комбинезон с капюшоном, для прохладной погоды около 0…+12°C.",
               analyzed: true,
             },
             {

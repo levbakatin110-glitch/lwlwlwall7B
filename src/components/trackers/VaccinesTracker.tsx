@@ -416,7 +416,7 @@ function CalendarGrid({
           была
         </span>
         <span className="px-1 py-1 text-muted">
-          V — вакцинация · RV — ревакцинация
+          V, вакцинация · RV, ревакцинация
         </span>
       </div>
     </section>
@@ -602,11 +602,11 @@ export function VaccinesTracker() {
           Записи
         </p>
         <p className="mt-1 text-xs text-muted">
-          Когда были прививки — по дате визита, новые сверху.
+          Когда были прививки, по дате визита, новые сверху.
         </p>
         {historyEntries.length === 0 ? (
           <p className="mt-4 rounded-xl border border-dashed border-line bg-background/50 px-3 py-4 text-center text-sm text-muted">
-            Пока пусто — отметьте ячейку в календаре или добавьте свою
+            Пока пусто, отметьте ячейку в календаре или добавьте свою
             прививку.
           </p>
         ) : (

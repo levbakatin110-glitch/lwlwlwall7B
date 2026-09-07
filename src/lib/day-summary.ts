@@ -335,7 +335,7 @@ export function dayNormHints(input: {
       tone: "info",
       title: "Укажите дату рождения",
       detail:
-        "В профиле малыша — тогда смогу сравнить сон и кормления с типичным ориентиром по возрасту.",
+        "В профиле малыша, тогда смогу сравнить сон и кормления с типичным ориентиром по возрасту.",
     });
     return hints;
   }
@@ -380,7 +380,7 @@ export function dayNormHints(input: {
       tone: "info",
       title: "Пока мало записей за день",
       detail:
-        "Отметьте сон и кормления в дневниках — здесь появятся суммы и мягкий ориентир.",
+        "Отметьте сон и кормления в дневниках, здесь появятся суммы и мягкий ориентир.",
     });
     return hints;
   }
@@ -391,7 +391,7 @@ export function dayNormHints(input: {
         id: "sleep-low",
         tone: "watch",
         title: "Сна меньше обычного ориентира",
-        detail: `Сегодня ≈ ${formatDurationRu(totals.sleepSec)}. Для ~${months} мес. часто бывает ${sleepMin}–${sleepMax} ч/сутки. Если так несколько дней — стоит обсудить с педиатром.`,
+        detail: `Сегодня ≈ ${formatDurationRu(totals.sleepSec)}. Для ~${months} мес. часто бывает ${sleepMin}–${sleepMax} ч/сутки. Если так несколько дней, стоит обсудить с педиатром.`,
       });
     } else if (sleepH > sleepMax + 2) {
       hints.push({
@@ -405,7 +405,7 @@ export function dayNormHints(input: {
         id: "sleep-ok",
         tone: "ok",
         title: "Сон в пределах ориентира",
-        detail: `≈ ${formatDurationRu(totals.sleepSec)} за день. Для ~${months} мес. типично ${sleepMin}–${sleepMax} ч — это не диагноз, только ориентир.`,
+        detail: `≈ ${formatDurationRu(totals.sleepSec)} за день. Для ~${months} мес. типично ${sleepMin}–${sleepMax} ч, это не диагноз, только ориентир.`,
       });
     }
   }
@@ -423,14 +423,14 @@ export function dayNormHints(input: {
         id: "feed-high",
         tone: "info",
         title: "Кормлений многовато",
-        detail: `Сегодня ${feeds}. Для ~${months} мес. чаще ${feedMin}–${feedMax}. У грудничков так бывает в «кластерные» дни — нормально, если малыш спокоен.`,
+        detail: `Сегодня ${feeds}. Для ~${months} мес. чаще ${feedMin}–${feedMax}. У грудничков так бывает в «кластерные» дни, нормально, если малыш спокоен.`,
       });
     } else {
       hints.push({
         id: "feed-ok",
         tone: "ok",
         title: "Кормления выглядят обычно",
-        detail: `Сегодня ${feeds} раз(а). Ориентир ${feedMin}–${feedMax} для ~${months} мес. Главное — набор веса и настроение малыша.`,
+        detail: `Сегодня ${feeds} раз(а). Ориентир ${feedMin}–${feedMax} для ~${months} мес. Главное, набор веса и настроение малыша.`,
       });
     }
   }
@@ -441,7 +441,7 @@ export function dayNormHints(input: {
       tone: "info",
       title: `Смесь за день: ${totals.formulaMl} мл`,
       detail:
-        "Объём смеси очень индивидуален. Ориентир обычно пишет педиатр / на банке — мы только суммируем ваши записи.",
+        "Объём смеси очень индивидуален. Ориентир обычно пишет педиатр / на банке, мы только суммируем ваши записи.",
     });
   }
 
@@ -510,7 +510,7 @@ export function formatDaySummaryBrief(opts: {
       lines.push(`- ${e.title}: ${e.detail}`);
     }
   } else {
-    lines.push("Лента пустая — почти нет записей.");
+    lines.push("Лента пустая, почти нет записей.");
   }
   if (opts.extraLines?.length) {
     lines.push("Ещё:");

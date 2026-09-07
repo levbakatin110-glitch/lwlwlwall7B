@@ -15,5 +15,5 @@ export function distanceKm(
   return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
-/** Если GPS далеко от города профиля — скорее VPN / IP-геолокация */
+/** Если GPS далеко от города профиля, скорее VPN / IP-геолокация */
 export const LOCATION_MISMATCH_KM = 120;

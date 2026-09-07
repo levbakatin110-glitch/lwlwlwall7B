@@ -1,4 +1,4 @@
-/** Better Stack — DSN и флаги (без @sentry/* — безопасно для server imports). */
+/** Better Stack, DSN и флаги (без @sentry/*, безопасно для server imports). */
 
 export function betterStackDsn(): string | undefined {
   const dsn =

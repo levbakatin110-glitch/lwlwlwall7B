@@ -73,7 +73,7 @@ export type CycleDayKind =
 
 /**
  * Красим день: все прошлые «1-й день» дают менструацию;
- * от последнего старта — фертильное / овуляция / прогноз следующего цикла.
+ * от последнего старта, фертильное / овуляция / прогноз следующего цикла.
  */
 export function classifyCycleDay(
   date: string,
@@ -93,7 +93,7 @@ export function classifyCycleDay(
   const dayIndex = daysBetween(lastStart, date);
   if (dayIndex < 0) return null;
 
-  // следующие циклы — прогноз месячных + окно
+  // следующие циклы, прогноз месячных + окно
   if (dayIndex >= cycleLength) {
     const inCycle = dayIndex % cycleLength;
     if (inCycle < periodLength) return "predicted_period";

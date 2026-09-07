@@ -212,7 +212,7 @@ export function VaccineTapHint({ onPeek }: { onPeek: () => void }) {
           id="vaccine-hint-title"
           className="font-display text-[17px] font-semibold leading-snug tracking-tight text-foreground"
         >
-          Нажмите — почитать о прививке
+          Нажмите, почитать о прививке
         </p>
         <p className="mt-1 text-[12px] leading-relaxed text-muted">
           Плюсы, нюансы и побочки откроются в карточке.

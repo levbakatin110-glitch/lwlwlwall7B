@@ -15,7 +15,7 @@ async function loadSentry() {
   return sentryMod;
 }
 
-/** Подключает Sentry лениво — не в первом бандле телефона. */
+/** Подключает Sentry лениво, не в первом бандле телефона. */
 export async function initBetterStackBrowser(): Promise<void> {
   if (ready || typeof window === "undefined" || !betterStackEnabled()) return;
   const dsn = betterStackDsn();

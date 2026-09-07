@@ -1,6 +1,6 @@
 /**
  * Ориентиры по стандартам роста ВОЗ (Child Growth Standards) для 0–24 мес.
- * Упрощённые P3 / P15 / P50 / P85 / P97 — не замена педиатру и полным центильным таблицам.
+ * Упрощённые P3 / P15 / P50 / P85 / P97, не замена педиатру и полным центильным таблицам.
  */
 
 import type { Sex } from "@/lib/types";
@@ -161,7 +161,7 @@ export function estimateWhoPercentile(opts: {
   if (opts.months == null || !Number.isFinite(opts.value)) {
     return {
       label: "Нужен возраст",
-      detail: "Укажите дату рождения — сверю с ориентирами ВОЗ.",
+      detail: "Укажите дату рождения, сверю с ориентирами ВОЗ.",
       zone: "unknown",
     };
   }
