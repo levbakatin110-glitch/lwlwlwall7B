@@ -168,15 +168,14 @@ export function Sidebar({
   const pregnancyRows = visibleRows(PREGNANCY_PINNED);
   const babyRows = visibleRows(BABY_PINNED);
 
-  const extraDiaries = [
-    ...enabledModules
-      .filter((id) => navModules.has(id) && !pinnedIds.has(id))
-      .map((id) => MODULE_BY_ID[id])
-      .filter(Boolean),
-    ...customModules
-      .map(customToDef)
-      .filter((mod) => !isRecipesCatalogModule(mod)),
-  ];
+  const extraBuiltins = enabledModules
+    .filter((id) => navModules.has(id) && !pinnedIds.has(id))
+    .map((id) => MODULE_BY_ID[id])
+    .filter(Boolean);
+
+  const myDiaries = customModules
+    .map(customToDef)
+    .filter((mod) => !isRecipesCatalogModule(mod));
 
   const linkClass = (active: boolean) =>
     `flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-medium tracking-tight transition ${
@@ -328,6 +327,27 @@ export function Sidebar({
             </span>
             <span className="min-w-0 flex-1">Все дневники</span>
           </Link>
+          {myDiaries.length > 0 ? (
+            <>
+              <p className="mb-1 mt-1 px-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
+                Мои
+              </p>
+              {myDiaries.map((mod) => {
+                const href = `/m/${mod.id}`;
+                return (
+                  <Link
+                    key={mod.id}
+                    href={href}
+                    onClick={(e) => onNavClick(e, href)}
+                    className={linkClass(pathname === href)}
+                  >
+                    <MayaIcon name={mod.icon} size={18} />
+                    <span>{mod.shortTitle}</span>
+                  </Link>
+                );
+              })}
+            </>
+          ) : null}
           {babyRows.length > 0 ? (
             <>
               <p className="mb-1 mt-1 px-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
@@ -368,7 +388,7 @@ export function Sidebar({
               ))}
             </>
           ) : null}
-          {extraDiaries.map((mod) => {
+          {extraBuiltins.map((mod) => {
             const href = `/m/${mod.id}`;
             return (
               <Link

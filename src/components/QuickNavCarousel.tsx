@@ -7,6 +7,7 @@ import { MayaIcon, type IconName } from "@/components/icons/MayaIcon";
 import { showPaywallHint } from "@/components/PaywallHint";
 import { STARTER_ENABLED_MODULES } from "@/lib/children";
 import { MODULE_BY_ID, customToDef } from "@/lib/modules";
+import { isRecipesCatalogModule } from "@/lib/recipes";
 import {
   filterModulesForNav,
   hasBornChild,
@@ -94,6 +95,16 @@ function buildQuickItems(
     { href: "/community", label: "Общение", icon: "circle" },
   ];
 
+  for (const c of customModules) {
+    const def = customToDef(c);
+    if (isRecipesCatalogModule(def)) continue;
+    items.push({
+      href: `/m/${def.id}`,
+      label: shortenLabel(def.shortTitle),
+      icon: def.icon as IconName,
+    });
+  }
+
   const placed = new Set<ModuleId>();
 
   for (const id of PRIORITY_ORDER) {
@@ -110,15 +121,6 @@ function buildQuickItems(
     if (!item) continue;
     items.push(item);
     placed.add(id);
-  }
-
-  for (const c of customModules) {
-    const def = customToDef(c);
-    items.push({
-      href: `/m/${def.id}`,
-      label: shortenLabel(def.shortTitle),
-      icon: def.icon as IconName,
-    });
   }
 
   const seen = new Set<string>();

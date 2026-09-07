@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useRouter } from "next/navigation";
 import { MayaIcon } from "@/components/icons/MayaIcon";
 import { MODULE_BY_ID } from "@/lib/modules";
 import { useAppStore } from "@/lib/store";
@@ -70,6 +71,7 @@ export function LogPreviewSheet({
   data: LogPreviewData;
   onClose: () => void;
 }) {
+  const router = useRouter();
   const mode = data.mode ?? "log";
   const custom = useAppStore((s) =>
     s.customModules.find((m) => m.id === data.moduleId),
@@ -167,7 +169,10 @@ export function LogPreviewSheet({
     >
       <button
         type="button"
-        onClick={onClose}
+        onClick={() => {
+          router.push(`/m/${data.moduleId}`);
+          onClose();
+        }}
         className={`maya-log-toast pointer-events-auto w-full max-w-3xl origin-top text-left ${
           visible && !leaving ? "maya-log-toast-on" : ""
         } ${leaving ? "maya-log-toast-out" : ""}`}

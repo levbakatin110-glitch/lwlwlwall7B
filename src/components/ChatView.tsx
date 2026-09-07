@@ -819,6 +819,7 @@ export function ChatView() {
         updateMessage(m.id, { suggestedModuleId: undefined });
       }
     }
+    router.push(`/m/${id}`);
   }
 
   async function onCreateCustom(
@@ -854,17 +855,16 @@ export function ChatView() {
         return;
       }
       if (data.suggestBuiltin) {
-        enableModule(data.suggestBuiltin as ModuleId);
+        const builtinId = data.suggestBuiltin as ModuleId;
+        enableModule(builtinId);
         updateMessage(messageId, {
           createModulePrompt: undefined,
           createModuleTitle: undefined,
         });
-        const title =
-          MODULE_BY_ID[data.suggestBuiltin as ModuleId]?.title ||
-          data.suggestBuiltin;
+        const title = MODULE_BY_ID[builtinId]?.title || builtinId;
         setLogPreview({
           mode: "created",
-          moduleId: data.suggestBuiltin,
+          moduleId: builtinId,
           title,
           fieldsHint: "Готовый умный раздел",
         });
@@ -872,6 +872,7 @@ export function ChatView() {
           role: "assistant",
           content: `Открыла готовый раздел «${title}», там уже есть умный инструмент, отдельно анкету создавать не нужно.`,
         });
+        router.push(`/m/${builtinId}`);
         return;
       }
       if (titleHint) data.title = titleHint;
@@ -896,8 +897,18 @@ export function ChatView() {
         role: "assistant",
         content: `Готово, «${data.title}» создан${
           data.smart ? ` с блоком «${data.smart.title}»` : ""
-        }. Можно писать сюда или открыть раздел.`,
+        }. Он в меню слева, в блоке «Мои».`,
+        loggedEntries: [
+          {
+            moduleId: id,
+            title: data.title,
+            date: new Date().toISOString().slice(0, 10),
+            value: "открыть дневник",
+            note: "",
+          },
+        ],
       });
+      router.push(`/m/${id}`);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Ошибка создания раздела";
       pushOpsError({ source: "design", message: msg, userSnippet: prompt.slice(0, 120) });
@@ -1110,11 +1121,13 @@ export function ChatView() {
 
                 {m.loggedEntries?.map((e, i) => {
                   const custom = customModules.find((c) => c.id === e.moduleId);
+                  const isOpenChip = e.value === "открыть дневник";
                   return (
                   <JournalEntryChip
                     key={`${e.moduleId}-${e.date}-${i}`}
                     title={e.title}
-                    value={e.value}
+                    value={isOpenChip ? "нажмите, чтобы открыть" : e.value}
+                    eyebrow={isOpenChip ? "Дневник готов" : undefined}
                     icon={
                       MODULE_BY_ID[e.moduleId as ModuleId]?.icon ||
                       custom?.icon ||
@@ -1150,7 +1163,9 @@ export function ChatView() {
                     </p>
                     <p className="font-display mt-1 flex items-center gap-2 text-lg font-semibold tracking-tight">
                       <MayaIcon
-                        name={MODULE_BY_ID[m.diaryOffer.moduleId].icon}
+                        name={
+                          MODULE_BY_ID[m.diaryOffer.moduleId]?.icon || "spark"
+                        }
                         size={18}
                       />
                       {m.diaryOffer.title}
@@ -1164,7 +1179,6 @@ export function ChatView() {
                         onClick={() => {
                           onEnable(m.diaryOffer!.moduleId);
                           updateMessage(m.id, { diaryOffer: undefined });
-                          router.push(`/m/${m.diaryOffer!.moduleId}`);
                         }}
                         className="mt-3 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-[#ffffff]"
                       >
@@ -1196,7 +1210,7 @@ export function ChatView() {
                       onClick={() => onEnable(m.suggestedModuleId!)}
                       className="mt-2 rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-[#ffffff]"
                     >
-                      Завести
+                      Завести и открыть
                     </button>
                   </div>
                 )}
@@ -1226,8 +1240,8 @@ export function ChatView() {
                       {busyId === m.id
                         ? "Создаю…"
                         : m.createModuleTitle
-                          ? `Создать «${m.createModuleTitle}»`
-                          : "Создать"}
+                          ? `Создать и открыть «${m.createModuleTitle}»`
+                          : "Создать и открыть"}
                     </button>
                   </div>
                 )}
