@@ -22,9 +22,18 @@ import {
   todayYmd,
 } from "@/lib/diary-day";
 
-const PRESETS = [30, 60, 90, 120, 150, 180, 210, 240] as const;
+const PRESETS = [30, 60, 90, 120, 150, 180, 200, 240] as const;
 const MAX_ML = 260;
+/** Inner bottle body in SVG units — same range for liquid and tick marks. */
+const BOTTLE_TOP = 30;
+const BOTTLE_BOTTOM = 108;
+const BOTTLE_H = BOTTLE_BOTTOM - BOTTLE_TOP;
 const BRAND_KEY = "maya-formula-brand";
+
+function mlToY(amount: number) {
+  const fill = Math.min(1, Math.max(0, amount / MAX_ML));
+  return BOTTLE_TOP + (1 - fill) * BOTTLE_H;
+}
 
 const BRANDS = ["Nutrilon", "NAN", "Similac", "Kabrita", "своя"] as const;
 
@@ -67,8 +76,7 @@ export function BottleTracker() {
     }
   }, [brand, customBrand]);
 
-  const fill = Math.min(1, Math.max(0, ml / MAX_ML));
-  const liquidY = 18 + (1 - fill) * 70;
+  const liquidY = mlToY(ml);
 
   const todayEntries = useMemo(
     () =>
@@ -179,7 +187,7 @@ export function BottleTracker() {
               />
             </g>
             {[60, 120, 180, 240].map((mark) => {
-              const y = 28 + (1 - mark / MAX_ML) * 78;
+              const y = mlToY(mark);
               return (
                 <g key={mark}>
                   <line
