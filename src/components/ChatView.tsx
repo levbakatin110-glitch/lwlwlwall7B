@@ -198,12 +198,20 @@ export function ChatView() {
         streamRafRef.current = 0;
         return;
       }
-      const lag = target.length - shown.length;
-      // Догоняем быстрее, если сеть ушла далеко, без рывков по 1 символу
-      const step = lag > 80 ? 12 : lag > 30 ? 6 : lag > 10 ? 3 : 2;
-      shown = target.slice(0, Math.min(target.length, shown.length + step));
+      if (shown.length > target.length || !target.startsWith(shown)) {
+        // Цель укоротилась (срезали служебную строку) — не держим хвост на экране
+        shown = target;
+      } else {
+        const lag = target.length - shown.length;
+        const step = lag > 80 ? 12 : lag > 30 ? 6 : lag > 10 ? 3 : 2;
+        shown = target.slice(0, Math.min(target.length, shown.length + step));
+      }
       streamShownRef.current = shown;
       setStreamShown(shown);
+      if (shown === target) {
+        streamRafRef.current = 0;
+        return;
+      }
       streamRafRef.current = requestAnimationFrame(tick);
     };
     streamRafRef.current = requestAnimationFrame(tick);

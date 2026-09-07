@@ -388,6 +388,44 @@ function parseLogKv(raw: string): Record<string, string> {
   return out;
 }
 
+const SERVICE_COMMANDS = [
+  "LOG_ENTRY",
+  "SUGGEST_MODULE",
+  "CREATE_MODULE",
+  "EVOLVE_MODULE",
+  "SHOW_CHART",
+  "SHOW_WARDROBE",
+] as const;
+
+const SERVICE_NAME_RE = SERVICE_COMMANDS.join("|");
+const SERVICE_LINE_RE = new RegExp(
+  `(^|\\n)[ \\t]*(?:${SERVICE_NAME_RE})\\s*:[^\\n]*`,
+  "gi",
+);
+
+function isServiceToken(raw: string): boolean {
+  const token = raw.trim().split(/[:|\s]/)[0]?.replace(/[`*]+/g, "").toUpperCase() ?? "";
+  if (token.length < 3) return false;
+  return SERVICE_COMMANDS.some(
+    (name) => name.startsWith(token) || token.startsWith(name),
+  );
+}
+
+/** Прячем служебные строки, в том числе недопечатанный хвост при стриме. */
+export function hideServiceMarkup(content: string): string {
+  let text = content.replace(SERVICE_LINE_RE, "$1");
+  text = text.replace(/`(?:LOG_ENTRY|SUGGEST_MODULE|CREATE_MODULE|EVOLVE_MODULE|SHOW_CHART|SHOW_WARDROBE):[^`]*`/gi, "");
+  text = text.replace(/(^|\n)[ \t]*\|[^\n]*/g, "$1");
+
+  const nl = text.lastIndexOf("\n");
+  const tail = nl >= 0 ? text.slice(nl + 1) : text;
+  if (isServiceToken(tail) || /^\s*```/.test(tail)) {
+    text = nl >= 0 ? text.slice(0, nl) : "";
+  }
+
+  return text.replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").replace(/\n+$/g, "");
+}
+
 /** Разбор LOG_ENTRY:id|date=…|field=…|note=… */
 export function parseLogEntries(content: string): LogEntryDraft[] {
   const matches = [...content.matchAll(/^LOG_ENTRY:([^\n|]+)(?:\|(.+))?$/gim)];
@@ -444,13 +482,7 @@ export function stripSuggestMarker(content: string): {
   const wardrobeMatch = content.match(/SHOW_WARDROBE:([^\n]*)/i);
   const logEntries = parseLogEntries(content);
 
-  let text = content
-    .replace(/\n?CREATE_MODULE:.+$/gim, "")
-    .replace(/\n?SUGGEST_MODULE:[a-z_]+\s*/gi, "")
-    .replace(/\n?EVOLVE_MODULE:[^\n]+$/gim, "")
-    .replace(/\n?SHOW_CHART:[^\n]*$/gim, "")
-    .replace(/\n?SHOW_WARDROBE:[^\n]*$/gim, "")
-    .replace(/\n?LOG_ENTRY:[^\n]*$/gim, "")
+  let text = hideServiceMarkup(content)
     // Модель иногда пишет id=demo-romper в тексте, убираем
     .replace(/\s*\(\s*id\s*=\s*[^)]+\)/gi, "")
     .replace(/\bid\s*=\s*[a-z0-9_-]+/gi, "")

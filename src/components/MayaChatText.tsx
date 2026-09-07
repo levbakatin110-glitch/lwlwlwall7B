@@ -2,6 +2,7 @@
 
 import { Fragment, type ReactNode } from "react";
 import { LinkifiedText } from "@/components/LinkifiedText";
+import { hideServiceMarkup } from "@/lib/ai-context";
 import { deAiDash } from "@/lib/de-ai-dash";
 
 /** Лёгкий markdown для пузыря Маи: **жирный**, списки, переносы */
@@ -99,7 +100,7 @@ type Props = {
 
 export function MayaChatText({ text, live }: Props) {
   if (!text) return null;
-  const shown = deAiDash(text);
+  const shown = deAiDash(hideServiceMarkup(text));
   return (
     <div
       className={`maya-chat-text text-[15px] leading-relaxed ${
