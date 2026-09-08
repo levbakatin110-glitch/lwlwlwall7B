@@ -6,16 +6,10 @@ import {
   DiaryEmpty,
   DiaryPage,
   DiarySectionTitle,
-  DiaryStats,
   DiaryTimeline,
   DiaryTimelineRow,
 } from "@/components/diary/DiaryShell";
-import {
-  entriesForToday,
-  entryTimeMs,
-  formatClock,
-  todayYmd,
-} from "@/lib/diary-day";
+import { entryTimeMs, formatClock, todayYmd } from "@/lib/diary-day";
 import { getJournalEntries, useAppStore } from "@/lib/store";
 import type { JournalEntry } from "@/lib/types";
 
@@ -57,11 +51,6 @@ export function BirthPlanTracker() {
     return set;
   }, [entries]);
 
-  const todayCount = useMemo(
-    () => entriesForToday(entries).length,
-    [entries],
-  );
-
   function isActive(item: string): boolean {
     return activeItems.has(item.toLowerCase());
   }
@@ -90,13 +79,6 @@ export function BirthPlanTracker() {
 
   return (
     <DiaryPage>
-      <DiaryStats
-        items={[
-          { label: "В плане", value: sorted.length },
-          { label: "Сегодня", value: todayCount },
-        ]}
-      />
-
       <div className="maya-diary-panel">
         <p className="text-[11px] font-medium text-muted">Пункты плана</p>
         <div className="mt-2 flex flex-wrap gap-1.5">
