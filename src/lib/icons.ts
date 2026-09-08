@@ -9,6 +9,7 @@ export const ICON_NAMES = [
   "formula",
   "solids",
   "outfit",
+  "belly",
   "sleep",
   "vaccines",
   "health",

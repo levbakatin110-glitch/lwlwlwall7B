@@ -1,4 +1,5 @@
 import { createOpenAI, visionModel } from "@/lib/openai";
+import { applyLabInterpretation } from "@/lib/lab-interpret";
 import { requirePaidSession } from "@/lib/require-paid-session";
 
 export const runtime = "nodejs";
@@ -67,15 +68,17 @@ export async function POST(req: Request) {
   try {
     const completion = await openai.chat.completions.create({
       model: visionModel(),
+      temperature: 0,
       response_format: { type: "json_object" },
       messages: [
         {
           role: "system",
-          content: `Ты помогаешь маме разобрать фото анализа/документа (ОАК, УЗИ, направление, обменка).
+          content: `Ты помогаешь маме разобрать фото анализа/документа (ОАК, биохимия, УЗИ, направление, обменка).
 ${focus}
 Верни ТОЛЬКО JSON:
-{"title":"короткое название","summary":"2–4 предложения по-русски простым языком","value":"одна строка для дневника","note":"ключевые цифры или даты","kind":"lab"|"document"|"other"}
-Не ставь диагнозов. Если нечитаемо, скажи об этом в summary. Это не замена врачу.`,
+{"title":"короткое название","summary":"2–4 предложения простым языком","value":"одна строка для дневника","note":"ключевые цифры или даты","kind":"lab"|"document"|"other","markers":[{"name":"гемоглобин","value":108,"unit":"г/л"}]}
+Цифры копируй с фото как есть. В markers — все читаемые показатели (гемоглобин, ферритин, лейкоциты, тромбоциты, глюкоза и т.п.).
+Не пиши слова «анемия», «диагноз», «патология», «всё нормально», «всё в норме». Не оценивай «хорошо/плохо». Это не замена врачу. Если нечитаемо — скажи об этом в summary.`,
         },
         {
           role: "user",
@@ -93,8 +96,10 @@ ${focus}
     });
 
     const raw = completion.choices[0]?.message?.content || "{}";
-    const parsed = JSON.parse(raw) as Partial<MedicalScanResult>;
-    const result: MedicalScanResult = {
+    const parsed = JSON.parse(raw) as Partial<MedicalScanResult> & {
+      markers?: unknown;
+    };
+    const interpreted = applyLabInterpretation({
       title: String(parsed.title || "Документ").slice(0, 80),
       summary: String(parsed.summary || "").slice(0, 800),
       value: String(parsed.value || parsed.title || "Запись из фото").slice(
@@ -102,6 +107,13 @@ ${focus}
         200,
       ),
       note: String(parsed.note || "").slice(0, 400),
+      markers: Array.isArray(parsed.markers) ? parsed.markers : [],
+    });
+    const result: MedicalScanResult = {
+      title: interpreted.title,
+      summary: interpreted.summary,
+      value: interpreted.value,
+      note: interpreted.note,
       kind:
         parsed.kind === "lab" || parsed.kind === "document"
           ? parsed.kind

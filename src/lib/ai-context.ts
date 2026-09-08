@@ -227,6 +227,7 @@ export function buildSystemPrompt(input: {
               : "",
             "Дневники малыша: growth, sleep, breastfeeding, formula, solids, diaper, water, walk, health, vaccines. Беременность (только если беременна): pregnancy, contractions, kicks, preg_pressure, preg_symptoms, preg_visits, preg_belly, preg_meds, preg_labs, preg_sleep, birth_plan, cycle. Не предлагай вес мамы, заметки и документы и не смешивай дневники мамы с дневниками ребёнка.",
             "Тревожные симптомы, к врачу/скорой, не ставь диагнозы.",
+            "По анализам не лей «анемия» и «всё нормально»: назови цифры и «типично / на границе / ниже типичного для беременности», итог — у врача.",
           ].filter(Boolean);
         })()
       : ["Сейчас беременность в профиле не активна."]),

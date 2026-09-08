@@ -41,6 +41,7 @@ export function BellyTracker() {
   const entries = useAppStore((s) => getJournalEntries(s, JOURNAL));
   const [cm, setCm] = useState("");
   const [note, setNote] = useState("");
+  const [whenDate, setWhenDate] = useState(todayYmd);
 
   const sorted = useMemo(
     () =>
@@ -62,14 +63,17 @@ export function BellyTracker() {
   function save() {
     if (!canSave) return;
     const rounded = Math.round(cmNum);
+    const date = whenDate || todayYmd();
+    const noteTrim = note.trim();
     addJournalEntry(JOURNAL, {
-      date: todayYmd(),
+      date,
       value: formatCm(rounded),
-      note: note.trim(),
-      fields: { cm: rounded, note: note.trim(), startMs: Date.now() },
+      note: noteTrim,
+      fields: { cm: rounded, note: noteTrim, startMs: Date.now() },
     });
     setCm("");
     setNote("");
+    setWhenDate(todayYmd());
   }
 
   return (
@@ -101,10 +105,18 @@ export function BellyTracker() {
       </div>
 
       <input
+        type="date"
+        value={whenDate}
+        min="2000-01-01"
+        max="2100-12-31"
+        onChange={(e) => setWhenDate(e.target.value)}
+        className="mt-4 w-full rounded-xl border border-line bg-background/50 px-3 py-2.5 text-sm"
+      />
+      <input
         value={note}
         onChange={(e) => setNote(e.target.value)}
         placeholder="Заметка (по желанию)"
-        className="mt-4 w-full rounded-xl border border-line bg-background/50 px-3 py-2.5 text-sm"
+        className="mt-2 w-full rounded-xl border border-line bg-background/50 px-3 py-2.5 text-sm"
       />
 
       {sorted.length > 0 ? (
@@ -114,6 +126,13 @@ export function BellyTracker() {
             {sorted.map((item, i) => {
               const older = sorted[i + 1];
               const d = older != null ? Math.round(item.cm - older.cm) : null;
+              const fromEntry =
+                typeof item.e.note === "string" ? item.e.note.trim() : "";
+              const fromField =
+                typeof item.e.fields?.note === "string"
+                  ? item.e.fields.note.trim()
+                  : "";
+              const noteText = fromEntry || fromField;
               return (
               <li key={item.e.id}>
                 <DiaryTimelineRow
@@ -124,6 +143,11 @@ export function BellyTracker() {
                       <p className="text-[11px] tabular-nums text-muted">
                         {formatClock(item.startMs)}
                       </p>
+                      {noteText ? (
+                        <p className="mt-0.5 line-clamp-2 text-[11px] font-normal text-muted">
+                          {noteText}
+                        </p>
+                      ) : null}
                     </div>
                   }
                   right={

@@ -191,7 +191,7 @@ export const OPTIONAL_MODULES: ModuleDef[] = [
     title: "Животик",
     shortTitle: "Животик",
     description: "Окружность живота и заметки по фото.",
-    icon: "outfit",
+    icon: "belly",
     valueLabel: "Окружность / заметка",
     valuePlaceholder: "92 см · фото на 28 нед.",
   },
