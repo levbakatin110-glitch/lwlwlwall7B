@@ -8,8 +8,28 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 };
 
-const DISMISS_KEY = "maya-install-dismissed-v2";
-const VISITS_KEY = "maya-install-visits";
+/** Календарный день, когда уже показали подсказку (раз в сутки, пока не поставят). */
+const SHOWN_DAY_KEY = "maya-install-shown-day";
+
+function localDayKey(d = new Date()) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function shownToday() {
+  try {
+    return localStorage.getItem(SHOWN_DAY_KEY) === localDayKey();
+  } catch {
+    return false;
+  }
+}
+
+function markShownToday() {
+  try {
+    localStorage.setItem(SHOWN_DAY_KEY, localDayKey());
+  } catch {
+    /* ignore */
+  }
+}
 
 function isStandalone() {
   if (typeof window === "undefined") return true;
@@ -42,18 +62,18 @@ export function InstallHint() {
   useEffect(() => {
     if (!onboardingDone) return;
     if (isStandalone()) return;
-    try {
-      if (localStorage.getItem(DISMISS_KEY) === "1") return;
-      const visits = Number(localStorage.getItem(VISITS_KEY) || "0") + 1;
-      localStorage.setItem(VISITS_KEY, String(visits));
-    } catch {
-      /* ignore */
-    }
+    if (shownToday()) return;
+
+    const reveal = () => {
+      if (shownToday()) return;
+      markShownToday();
+      setVisible(true);
+    };
 
     const onBip = (e: Event) => {
       e.preventDefault();
       setDeferred(e as BeforeInstallPromptEvent);
-      setVisible(true);
+      reveal();
     };
     window.addEventListener("beforeinstallprompt", onBip);
 
@@ -61,11 +81,11 @@ export function InstallHint() {
     const t = window.setTimeout(() => {
       if (isIos()) {
         setShowIos(true);
-        setVisible(true);
+        reveal();
       } else if (isAndroid()) {
         // Chrome сам даст beforeinstallprompt; если нет, ручная подсказка
         setShowAndroidManual(true);
-        setVisible(true);
+        reveal();
       }
     }, 4500);
 
@@ -79,11 +99,7 @@ export function InstallHint() {
 
   function dismiss() {
     setVisible(false);
-    try {
-      localStorage.setItem(DISMISS_KEY, "1");
-    } catch {
-      /* ignore */
-    }
+    markShownToday();
   }
 
   async function install() {
