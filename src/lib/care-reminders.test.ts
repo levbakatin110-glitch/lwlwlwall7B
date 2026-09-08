@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   advanceAfterFire,
   computeNextAt,
+  DAILY_PUSH_TARGET,
   ensureCoreCareReminders,
   formatHhMm,
   isQuietAt,
@@ -9,7 +10,7 @@ import {
   nextTimesAt,
   parseHhMm,
   pickFeedCta,
-  pickUsageCtas,
+  planDailyPushes,
   resolveScheduleWrite,
   skipQuiet,
   wallClock,
@@ -274,6 +275,8 @@ describe("ensureCoreCareReminders", () => {
 
 describe("usage CTAs", () => {
   const log = (createdAt: string) => [{ createdAt }];
+  const sunday = utc("2026-03-01T12:00:00Z"); // Sunday
+  const monday = utc("2026-03-02T12:00:00Z");
 
   it("picks the feed diary she actually used", () => {
     const cta = pickFeedCta(
@@ -285,47 +288,55 @@ describe("usage CTAs", () => {
     );
     expect(cta.moduleId).toBe("formula");
     expect(cta.href).toBe("/m/formula");
-    expect(cta.body).toContain("смесь");
+    expect(cta.body).toContain("Смесь");
   });
 
-  it("does not duplicate a diary that already has a reminder", () => {
-    const picked = pickUsageCtas(
-      {
-        breastfeeding: log("2026-03-01T12:00:00Z"),
-        walk: log("2026-03-01T11:00:00Z"),
-      },
-      [{ kind: "feed", enabled: true }],
+  it("pads to 3 with independent CTAs when there are no diaries", () => {
+    const planned = planDailyPushes({}, [], monday, MSK, "maya");
+    expect(planned).toHaveLength(DAILY_PUSH_TARGET);
+    expect(planned.every((p) => !p.cta.href.startsWith("/m/"))).toBe(true);
+  });
+
+  it("keeps one diary and fills the rest", () => {
+    const planned = planDailyPushes(
+      { breastfeeding: log("2026-03-02T08:00:00Z") },
+      [],
+      monday,
+      MSK,
+      "maya",
     );
-    expect(picked.day?.moduleId).toBe("walk");
-    expect(picked.evening).toBeNull();
+    expect(planned).toHaveLength(3);
+    expect(planned.filter((p) => p.cta.moduleId === "breastfeeding")).toHaveLength(
+      1,
+    );
+    expect(planned.filter((p) => !p.cta.href.startsWith("/m/")).length).toBe(2);
+  });
+
+  it("caps many diaries at 3, plus weekly Maya", () => {
+    const journals = {
+      breastfeeding: log("2026-03-01T12:00:00Z"),
+      walk: log("2026-03-01T11:00:00Z"),
+      sleep: log("2026-03-01T10:00:00Z"),
+      diaper: log("2026-03-01T09:00:00Z"),
+    };
+    const weekday = planDailyPushes(journals, [], monday, MSK, "maya");
+    expect(weekday).toHaveLength(3);
+    expect(weekday.every((p) => p.cta.href.startsWith("/m/"))).toBe(true);
+
+    const weekend = planDailyPushes(journals, [], sunday, MSK, "");
+    expect(weekend).toHaveLength(4);
+    expect(weekend.some((p) => p.cta.moduleId === "maya")).toBe(true);
   });
 
   it("respects a reminder she turned off", () => {
-    const picked = pickUsageCtas(
-      { walk: log("2026-03-01T11:00:00Z") },
+    const planned = planDailyPushes(
+      { walk: log("2026-03-02T11:00:00Z") },
       [{ kind: "walk", enabled: false }],
+      monday,
+      MSK,
+      "maya",
     );
-    expect(picked.day).toBeNull();
-  });
-
-  it("sends kicks if she logs movement and has no feed reminder", () => {
-    const picked = pickUsageCtas(
-      { kicks: log("2026-03-01T09:00:00Z") },
-      [],
-    );
-    expect(picked.day?.moduleId).toBe("kicks");
-    expect(picked.day?.body).toBe("Отметьте шевеления.");
-  });
-
-  it("sends evening sleep CTA only from the sleep diary", () => {
-    const picked = pickUsageCtas(
-      {
-        sleep: log("2026-03-01T19:00:00Z"),
-        notes: log("2026-03-01T10:00:00Z"),
-      },
-      [],
-    );
-    expect(picked.evening?.moduleId).toBe("sleep");
-    expect(picked.evening?.body).toBe("Отметьте сон малыша.");
+    expect(planned.some((p) => p.cta.moduleId === "walk")).toBe(false);
+    expect(planned).toHaveLength(3);
   });
 });

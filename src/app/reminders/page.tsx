@@ -79,11 +79,6 @@ export default function RemindersPage() {
       setPerm(next);
       if (next === "granted") {
         await subscribePush();
-        await showLocalNotice(
-          "Мая",
-          "Уведомления включены. Напомню, когда свернёте сайт.",
-          "/reminders",
-        );
       }
     } catch {
       /* ignore */

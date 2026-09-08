@@ -294,7 +294,7 @@ export const USAGE_CTAS: UsageCta[] = [
   {
     moduleId: "breastfeeding",
     title: "Мая · ГВ",
-    body: "Отметьте кормление.",
+    body: "ГВ: запишите кормление.",
     href: "/m/breastfeeding",
     slot: "day",
     kind: "feed",
@@ -302,7 +302,7 @@ export const USAGE_CTAS: UsageCta[] = [
   {
     moduleId: "formula",
     title: "Мая · смесь",
-    body: "Отметьте смесь — сколько дали.",
+    body: "Смесь: запишите, сколько дали.",
     href: "/m/formula",
     slot: "day",
     kind: "feed",
@@ -310,7 +310,7 @@ export const USAGE_CTAS: UsageCta[] = [
   {
     moduleId: "solids",
     title: "Мая · прикорм",
-    body: "Отметьте прикорм.",
+    body: "Прикорм: запишите, что ел малыш.",
     href: "/m/solids",
     slot: "day",
     kind: "feed",
@@ -318,7 +318,7 @@ export const USAGE_CTAS: UsageCta[] = [
   {
     moduleId: "diaper",
     title: "Мая · подгузник",
-    body: "Отметьте смену подгузника.",
+    body: "Подгузник: отметьте смену.",
     href: "/m/diaper",
     slot: "day",
     kind: "diaper",
@@ -326,7 +326,7 @@ export const USAGE_CTAS: UsageCta[] = [
   {
     moduleId: "walk",
     title: "Мая · прогулка",
-    body: "Отметьте прогулку.",
+    body: "Прогулка: отметьте, если были на улице.",
     href: "/m/walk",
     slot: "day",
     kind: "walk",
@@ -334,7 +334,7 @@ export const USAGE_CTAS: UsageCta[] = [
   {
     moduleId: "water",
     title: "Мая · вода",
-    body: "Отметьте воду.",
+    body: "Вода: отметьте стакан, если выпили.",
     href: "/m/water",
     slot: "day",
     kind: "water",
@@ -342,35 +342,35 @@ export const USAGE_CTAS: UsageCta[] = [
   {
     moduleId: "health",
     title: "Мая · здоровье",
-    body: "Отметьте самочувствие малыша.",
+    body: "Здоровье: запишите, как малыш.",
     href: "/m/health",
     slot: "day",
   },
   {
     moduleId: "growth",
     title: "Мая · рост и вес",
-    body: "Внесите рост и вес.",
+    body: "Рост и вес: внесите новые цифры.",
     href: "/m/growth",
     slot: "day",
   },
   {
     moduleId: "vaccines",
     title: "Мая · прививки",
-    body: "Проверьте прививки.",
+    body: "Прививки: откройте календарь и сверьте.",
     href: "/m/vaccines",
     slot: "day",
   },
   {
     moduleId: "kicks",
     title: "Мая · шевеления",
-    body: "Отметьте шевеления.",
+    body: "Шевеления: запишите, как шевелится.",
     href: "/m/kicks",
     slot: "day",
   },
   {
     moduleId: "preg_meds",
     title: "Мая · лекарство",
-    body: "Отметьте витамин или препарат.",
+    body: "Витамин: отметьте, если приняли.",
     href: "/m/preg_meds",
     slot: "day",
     kind: "meds",
@@ -378,21 +378,21 @@ export const USAGE_CTAS: UsageCta[] = [
   {
     moduleId: "preg_symptoms",
     title: "Мая · самочувствие",
-    body: "Отметьте самочувствие.",
+    body: "Самочувствие: запишите, как вы.",
     href: "/m/preg_symptoms",
     slot: "day",
   },
   {
     moduleId: "pregnancy",
     title: "Мая · беременность",
-    body: "Отметьте день беременности.",
+    body: "Беременность: откройте дневник дня.",
     href: "/m/pregnancy",
     slot: "day",
   },
   {
     moduleId: "sleep",
     title: "Мая · сон",
-    body: "Отметьте сон малыша.",
+    body: "Сон малыша: запишите, как спал.",
     href: "/m/sleep",
     slot: "evening",
     kind: "sleep",
@@ -400,21 +400,58 @@ export const USAGE_CTAS: UsageCta[] = [
   {
     moduleId: "preg_sleep",
     title: "Мая · сон",
-    body: "Отметьте свой сон.",
+    body: "Ваш сон: запишите, как спали.",
     href: "/m/preg_sleep",
     slot: "evening",
   },
   {
     moduleId: "notes",
     title: "Мая · заметки",
-    body: "Запишите, что было сегодня.",
+    body: "Заметки: коротко запишите день.",
     href: "/m/notes",
     slot: "evening",
   },
 ];
 
+export const INDEPENDENT_CTAS: UsageCta[] = [
+  {
+    moduleId: "recipes",
+    title: "Мая · рецепты",
+    body: "Откройте рецепты и приготовьте что-нибудь.",
+    href: "/recipes",
+    slot: "day",
+  },
+  {
+    moduleId: "maya",
+    title: "Мая",
+    body: "Напишите Мае. Спросите, что нужно.",
+    href: "/",
+    slot: "day",
+  },
+  {
+    moduleId: "community",
+    title: "Мая · круг мам",
+    body: "Круг мам: напишите, как у вас, или почитайте других.",
+    href: "/community",
+    slot: "day",
+  },
+  {
+    moduleId: "summary",
+    title: "Мая · итоги дня",
+    body: "Итоги дня: откройте и посмотрите, как прошёл день.",
+    href: "/summary",
+    slot: "evening",
+  },
+];
+
+export const DAILY_PUSH_TARGET = 3;
+export const DAILY_PUSH_TIMES = ["11:00", "15:30", "19:30"] as const;
+export const WEEKLY_EXTRA_TIME = "13:00";
 export const USAGE_DAY_AT = "12:00";
 export const USAGE_EVENING_AT = "20:00";
+
+const MAYA_CTA =
+  INDEPENDENT_CTAS.find((c) => c.moduleId === "maya") ?? INDEPENDENT_CTAS[1];
 
 export function ctaForModule(moduleId: string): UsageCta | undefined {
   return USAGE_CTAS.find((c) => c.moduleId === moduleId);
@@ -451,14 +488,37 @@ export function pickFeedCta(
   return ctaForModule("breastfeeding") ?? USAGE_CTAS[0];
 }
 
-/** Дневник, которым пользуются, но ещё нет включённого напоминания этого типа. */
-export function pickUsageCtas(
+function rotateList<T>(items: T[], offset: number): T[] {
+  if (!items.length) return [];
+  const n = ((offset % items.length) + items.length) % items.length;
+  return [...items.slice(n), ...items.slice(0, n)];
+}
+
+function localDayIndex(now: number, tzOffsetMin: number): number {
+  const wall = wallClock(now, tzOffsetMin);
+  return Math.floor(Date.UTC(wall.y, wall.m - 1, wall.d) / 86_400_000);
+}
+
+function localWeekday(now: number, tzOffsetMin: number): number {
+  const wall = wallClock(now, tzOffsetMin);
+  return new Date(Date.UTC(wall.y, wall.m - 1, wall.d)).getUTCDay();
+}
+
+function weeklyMayaWeekday(seed: string): number {
+  let h = 0;
+  for (const ch of seed) h = (h + ch.charCodeAt(0)) % 7;
+  return h;
+}
+
+/** Дневники с записями. Выключенный тип в напоминаниях не берём. */
+export function usedDiaryCtas(
   journals: JournalBag,
   reminders: { kind: CareReminderKind; enabled: boolean }[],
-): { day: UsageCta | null; evening: UsageCta | null } {
+): UsageCta[] {
   const blocked = new Set<CareReminderKind>();
-  for (const r of reminders) blocked.add(r.kind);
-
+  for (const r of reminders) {
+    if (!r.enabled) blocked.add(r.kind);
+  }
   const used: { cta: UsageCta; at: number }[] = [];
   for (const cta of USAGE_CTAS) {
     if (cta.kind && blocked.has(cta.kind)) continue;
@@ -467,10 +527,50 @@ export function pickUsageCtas(
     used.push({ cta, at });
   }
   used.sort((a, b) => b.at - a.at);
-  return {
-    day: used.find((u) => u.cta.slot === "day")?.cta ?? null,
-    evening: used.find((u) => u.cta.slot === "evening")?.cta ?? null,
-  };
+  return used.map((row) => row.cta);
+}
+
+export type DailyPushSlot = { cta: UsageCta; at: string };
+
+/**
+ * 3 пуша в день: сначала дневники, недостающее добиваем общими.
+ * Если дневников много, раз в неделю четвёртый: «напишите Мае».
+ */
+export function planDailyPushes(
+  journals: JournalBag,
+  reminders: { kind: CareReminderKind; enabled: boolean }[],
+  now: number,
+  tzOffsetMin: number,
+  seed = "maya",
+): DailyPushSlot[] {
+  const day = localDayIndex(now, tzOffsetMin);
+  const diaries = rotateList(usedDiaryCtas(journals, reminders), day);
+  const diaryPicks = diaries.slice(0, DAILY_PUSH_TARGET);
+  const need = DAILY_PUSH_TARGET - diaryPicks.length;
+  const taken = new Set(diaryPicks.map((c) => c.moduleId));
+  const fillers = rotateList(INDEPENDENT_CTAS, day)
+    .filter((c) => !taken.has(c.moduleId))
+    .slice(0, need);
+  const picks = [...diaryPicks, ...fillers];
+  picks.sort((a, b) => {
+    const ae = a.slot === "evening" ? 1 : 0;
+    const be = b.slot === "evening" ? 1 : 0;
+    return ae - be;
+  });
+  if (
+    diaries.length >= DAILY_PUSH_TARGET &&
+    localWeekday(now, tzOffsetMin) === weeklyMayaWeekday(seed) &&
+    !picks.some((c) => c.moduleId === "maya")
+  ) {
+    picks.push(MAYA_CTA);
+  }
+  return picks.map((cta, i) => ({
+    cta,
+    at:
+      i < DAILY_PUSH_TIMES.length
+        ? DAILY_PUSH_TIMES[i]
+        : WEEKLY_EXTRA_TIME,
+  }));
 }
 
 export function ctaCopyForKind(
@@ -559,7 +659,7 @@ export function defaultReminder(kind: CareReminderKind): CareReminder {
       mode: "interval",
       intervalMin: 180,
       title: "Мая · кормление",
-      body: "Отметьте кормление.",
+      body: "ГВ: запишите кормление.",
       href: "/m/breastfeeding",
       resetOnLog: true,
     };
@@ -572,7 +672,7 @@ export function defaultReminder(kind: CareReminderKind): CareReminder {
       mode: "times",
       times: [USAGE_EVENING_AT],
       title: "Мая · сон",
-      body: "Отметьте сон малыша.",
+      body: "Сон малыша: запишите, как спал.",
       href: "/m/sleep",
       resetOnLog: true,
     };
@@ -585,7 +685,7 @@ export function defaultReminder(kind: CareReminderKind): CareReminder {
       mode: "interval",
       intervalMin: 120,
       title: "Мая · бодрствование",
-      body: "Отметьте сон малыша.",
+      body: "Сон малыша: запишите, как спал.",
       href: "/m/sleep",
       resetOnLog: true,
     };
@@ -598,7 +698,7 @@ export function defaultReminder(kind: CareReminderKind): CareReminder {
       mode: "interval",
       intervalMin: 180,
       title: "Мая · подгузник",
-      body: "Отметьте смену подгузника.",
+      body: "Подгузник: отметьте смену.",
       href: "/m/diaper",
       resetOnLog: true,
     };
@@ -613,7 +713,7 @@ export function defaultReminder(kind: CareReminderKind): CareReminder {
       quietFrom: "21:00",
       quietTo: "08:00",
       title: "Мая · прогулка",
-      body: "Отметьте прогулку.",
+      body: "Прогулка: отметьте, если были на улице.",
       href: "/m/walk",
     };
   }
@@ -627,7 +727,7 @@ export function defaultReminder(kind: CareReminderKind): CareReminder {
       quietFrom: "22:00",
       quietTo: "08:00",
       title: "Мая · вода",
-      body: "Отметьте воду.",
+      body: "Вода: отметьте стакан, если выпили.",
       href: "/m/water",
     };
   }
@@ -639,7 +739,7 @@ export function defaultReminder(kind: CareReminderKind): CareReminder {
       mode: "times",
       times: ["09:00"],
       title: "Мая · лекарство",
-      body: "Отметьте витамин или препарат.",
+      body: "Витамин: отметьте, если приняли.",
       href: "/m/preg_meds",
     };
   }

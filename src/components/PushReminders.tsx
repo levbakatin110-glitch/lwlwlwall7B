@@ -47,11 +47,6 @@ export function PushReminders() {
       }
       trackEvent("push_enable");
       await subscribePush();
-      await showLocalNotice(
-        "Мая",
-        "Уведомления включены. Напомню, когда свернёте сайт.",
-        "/reminders",
-      );
     } catch {
       /* ignore */
     }
