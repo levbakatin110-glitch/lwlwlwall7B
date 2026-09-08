@@ -14,6 +14,7 @@ import {
   DiaryTimelineRow,
 } from "@/components/diary/DiaryShell";
 import { localToday } from "@/lib/local-date";
+import { breathGuide } from "@/lib/contraction-breath";
 import { formatSec } from "@/lib/pregnancy";
 import { liveGet, liveSet } from "@/lib/live-session";
 import { ISLAND_EVENT, notifyIslandChanged } from "@/lib/live-timer-actions";
@@ -104,13 +105,6 @@ function buildTimeline(entries: JournalEntry[]): TimelineItem[] {
     .reverse();
 }
 
-function breathLabel(sec: number): { title: string; hint: string } {
-  const beat = sec % 10;
-  if (beat < 4) return { title: "Вдох", hint: "медленно через нос" };
-  if (beat < 6) return { title: "Пауза", hint: "мягко, без напряжения" };
-  return { title: "Выдох", hint: "длиннее, чем вдох" };
-}
-
 export function ContractionsTracker() {
   const addJournalEntry = useAppStore((s) => s.addJournalEntry);
   const removeJournalEntry = useAppStore((s) => s.removeJournalEntry);
@@ -150,7 +144,7 @@ export function ContractionsTracker() {
 
   useEffect(() => {
     if (!live) return;
-    const id = window.setInterval(() => setNow(Date.now()), 200);
+    const id = window.setInterval(() => setNow(Date.now()), 80);
     return () => window.clearInterval(id);
   }, [live]);
 
@@ -160,9 +154,8 @@ export function ContractionsTracker() {
     [timeline],
   );
 
-  const liveDurationSec = live
-    ? Math.max(0, Math.floor((now - live.startMs) / 1000))
-    : 0;
+  const liveElapsedMs = live ? Math.max(0, now - live.startMs) : 0;
+  const liveDurationSec = Math.floor(liveElapsedMs / 1000);
 
   const stats = useMemo(() => {
     const hourAgo = now - 60 * 60 * 1000;
@@ -182,10 +175,7 @@ export function ContractionsTracker() {
     return { inHour, avgDur, avgInt };
   }, [chronological, now]);
 
-  const breath = breathLabel(liveDurationSec);
-  const wave = live
-    ? Math.min(1, 0.25 + 0.75 * Math.sin((liveDurationSec / 8) * Math.PI) ** 2)
-    : 0;
+  const breath = breathGuide(liveElapsedMs);
 
   function start() {
     const startMs = Date.now();
@@ -286,8 +276,8 @@ export function ContractionsTracker() {
           </p>
           <div className="mx-auto mt-4 h-3 max-w-xs overflow-hidden rounded-full bg-background">
             <div
-              className="h-full rounded-full bg-accent transition-[width] duration-200"
-              style={{ width: `${Math.round(wave * 100)}%` }}
+              className="h-full rounded-full bg-accent"
+              style={{ width: `${Math.max(0, Math.min(100, breath.progress * 100))}%` }}
             />
           </div>
           <p className="mt-4 font-display text-2xl font-semibold">{breath.title}</p>
