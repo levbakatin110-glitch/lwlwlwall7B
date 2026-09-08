@@ -13,6 +13,7 @@ import {
   DiaryTimelineRow,
 } from "@/components/diary/DiaryShell";
 import { entryTimeMs, todayYmd } from "@/lib/diary-day";
+import { formatVisitWhen, parseVisitDateTime } from "@/lib/visit-date";
 import { getJournalEntries, useAppStore } from "@/lib/store";
 import type { JournalEntry } from "@/lib/types";
 
@@ -28,6 +29,12 @@ function entryKind(e: JournalEntry): string {
 }
 
 function entryWhenMs(e: JournalEntry): number | null {
+  const date = typeof e.fields?.whenDate === "string" ? e.fields.whenDate : "";
+  const time = typeof e.fields?.whenTime === "string" ? e.fields.whenTime : "";
+  if (date) {
+    const parsed = parseVisitDateTime(date, time);
+    if (parsed.ms != null) return parsed.ms;
+  }
   const when = e.fields?.when;
   if (typeof when === "string" && when.trim()) {
     const t = Date.parse(when);
@@ -36,21 +43,18 @@ function entryWhenMs(e: JournalEntry): number | null {
   return null;
 }
 
-function formatVisitWhen(ms: number): string {
+function entryHasTime(e: JournalEntry): boolean {
+  if (typeof e.fields?.whenTime === "string" && e.fields.whenTime.trim()) {
+    return true;
+  }
+  const ms = entryWhenMs(e);
+  if (ms == null) return false;
   const d = new Date(ms);
-  return d
-    .toLocaleString("ru-RU", {
-      day: "numeric",
-      month: "short",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
-    .replace(/\./g, "")
-    .replace(/,/, "");
+  return d.getHours() !== 0 || d.getMinutes() !== 0;
 }
 
-function buildValue(kind: string, whenMs: number | null): string {
-  if (whenMs != null) return `${kind} · ${formatVisitWhen(whenMs)}`;
+function buildValue(kind: string, whenMs: number | null, withTime = false): string {
+  if (whenMs != null) return `${kind} · ${formatVisitWhen(whenMs, withTime)}`;
   return kind;
 }
 
@@ -60,7 +64,8 @@ export function VisitsTracker() {
   const entries = useAppStore((s) => getJournalEntries(s, JOURNAL));
   const [kind, setKind] = useState("");
   const [customKind, setCustomKind] = useState("");
-  const [whenLocal, setWhenLocal] = useState("");
+  const [whenDate, setWhenDate] = useState(todayYmd);
+  const [whenTime, setWhenTime] = useState("");
   const [place, setPlace] = useState("");
 
   const parsed = useMemo(
@@ -69,11 +74,13 @@ export function VisitsTracker() {
         .map((e) => {
           const k = entryKind(e);
           const whenMs = entryWhenMs(e);
+          const hasTime = entryHasTime(e);
           const sortMs = whenMs ?? entryTimeMs(e);
           return {
             e,
             kind: k,
             whenMs,
+            hasTime,
             sortMs,
             place: String(e.fields?.place || "").trim(),
             startMs: entryTimeMs(e),
@@ -107,34 +114,41 @@ export function VisitsTracker() {
     return {
       total: parsed.length,
       nearest: nearest
-        ? buildValue(nearest.kind, nearest.whenMs)
+        ? buildValue(nearest.kind, nearest.whenMs, nearest.hasTime)
         : "—",
       past: past.length,
     };
   }, [parsed.length, upcoming, past.length]);
 
   const resolvedKind = kind === "другое" ? customKind.trim() : kind;
-  const canSave = resolvedKind.length > 0;
+  const parsedWhen = parseVisitDateTime(whenDate, whenTime);
+  const canSave = resolvedKind.length > 0 && !parsedWhen.invalid;
 
   function save() {
     if (!canSave) return;
     const startMs = Date.now();
-    const whenMs = whenLocal ? Date.parse(whenLocal) : null;
     const fields: Record<string, string | number> = { kind: resolvedKind, startMs };
-    if (whenMs != null && !Number.isNaN(whenMs)) {
-      fields.when = new Date(whenMs).toISOString();
+    if (parsedWhen.ms != null) {
+      const d = new Date(parsedWhen.ms);
+      const ymd = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      fields.whenDate = ymd;
+      fields.when = d.toISOString();
+      if (parsedWhen.hasTime) {
+        fields.whenTime = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+      }
     }
     const placeTrim = place.trim();
     if (placeTrim) fields.place = placeTrim;
     addJournalEntry(JOURNAL, {
       date: todayYmd(),
-      value: buildValue(resolvedKind, whenMs != null && !Number.isNaN(whenMs) ? whenMs : null),
+      value: buildValue(resolvedKind, parsedWhen.ms, parsedWhen.hasTime),
       note: placeTrim,
       fields,
     });
     setKind("");
     setCustomKind("");
-    setWhenLocal("");
+    setWhenDate(todayYmd());
+    setWhenTime("");
     setPlace("");
   }
 
@@ -170,15 +184,31 @@ export function VisitsTracker() {
           />
         ) : null}
 
-        <label className="mt-4 block text-[11px] font-medium text-muted">
-          Дата и время
-          <input
-            type="datetime-local"
-            value={whenLocal}
-            onChange={(e) => setWhenLocal(e.target.value)}
-            className="mt-1.5 w-full rounded-xl border border-line bg-background/50 px-3 py-2.5 text-sm text-foreground"
-          />
-        </label>
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <label className="block text-[11px] font-medium text-muted">
+            Дата
+            <input
+              type="date"
+              value={whenDate}
+              min="2000-01-01"
+              max="2100-12-31"
+              onChange={(e) => setWhenDate(e.target.value)}
+              className="mt-1.5 w-full rounded-xl border border-line bg-background/50 px-3 py-2.5 text-sm text-foreground"
+            />
+          </label>
+          <label className="block text-[11px] font-medium text-muted">
+            Время
+            <input
+              type="time"
+              value={whenTime}
+              onChange={(e) => setWhenTime(e.target.value)}
+              className="mt-1.5 w-full rounded-xl border border-line bg-background/50 px-3 py-2.5 text-sm text-foreground"
+            />
+          </label>
+        </div>
+        {parsedWhen.invalid ? (
+          <p className="mt-1.5 text-[11px] text-rose-600">Проверьте дату — год должен быть от 2000 до 2100</p>
+        ) : null}
 
         <label className="mt-3 block text-[11px] font-medium text-muted">
           Место
@@ -208,7 +238,7 @@ export function VisitsTracker() {
                       <p className="text-sm font-medium">{item.kind}</p>
                       {item.whenMs != null ? (
                         <p className="text-[10px] tabular-nums text-muted">
-                          {formatVisitWhen(item.whenMs)}
+                          {formatVisitWhen(item.whenMs, item.hasTime)}
                         </p>
                       ) : (
                         <p className="text-[10px] text-muted/70">
@@ -240,7 +270,7 @@ export function VisitsTracker() {
 
       <DiaryStickyCta>
         <DiaryPrimaryButton disabled={!canSave} onClick={save}>
-          Сохранить
+          {parsedWhen.invalid ? "Проверьте дату" : "Сохранить"}
         </DiaryPrimaryButton>
       </DiaryStickyCta>
     </DiaryPage>
