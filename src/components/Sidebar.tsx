@@ -49,16 +49,16 @@ const PREGNANCY_PINNED: {
   icon: IconName;
   moduleId?: ModuleId;
 }[] = [
-  { href: "/m/pregnancy", label: "Беременность", icon: "spark", moduleId: "pregnancy" },
-  { href: "/m/contractions", label: "Схватки", icon: "pulse", moduleId: "contractions" },
-  { href: "/m/kicks", label: "Шевеления", icon: "moments", moduleId: "kicks" },
+  { href: "/m/pregnancy", label: "Беременность", icon: "calendar", moduleId: "pregnancy" },
+  { href: "/m/contractions", label: "Схватки", icon: "wave", moduleId: "contractions" },
+  { href: "/m/kicks", label: "Шевеления", icon: "kick", moduleId: "kicks" },
   { href: "/m/preg_pressure", label: "Давление", icon: "pulse", moduleId: "preg_pressure" },
-  { href: "/m/preg_symptoms", label: "Самочувствие", icon: "health", moduleId: "preg_symptoms" },
-  { href: "/m/preg_visits", label: "Визиты", icon: "list", moduleId: "preg_visits" },
+  { href: "/m/preg_symptoms", label: "Самочувствие", icon: "thermo", moduleId: "preg_symptoms" },
+  { href: "/m/preg_visits", label: "Визиты", icon: "clinic", moduleId: "preg_visits" },
   { href: "/m/preg_belly", label: "Животик", icon: "belly", moduleId: "preg_belly" },
-  { href: "/m/preg_meds", label: "Лекарства", icon: "health", moduleId: "preg_meds" },
+  { href: "/m/preg_meds", label: "Лекарства", icon: "pills", moduleId: "preg_meds" },
   { href: "/m/preg_sleep", label: "Сон мамы", icon: "sleep", moduleId: "preg_sleep" },
-  { href: "/m/birth_plan", label: "План родов", icon: "spark", moduleId: "birth_plan" },
+  { href: "/m/birth_plan", label: "План родов", icon: "clipboard", moduleId: "birth_plan" },
 ];
 
 const BABY_PINNED: {

@@ -60,7 +60,7 @@ const PITCHES: Record<ValueAudience, ValuePitch> = {
         text: "Чат с Маей: тревога, самочувствие и недели. Спокойно, без осуждения",
       },
       {
-        icon: "pulse",
+        icon: "calendar",
         chip: "Недели",
         text: "Дневник беременности: недели, схватки, шевеления, визиты",
       },
@@ -117,7 +117,7 @@ const PITCHES: Record<ValueAudience, ValuePitch> = {
         text: "Чат с Маей про самочувствие, не только галочки в календаре",
       },
       {
-        icon: "pulse",
+        icon: "cycle",
         chip: "Цикл",
         text: "Дневник цикла, короткие заметки и симптомы",
       },
@@ -148,7 +148,7 @@ const PITCHES: Record<ValueAudience, ValuePitch> = {
         text: "Чат с Маей: и про срок, и про малыша, без путаницы",
       },
       {
-        icon: "pulse",
+        icon: "calendar",
         chip: "Недели",
         text: "Дневник беременности и уход за малышом рядом",
       },
