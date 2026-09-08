@@ -52,6 +52,7 @@ describe("module audience", () => {
     expect(shouldShowModule("kicks", ctx)).toBe(true);
     expect(shouldShowModule("preg_weight", ctx)).toBe(false);
     expect(shouldShowModule("preg_docs", ctx)).toBe(false);
+    expect(shouldShowModule("preg_labs", ctx)).toBe(false);
   });
 
   it("shows both groups when pregnant and already has a child", () => {

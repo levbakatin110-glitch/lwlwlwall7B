@@ -57,7 +57,6 @@ const PREGNANCY_PINNED: {
   { href: "/m/preg_visits", label: "Визиты", icon: "list", moduleId: "preg_visits" },
   { href: "/m/preg_belly", label: "Животик", icon: "belly", moduleId: "preg_belly" },
   { href: "/m/preg_meds", label: "Лекарства", icon: "health", moduleId: "preg_meds" },
-  { href: "/m/preg_labs", label: "Анализы", icon: "list", moduleId: "preg_labs" },
   { href: "/m/preg_sleep", label: "Сон мамы", icon: "sleep", moduleId: "preg_sleep" },
   { href: "/m/birth_plan", label: "План родов", icon: "spark", moduleId: "birth_plan" },
 ];

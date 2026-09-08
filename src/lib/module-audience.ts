@@ -75,9 +75,14 @@ export function applyPayStarterModules(
   return out;
 }
 
-/** Вес мамы, заметки и документы убрали из продукта. */
+/** Вес мамы, заметки, документы и фото-анализы убрали из продукта. */
 export function isRetiredModuleId(id: string): boolean {
-  return id === "preg_weight" || id === "notes" || id === "preg_docs";
+  return (
+    id === "preg_weight" ||
+    id === "notes" ||
+    id === "preg_docs" ||
+    id === "preg_labs"
+  );
 }
 
 /** Какие дневники видны в меню: малыш отдельно, беременность, только если беременна. */

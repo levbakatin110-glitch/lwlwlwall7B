@@ -90,11 +90,6 @@ const CHIPS: Record<string, Chip[]> = {
     { label: "Витамин D", instant: { value: "Витамин D" } },
     { label: "Железо", prefill: "Железо · по схеме врача" },
   ],
-  preg_labs: [
-    { label: "ОАК", prefill: "ОАК" },
-    { label: "УЗИ", prefill: "УЗИ" },
-    { label: "Скрининг", prefill: "Скрининг" },
-  ],
   birth_plan: [
     { label: "Партнёр рядом", prefill: "Партнёр рядом на родах" },
     { label: "Контакт кожа-к-коже", prefill: "Контакт кожа-к-коже сразу" },

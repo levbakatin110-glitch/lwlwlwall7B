@@ -28,7 +28,6 @@ import { SymptomsTracker } from "@/components/pregnancy/SymptomsTracker";
 import { VisitsTracker } from "@/components/pregnancy/VisitsTracker";
 import { BellyTracker } from "@/components/pregnancy/BellyTracker";
 import { BirthPlanTracker } from "@/components/pregnancy/BirthPlanTracker";
-import { MedicalPhotoTracker } from "@/components/pregnancy/MedicalPhotoTracker";
 import { MomSleepCalendar } from "@/components/pregnancy/MomSleepCalendar";
 import { CycleTracker } from "@/components/cycle/CycleTracker";
 import { IconBadge } from "@/components/icons/MayaIcon";
@@ -682,11 +681,6 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
       {moduleId === "preg_meds" && (
         <div className="mt-4">
           <MedsTracker />
-        </div>
-      )}
-      {moduleId === "preg_labs" && (
-        <div className="mt-4">
-          <MedicalPhotoTracker moduleId="preg_labs" />
         </div>
       )}
       {moduleId === "preg_pressure" && (
