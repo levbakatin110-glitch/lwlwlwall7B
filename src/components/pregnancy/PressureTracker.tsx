@@ -55,6 +55,10 @@ function formatBp(sys: number, dia: number, pulse?: number | null): string {
   return pulse != null && pulse > 0 ? `${base} · пульс ${pulse}` : base;
 }
 
+function digitsOnly(raw: string, maxLen: number): string {
+  return raw.replace(/\D/g, "").slice(0, maxLen);
+}
+
 export function PressureTracker() {
   const addJournalEntry = useAppStore((s) => s.addJournalEntry);
   const removeJournalEntry = useAppStore((s) => s.removeJournalEntry);
@@ -154,39 +158,39 @@ export function PressureTracker() {
           <label className="text-xs text-muted">
             Систол.
             <input
-              type="number"
+              type="text"
               inputMode="numeric"
-              min={60}
-              max={220}
+              pattern="[0-9]*"
+              autoComplete="off"
               value={sys}
-              onChange={(e) => setSys(e.target.value)}
-              placeholder="120"
+              onChange={(e) => setSys(digitsOnly(e.target.value, 3))}
+              placeholder="сист."
               className="mt-1 w-full rounded-xl border border-line bg-background/50 px-3 py-2.5 text-center text-lg font-semibold tabular-nums"
             />
           </label>
           <label className="text-xs text-muted">
             Диастол.
             <input
-              type="number"
+              type="text"
               inputMode="numeric"
-              min={40}
-              max={140}
+              pattern="[0-9]*"
+              autoComplete="off"
               value={dia}
-              onChange={(e) => setDia(e.target.value)}
-              placeholder="80"
+              onChange={(e) => setDia(digitsOnly(e.target.value, 3))}
+              placeholder="диаст."
               className="mt-1 w-full rounded-xl border border-line bg-background/50 px-3 py-2.5 text-center text-lg font-semibold tabular-nums"
             />
           </label>
           <label className="text-xs text-muted">
             Пульс
             <input
-              type="number"
+              type="text"
               inputMode="numeric"
-              min={40}
-              max={200}
+              pattern="[0-9]*"
+              autoComplete="off"
               value={pulse}
-              onChange={(e) => setPulse(e.target.value)}
-              placeholder="—"
+              onChange={(e) => setPulse(digitsOnly(e.target.value, 3))}
+              placeholder="пульс"
               className="mt-1 w-full rounded-xl border border-line bg-background/50 px-3 py-2.5 text-center text-lg font-semibold tabular-nums"
             />
           </label>
@@ -244,7 +248,7 @@ export function PressureTracker() {
         <DiaryPrimaryButton disabled={!canSave} onClick={save}>
           {canSave
             ? `Сохранить ${formatBp(sysNum, diaNum, pulseNum)}`
-            : "Сохранить"}
+            : "Введите систол. и диастол."}
         </DiaryPrimaryButton>
       </DiaryStickyCta>
     </DiaryPage>
