@@ -1,6 +1,7 @@
 import { createHash } from "crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
+import { mergeBackupData } from "@/lib/backup-merge";
 import { normalizeEmail } from "@/lib/email-codes";
 import { readSessionFromRequest } from "@/lib/session";
 
@@ -55,11 +56,26 @@ export async function PUT(req: Request) {
     if (!body.backup || typeof body.backup !== "object") {
       return Response.json({ error: "Нет данных" }, { status: 400 });
     }
+    const incoming = body.backup as Record<string, unknown>;
+    let data = incoming;
+    const path = fileFor(session.email);
+    if (existsSync(path)) {
+      try {
+        const prev = JSON.parse(readFileSync(path, "utf8")) as {
+          data?: Record<string, unknown>;
+        };
+        if (prev.data && typeof prev.data === "object") {
+          data = mergeBackupData(prev.data, incoming);
+        }
+      } catch {
+        data = incoming;
+      }
+    }
     const json = JSON.stringify({
       v: 1,
       email: session.email,
       savedAt: new Date().toISOString(),
-      data: body.backup,
+      data,
     });
     if (json.length > MAX_BYTES) {
       return Response.json(

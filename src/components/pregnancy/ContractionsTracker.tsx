@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  DiaryChip,
   DiaryEmpty,
   DiaryHourStrip,
   DiaryPage,
@@ -23,15 +22,8 @@ import { getJournalEntries, useAppStore } from "@/lib/store";
 import type { JournalEntry } from "@/lib/types";
 
 type LiveRow = { startMs: number };
-type Pending = {
-  startMs: number;
-  endMs: number;
-  durationSec: number;
-  intervalSec: number | null;
-};
 
 const SESSION_KEY = "maya-contractions-session";
-const INTENSITY = [1, 2, 3, 4, 5] as const;
 
 type TimelineItem = {
   id: string;
@@ -110,8 +102,6 @@ export function ContractionsTracker() {
   const removeJournalEntry = useAppStore((s) => s.removeJournalEntry);
   const entries = useAppStore((s) => getJournalEntries(s, "contractions"));
   const [live, setLive] = useState<LiveRow | null>(null);
-  const [pending, setPending] = useState<Pending | null>(null);
-  const [intensity, setIntensity] = useState<number>(3);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -184,7 +174,6 @@ export function ContractionsTracker() {
     } catch {
       /* */
     }
-    setPending(null);
     setLive({ startMs });
     setNow(startMs);
     timerIsland.begin({
@@ -197,7 +186,7 @@ export function ContractionsTracker() {
     notifyIslandChanged();
   }
 
-  function stopToPending() {
+  function stopAndSave() {
     if (!live) return;
     const endMs = Date.now();
     const startMs = live.startMs;
@@ -207,23 +196,10 @@ export function ContractionsTracker() {
       prevStart != null
         ? Math.max(0, Math.floor((startMs - prevStart) / 1000))
         : null;
-    setPending({
-      startMs,
-      endMs,
-      durationSec: dur,
-      intervalSec: interval,
-    });
-    setIntensity(3);
-    setLive(null);
-  }
-
-  function commitPending() {
-    if (!pending) return;
-    const { durationSec: dur, intervalSec: interval, startMs, endMs } = pending;
     const value =
       interval != null
-        ? `${formatSec(dur)} · интервал ${formatSec(interval)} · сила ${intensity}/5`
-        : `${formatSec(dur)} · сила ${intensity}/5`;
+        ? `${formatSec(dur)} · интервал ${formatSec(interval)}`
+        : formatSec(dur);
     addJournalEntry("contractions", {
       date: localToday(),
       value,
@@ -233,15 +209,16 @@ export function ContractionsTracker() {
         ...(interval != null ? { intervalSec: interval } : {}),
         startMs,
         endMs,
-        intensity,
+        intensity: 3,
       },
     });
-    setPending(null);
+    setLive(null);
+    timerIsland.sync(null);
   }
 
   function cancel() {
     setLive(null);
-    setPending(null);
+    timerIsland.sync(null);
   }
 
   const hourSpans = chronological
@@ -285,34 +262,11 @@ export function ContractionsTracker() {
         </div>
       ) : null}
 
-      {pending ? (
-        <div className="rounded-[1.5rem] border border-line bg-card p-4">
-          <p className="font-display text-lg font-semibold">
-            Схватка {formatSec(pending.durationSec)}
-          </p>
-          <p className="mt-1 text-sm text-muted">
-            Насколько сильная была волна? Это поможет отличить тренировочные.
-          </p>
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {INTENSITY.map((n) => (
-              <DiaryChip
-                key={n}
-                active={intensity === n}
-                tone={n >= 4 ? "hot" : n >= 3 ? "warn" : "default"}
-                onClick={() => setIntensity(n)}
-              >
-                {n}
-              </DiaryChip>
-            ))}
-          </div>
-          <p className="mt-2 text-[11px] text-muted">
-            1, чуть тянет · 5, не проговариваешь фразу
-          </p>
-        </div>
-      ) : null}
-
-      {timeline.length === 0 && !live && !pending ? (
-        <DiaryEmpty>Начало волны, и ещё раз, когда отпустит.</DiaryEmpty>
+      {timeline.length === 0 && !live ? (
+        <DiaryEmpty>
+          Нажмите, когда волна началась. Ещё раз, когда отпустит — запись
+          сохранится.
+        </DiaryEmpty>
       ) : (
         <div>
           <DiarySectionTitle left="Сегодня" right={`${timeline.length}`} />
@@ -385,7 +339,7 @@ export function ContractionsTracker() {
       <DiaryStickyCta>
         {live ? (
           <div className="flex gap-2">
-            <DiaryPrimaryButton onClick={stopToPending}>
+            <DiaryPrimaryButton onClick={stopAndSave}>
               <span className="tabular-nums">{formatSec(liveDurationSec)}</span>
               <span>· закончилась</span>
             </DiaryPrimaryButton>
@@ -395,19 +349,6 @@ export function ContractionsTracker() {
               className="shrink-0 rounded-2xl border border-line bg-background px-4 py-3.5 text-sm font-medium text-muted"
             >
               Отмена
-            </button>
-          </div>
-        ) : pending ? (
-          <div className="flex gap-2">
-            <DiaryPrimaryButton onClick={commitPending}>
-              Сохранить схватку
-            </DiaryPrimaryButton>
-            <button
-              type="button"
-              onClick={cancel}
-              className="shrink-0 rounded-2xl border border-line bg-background px-4 py-3.5 text-sm font-medium text-muted"
-            >
-              ×
             </button>
           </div>
         ) : (

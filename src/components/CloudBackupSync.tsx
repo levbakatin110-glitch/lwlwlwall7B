@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { ensureChildSpace } from "@/lib/children";
+import { mergeBackupData, journalEntryCount } from "@/lib/backup-merge";
 import {
   loadChatMessages,
   pickBestChatMessages,
@@ -57,12 +58,10 @@ function isLocalStoreEmpty(local: ReturnType<typeof useAppStore.getState>): bool
   const hasDiaryData = Object.values(local.childSpaces ?? {}).some((sp) => {
     if ((sp.messages?.length ?? 0) > 0) return true;
     if (loadChatMessages(local.activeChildId).length > 0) return true;
-    return Object.values(sp.journals ?? {}).some(
-      (j) => Array.isArray(j) && j.length > 0,
-    );
+    return journalEntryCount(sp.journals) > 0;
   });
   const hasCustomModules = (local.customModules?.length ?? 0) > 0;
-  const hasMomJournals = Object.keys(local.momJournals ?? {}).length > 0;
+  const hasMomJournals = journalEntryCount(local.momJournals) > 0;
   const hasPregnancy = Boolean(
     local.pregnancy?.active ||
       local.pregnancy?.dueDate ||
@@ -79,17 +78,20 @@ function isLocalStoreEmpty(local: ReturnType<typeof useAppStore.getState>): bool
 
 function applyBackupPayload(payload: Record<string, unknown>) {
   useAppStore.setState((prev) => {
-    const nextChildSpaces = {
-      ...prev.childSpaces,
-      ...(payload.childSpaces
-        ? (payload.childSpaces as typeof prev.childSpaces)
-        : {}),
-    };
+    const merged = mergeBackupData(
+      {
+        childSpaces: prev.childSpaces,
+        momJournals: prev.momJournals,
+      },
+      payload,
+    );
+    const nextChildSpaces = (merged.childSpaces ??
+      prev.childSpaces) as typeof prev.childSpaces;
     const activeId = String(payload.activeChildId ?? prev.activeChildId);
     const chatSync = syncChatMirror(nextChildSpaces, activeId);
     return {
       ...prev,
-      ...(payload.children
+      ...(Array.isArray(payload.children) && payload.children.length > 0
         ? { children: payload.children as typeof prev.children }
         : {}),
       activeChildId: activeId,
@@ -98,9 +100,8 @@ function applyBackupPayload(payload: Record<string, unknown>) {
       ...(payload.pregnancy
         ? { pregnancy: payload.pregnancy as typeof prev.pregnancy }
         : {}),
-      ...(payload.momJournals
-        ? { momJournals: payload.momJournals as typeof prev.momJournals }
-        : {}),
+      momJournals: (merged.momJournals ??
+        prev.momJournals) as typeof prev.momJournals,
       ...(payload.enabledModules
         ? {
             enabledModules:
@@ -127,13 +128,29 @@ function applyBackupPayload(payload: Record<string, unknown>) {
 
 let restoreInFlight: Promise<boolean> | null = null;
 
-/** Подтянуть облачный бэкап в пустой стор (иконка на рабочем столе / другой браузер). */
+function waitHydration(): Promise<void> {
+  if (typeof window === "undefined") return Promise.resolve();
+  if (useAppStore.persist.hasHydrated()) return Promise.resolve();
+  return new Promise((resolve) => {
+    const unsub = useAppStore.persist.onFinishHydration(() => {
+      unsub();
+      resolve();
+    });
+    window.setTimeout(() => {
+      unsub();
+      resolve();
+    }, 2500);
+  });
+}
+
+/** Подтянуть облачный бэкап и склеить с тем, что уже на телефоне. */
 export async function restoreCloudBackup(opts?: {
   force?: boolean;
 }): Promise<boolean> {
   if (restoreInFlight && !opts?.force) return restoreInFlight;
   const run = (async () => {
     try {
+      await waitHydration();
       const res = await fetch("/api/backup", { credentials: "include" });
       if (!res.ok) return false;
       const data = (await res.json()) as {
@@ -141,8 +158,6 @@ export async function restoreCloudBackup(opts?: {
       };
       const payload = data.backup?.data;
       if (!payload) return false;
-      const local = useAppStore.getState();
-      if (!opts?.force && !isLocalStoreEmpty(local)) return true;
       applyBackupPayload(payload);
       return true;
     } catch {
@@ -168,40 +183,46 @@ async function hasSession(): Promise<boolean> {
   }
 }
 
+async function pushBackup(): Promise<void> {
+  const local = useAppStore.getState();
+  if (isLocalStoreEmpty(local)) return;
+  try {
+    await fetch("/api/backup", {
+      method: "PUT",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ backup: buildBackupPayload() }),
+    });
+  } catch {
+    /* ignore */
+  }
+}
+
 /** Облачный бэкап дневников на VPS (по сессии). */
 export function CloudBackupSync() {
   const onboardingDone = useAppStore((s) => s.onboardingDone);
   const accountEmail = useAppStore((s) => s.accountEmail);
+  const momJournals = useAppStore((s) => s.momJournals);
+  const childSpaces = useAppStore((s) => s.childSpaces);
   const pushed = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
     let intervalId: number | null = null;
 
-    async function push() {
-      try {
-        await fetch("/api/backup", {
-          method: "PUT",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ backup: buildBackupPayload() }),
-        });
-      } catch {
-        /* ignore */
-      }
-    }
-
     void (async () => {
       if (!(await hasSession())) return;
+      if (cancelled) return;
+      await waitHydration();
       if (cancelled) return;
       await restoreCloudBackup();
       if (cancelled) return;
       if (!useAppStore.getState().onboardingDone) return;
       if (!pushed.current) {
         pushed.current = true;
-        await push();
+        await pushBackup();
       }
-      intervalId = window.setInterval(() => void push(), 3 * 60_000);
+      intervalId = window.setInterval(() => void pushBackup(), 3 * 60_000);
     })();
 
     return () => {
@@ -209,6 +230,15 @@ export function CloudBackupSync() {
       if (intervalId != null) window.clearInterval(intervalId);
     };
   }, [onboardingDone, accountEmail]);
+
+  useEffect(() => {
+    if (!onboardingDone || !accountEmail) return;
+    if (!useAppStore.persist.hasHydrated()) return;
+    const t = window.setTimeout(() => {
+      void pushBackup();
+    }, 1200);
+    return () => window.clearTimeout(t);
+  }, [onboardingDone, accountEmail, momJournals, childSpaces]);
 
   return null;
 }
