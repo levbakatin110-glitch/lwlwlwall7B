@@ -8,6 +8,8 @@ import {
   nextIntervalAt,
   nextTimesAt,
   parseHhMm,
+  pickFeedCta,
+  pickUsageCtas,
   resolveScheduleWrite,
   skipQuiet,
   wallClock,
@@ -267,5 +269,63 @@ describe("ensureCoreCareReminders", () => {
     );
     expect(next.find((r) => r.kind === "feed")?.enabled).toBe(false);
     expect(next.some((r) => r.kind === "sleep" && r.enabled)).toBe(true);
+  });
+});
+
+describe("usage CTAs", () => {
+  const log = (createdAt: string) => [{ createdAt }];
+
+  it("picks the feed diary she actually used", () => {
+    const cta = pickFeedCta(
+      {
+        breastfeeding: log("2026-03-01T08:00:00Z"),
+        formula: log("2026-03-01T12:00:00Z"),
+      },
+      ["breastfeeding", "formula"],
+    );
+    expect(cta.moduleId).toBe("formula");
+    expect(cta.href).toBe("/m/formula");
+    expect(cta.body).toContain("смесь");
+  });
+
+  it("does not duplicate a diary that already has a reminder", () => {
+    const picked = pickUsageCtas(
+      {
+        breastfeeding: log("2026-03-01T12:00:00Z"),
+        walk: log("2026-03-01T11:00:00Z"),
+      },
+      [{ kind: "feed", enabled: true }],
+    );
+    expect(picked.day?.moduleId).toBe("walk");
+    expect(picked.evening).toBeNull();
+  });
+
+  it("respects a reminder she turned off", () => {
+    const picked = pickUsageCtas(
+      { walk: log("2026-03-01T11:00:00Z") },
+      [{ kind: "walk", enabled: false }],
+    );
+    expect(picked.day).toBeNull();
+  });
+
+  it("sends kicks if she logs movement and has no feed reminder", () => {
+    const picked = pickUsageCtas(
+      { kicks: log("2026-03-01T09:00:00Z") },
+      [],
+    );
+    expect(picked.day?.moduleId).toBe("kicks");
+    expect(picked.day?.body).toBe("Отметьте шевеления.");
+  });
+
+  it("sends evening sleep CTA only from the sleep diary", () => {
+    const picked = pickUsageCtas(
+      {
+        sleep: log("2026-03-01T19:00:00Z"),
+        notes: log("2026-03-01T10:00:00Z"),
+      },
+      [],
+    );
+    expect(picked.evening?.moduleId).toBe("sleep");
+    expect(picked.evening?.body).toBe("Отметьте сон малыша.");
   });
 });

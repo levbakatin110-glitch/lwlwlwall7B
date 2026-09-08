@@ -3,9 +3,14 @@
 import { useEffect, useRef } from "react";
 import {
   computeNextAt,
+  ctaCopyForKind,
   lastLogMs,
   LOG_MODULES,
+  nextTimesAt,
+  pickUsageCtas,
   sanitizeReminder,
+  USAGE_DAY_AT,
+  USAGE_EVENING_AT,
   type ScheduledPushItem,
 } from "@/lib/care-reminders";
 import { childDisplayName } from "@/lib/children";
@@ -43,26 +48,23 @@ export function collectScheduledPushes(now = Date.now()): ScheduledPushItem[] {
     };
     const reminders = (space.careReminders ?? [])
       .map(sanitizeReminder)
-      .filter(Boolean);
+      .filter((row): row is NonNullable<typeof row> => Boolean(row));
+    const enabled = space.enabledModules ?? [];
     for (const r of reminders) {
-      if (!r?.enabled) continue;
+      if (!r.enabled) continue;
       const last = lastLogMs(journals, LOG_MODULES[r.kind] ?? []);
-      if (r.resetOnLog && !last) continue;
+      const needsLog = r.resetOnLog || r.kind === "feed" || r.kind === "sleep";
+      if (needsLog && !last) continue;
       const nextAt = computeNextAt(r, now, tz, last);
+      const cta = ctaCopyForKind(r.kind, journals, enabled);
+      const titleBase = cta?.title ?? r.title;
       const title =
-        s.children.length > 1 ? `${r.title} · ${name}` : r.title;
-      let url = r.href || "/";
-      if (r.kind === "feed") {
-        const enabled = space.enabledModules ?? [];
-        if (enabled.includes("breastfeeding")) url = "/m/breastfeeding";
-        else if (enabled.includes("formula")) url = "/m/formula";
-        else if (enabled.includes("solids")) url = "/m/solids";
-      }
+        s.children.length > 1 ? `${titleBase} · ${name}` : titleBase;
       items.push({
         id: `${childId}:${r.id}`,
         title,
-        body: withName(r.body, name),
-        url,
+        body: withName(cta?.body ?? r.body, name),
+        url: cta?.href ?? r.href ?? "/",
         tag: `${childId}:${r.id}`,
         nextAt,
         mode: r.mode,
@@ -70,6 +72,39 @@ export function collectScheduledPushes(now = Date.now()): ScheduledPushItem[] {
         times: r.times,
         quietFrom: r.quietFrom,
         quietTo: r.quietTo,
+        tzOffsetMin: tz,
+      });
+    }
+    const usage = pickUsageCtas(journals, reminders);
+    const usageSlots = [
+      usage.day
+        ? {
+            id: `${childId}:usage-day`,
+            cta: usage.day,
+            at: USAGE_DAY_AT,
+          }
+        : null,
+      usage.evening
+        ? {
+            id: `${childId}:usage-evening`,
+            cta: usage.evening,
+            at: USAGE_EVENING_AT,
+          }
+        : null,
+    ].filter((row): row is NonNullable<typeof row> => Boolean(row));
+    for (const slot of usageSlots) {
+      items.push({
+        id: slot.id,
+        title:
+          s.children.length > 1 ? `${slot.cta.title} · ${name}` : slot.cta.title,
+        body: withName(slot.cta.body, name),
+        url: slot.cta.href,
+        tag: slot.id,
+        nextAt: nextTimesAt(now, [slot.at], tz, "21:00", "08:00"),
+        mode: "times",
+        times: [slot.at],
+        quietFrom: "21:00",
+        quietTo: "08:00",
         tzOffsetMin: tz,
       });
     }

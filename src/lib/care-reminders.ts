@@ -275,6 +275,215 @@ export const LOG_MODULES: Record<CareReminderKind, string[]> = {
   custom: [],
 };
 
+export type JournalBag = Record<
+  string,
+  { fields?: Record<string, string | number>; createdAt?: string; date?: string }[]
+>;
+
+export type UsageCta = {
+  moduleId: string;
+  title: string;
+  body: string;
+  href: string;
+  slot: "day" | "evening";
+  kind?: CareReminderKind;
+};
+
+/** Короткие призывы. Шлём только если в этом дневнике уже есть записи. */
+export const USAGE_CTAS: UsageCta[] = [
+  {
+    moduleId: "breastfeeding",
+    title: "Мая · ГВ",
+    body: "Отметьте кормление.",
+    href: "/m/breastfeeding",
+    slot: "day",
+    kind: "feed",
+  },
+  {
+    moduleId: "formula",
+    title: "Мая · смесь",
+    body: "Отметьте смесь — сколько дали.",
+    href: "/m/formula",
+    slot: "day",
+    kind: "feed",
+  },
+  {
+    moduleId: "solids",
+    title: "Мая · прикорм",
+    body: "Отметьте прикорм.",
+    href: "/m/solids",
+    slot: "day",
+    kind: "feed",
+  },
+  {
+    moduleId: "diaper",
+    title: "Мая · подгузник",
+    body: "Отметьте смену подгузника.",
+    href: "/m/diaper",
+    slot: "day",
+    kind: "diaper",
+  },
+  {
+    moduleId: "walk",
+    title: "Мая · прогулка",
+    body: "Отметьте прогулку.",
+    href: "/m/walk",
+    slot: "day",
+    kind: "walk",
+  },
+  {
+    moduleId: "water",
+    title: "Мая · вода",
+    body: "Отметьте воду.",
+    href: "/m/water",
+    slot: "day",
+    kind: "water",
+  },
+  {
+    moduleId: "health",
+    title: "Мая · здоровье",
+    body: "Отметьте самочувствие малыша.",
+    href: "/m/health",
+    slot: "day",
+  },
+  {
+    moduleId: "growth",
+    title: "Мая · рост и вес",
+    body: "Внесите рост и вес.",
+    href: "/m/growth",
+    slot: "day",
+  },
+  {
+    moduleId: "vaccines",
+    title: "Мая · прививки",
+    body: "Проверьте прививки.",
+    href: "/m/vaccines",
+    slot: "day",
+  },
+  {
+    moduleId: "kicks",
+    title: "Мая · шевеления",
+    body: "Отметьте шевеления.",
+    href: "/m/kicks",
+    slot: "day",
+  },
+  {
+    moduleId: "preg_meds",
+    title: "Мая · лекарство",
+    body: "Отметьте витамин или препарат.",
+    href: "/m/preg_meds",
+    slot: "day",
+    kind: "meds",
+  },
+  {
+    moduleId: "preg_symptoms",
+    title: "Мая · самочувствие",
+    body: "Отметьте самочувствие.",
+    href: "/m/preg_symptoms",
+    slot: "day",
+  },
+  {
+    moduleId: "pregnancy",
+    title: "Мая · беременность",
+    body: "Отметьте день беременности.",
+    href: "/m/pregnancy",
+    slot: "day",
+  },
+  {
+    moduleId: "sleep",
+    title: "Мая · сон",
+    body: "Отметьте сон малыша.",
+    href: "/m/sleep",
+    slot: "evening",
+    kind: "sleep",
+  },
+  {
+    moduleId: "preg_sleep",
+    title: "Мая · сон",
+    body: "Отметьте свой сон.",
+    href: "/m/preg_sleep",
+    slot: "evening",
+  },
+  {
+    moduleId: "notes",
+    title: "Мая · заметки",
+    body: "Запишите, что было сегодня.",
+    href: "/m/notes",
+    slot: "evening",
+  },
+];
+
+export const USAGE_DAY_AT = "12:00";
+export const USAGE_EVENING_AT = "20:00";
+
+export function ctaForModule(moduleId: string): UsageCta | undefined {
+  return USAGE_CTAS.find((c) => c.moduleId === moduleId);
+}
+
+export function pickLastUsedModule(
+  journals: JournalBag,
+  moduleIds: string[],
+): string | null {
+  let bestId: string | null = null;
+  let best = 0;
+  for (const id of moduleIds) {
+    const t = lastLogMs(journals, [id]);
+    if (t && t > best) {
+      best = t;
+      bestId = id;
+    }
+  }
+  return bestId;
+}
+
+export function pickFeedCta(
+  journals: JournalBag,
+  enabled: string[],
+): UsageCta {
+  const used = pickLastUsedModule(journals, LOG_MODULES.feed);
+  if (used) return ctaForModule(used) ?? USAGE_CTAS[0];
+  if (enabled.includes("formula") && !enabled.includes("breastfeeding")) {
+    return ctaForModule("formula") ?? USAGE_CTAS[0];
+  }
+  if (enabled.includes("solids") && !enabled.includes("breastfeeding")) {
+    return ctaForModule("solids") ?? USAGE_CTAS[0];
+  }
+  return ctaForModule("breastfeeding") ?? USAGE_CTAS[0];
+}
+
+/** Дневник, которым пользуются, но ещё нет включённого напоминания этого типа. */
+export function pickUsageCtas(
+  journals: JournalBag,
+  reminders: { kind: CareReminderKind; enabled: boolean }[],
+): { day: UsageCta | null; evening: UsageCta | null } {
+  const blocked = new Set<CareReminderKind>();
+  for (const r of reminders) blocked.add(r.kind);
+
+  const used: { cta: UsageCta; at: number }[] = [];
+  for (const cta of USAGE_CTAS) {
+    if (cta.kind && blocked.has(cta.kind)) continue;
+    const at = lastLogMs(journals, [cta.moduleId]);
+    if (!at) continue;
+    used.push({ cta, at });
+  }
+  used.sort((a, b) => b.at - a.at);
+  return {
+    day: used.find((u) => u.cta.slot === "day")?.cta ?? null,
+    evening: used.find((u) => u.cta.slot === "evening")?.cta ?? null,
+  };
+}
+
+export function ctaCopyForKind(
+  kind: CareReminderKind,
+  journals: JournalBag,
+  enabled: string[],
+): UsageCta | null {
+  if (kind === "feed") return pickFeedCta(journals, enabled);
+  if (kind === "custom") return null;
+  const row = USAGE_CTAS.find((c) => c.kind === kind);
+  return row ?? null;
+}
+
 export type CarePreset = {
   kind: CareReminderKind;
   label: string;
@@ -310,7 +519,7 @@ export const CARE_PRESETS: CarePreset[] = [
   {
     kind: "sleep",
     label: "Укладывание",
-    hint: "В выбранное время, «пора укладывать малыша».",
+    hint: "Вечером напомним отметить сон, если вы ведёте этот дневник.",
     icon: "sleep",
     defaultEnabled: true,
   },
@@ -350,7 +559,7 @@ export function defaultReminder(kind: CareReminderKind): CareReminder {
       mode: "interval",
       intervalMin: 180,
       title: "Мая · кормление",
-      body: "Пора покормить малыша. Если уже покормили, отметьте в дневнике.",
+      body: "Отметьте кормление.",
       href: "/m/breastfeeding",
       resetOnLog: true,
     };
@@ -361,10 +570,11 @@ export function defaultReminder(kind: CareReminderKind): CareReminder {
       kind,
       enabled: true,
       mode: "times",
-      times: ["21:00"],
+      times: [USAGE_EVENING_AT],
       title: "Мая · сон",
-      body: "Пора укладывать малыша. Спокойной ночи вам обоим.",
+      body: "Отметьте сон малыша.",
       href: "/m/sleep",
+      resetOnLog: true,
     };
   }
   if (kind === "wake") {
@@ -375,7 +585,7 @@ export function defaultReminder(kind: CareReminderKind): CareReminder {
       mode: "interval",
       intervalMin: 120,
       title: "Мая · бодрствование",
-      body: "Окно бодрствования подходит к концу, можно готовить ко сну.",
+      body: "Отметьте сон малыша.",
       href: "/m/sleep",
       resetOnLog: true,
     };
@@ -388,7 +598,7 @@ export function defaultReminder(kind: CareReminderKind): CareReminder {
       mode: "interval",
       intervalMin: 180,
       title: "Мая · подгузник",
-      body: "Проверьте подгузник у малыша.",
+      body: "Отметьте смену подгузника.",
       href: "/m/diaper",
       resetOnLog: true,
     };
@@ -403,7 +613,7 @@ export function defaultReminder(kind: CareReminderKind): CareReminder {
       quietFrom: "21:00",
       quietTo: "08:00",
       title: "Мая · прогулка",
-      body: "Время прогулки, если получится выйти.",
+      body: "Отметьте прогулку.",
       href: "/m/walk",
     };
   }
@@ -417,7 +627,7 @@ export function defaultReminder(kind: CareReminderKind): CareReminder {
       quietFrom: "22:00",
       quietTo: "08:00",
       title: "Мая · вода",
-      body: "Напоминание: стакан воды для вас.",
+      body: "Отметьте воду.",
       href: "/m/water",
     };
   }
@@ -429,7 +639,7 @@ export function defaultReminder(kind: CareReminderKind): CareReminder {
       mode: "times",
       times: ["09:00"],
       title: "Мая · лекарство",
-      body: "Напоминание про витамин или препарат.",
+      body: "Отметьте витамин или препарат.",
       href: "/m/preg_meds",
     };
   }
