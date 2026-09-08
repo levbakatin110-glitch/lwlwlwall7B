@@ -147,6 +147,16 @@ function saveProfile(p: CommunityProfile) {
   }
 }
 
+function usableAvatarUrl(url?: string): string | undefined {
+  const u = url?.trim();
+  if (!u) return undefined;
+  if (u.startsWith("data:image/") || u.startsWith("blob:")) return u;
+  if (u.startsWith("http://") || u.startsWith("https://") || u.startsWith("/")) {
+    return u;
+  }
+  return undefined;
+}
+
 function Avatar({
   name,
   avatarUrl,
@@ -161,14 +171,21 @@ function Avatar({
   size?: number;
 }) {
   const colors = pastelFromKey(authorKey);
-  if (avatarUrl) {
+  const src = usableAvatarUrl(avatarUrl);
+  const [broken, setBroken] = useState(false);
+  useEffect(() => {
+    setBroken(false);
+  }, [src]);
+  const letter = (name.trim()[0] || "?").toUpperCase();
+  if (src && !broken) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
-        src={avatarUrl}
+        src={src}
         alt=""
         className="shrink-0 rounded-full object-cover ring-1 ring-line/60"
         style={{ width: size, height: size }}
+        onError={() => setBroken(true)}
       />
     );
   }
@@ -183,7 +200,7 @@ function Avatar({
       }}
       aria-hidden
     >
-      {(name[0] || "?").toUpperCase()}
+      {letter}
     </div>
   );
 }
@@ -671,12 +688,9 @@ export function MomsCircleChat() {
   }
 
   const needSetup = ready && canPost && (!commProfile || editingProfile);
-  const myAvatarUrl =
-    myKey && messages.find((m) => m.authorKey === myKey)?.avatarUrl
-      ? `/api/community/avatar/${myKey}`
-      : myKey
-        ? `/api/community/avatar/${myKey}`
-        : undefined;
+  const myAvatarUrl = usableAvatarUrl(commProfile?.avatar)
+    ? commProfile?.avatar
+    : messages.find((m) => m.authorKey === myKey)?.avatarUrl;
 
   if (!ready) {
     return (
@@ -725,7 +739,7 @@ export function MomsCircleChat() {
             <h2 className="font-display text-2xl font-semibold tracking-tight">
               Как вас зовут?
             </h2>
-            <p className="text-sm text-muted">Фото и малыш, по желанию</p>
+            <p className="text-sm text-muted">Фото по желанию, малыш тоже</p>
 
             <div className="flex items-center gap-3">
               <button
@@ -741,7 +755,9 @@ export function MomsCircleChat() {
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  <span className="text-[11px] font-medium">фото</span>
+                  <span className="font-display text-2xl font-semibold text-accent">
+                    {(setupNick.trim()[0] || "?").toUpperCase()}
+                  </span>
                 )}
               </button>
               <input

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, type MouseEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type MouseEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { showPaywallHint } from "@/components/PaywallHint";
@@ -34,8 +34,13 @@ export function SidebarHeader({
   const router = useRouter();
   const today = useMemo(() => formatToday(), []);
   const name = childDisplayName(profile);
-  const initial = name.slice(0, 1).toUpperCase();
+  const initial = name.slice(0, 1).toUpperCase() || "М";
   const paywalled = PAID_ONLY && !isSubscriptionActive(subscription);
+  const [photoBroken, setPhotoBroken] = useState(false);
+  useEffect(() => {
+    setPhotoBroken(false);
+  }, [profile.photoData]);
+  const showPhoto = Boolean(profile.photoData) && !photoBroken;
 
   function onProfileClick(e: MouseEvent<HTMLAnchorElement>) {
     onNavigate?.();
@@ -54,12 +59,13 @@ export function SidebarHeader({
         className="flex min-w-0 flex-1 items-center gap-3 rounded-xl outline-none transition active:opacity-80 focus-visible:ring-2 focus-visible:ring-accent/40"
       >
         <span className="flex h-10 w-10 shrink-0 overflow-hidden rounded-xl bg-accent-soft ring-1 ring-line">
-          {profile.photoData ? (
+          {showPhoto ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={profile.photoData}
               alt=""
               className="h-full w-full object-cover"
+              onError={() => setPhotoBroken(true)}
             />
           ) : (
             <span className="m-auto font-display text-base font-semibold text-accent">

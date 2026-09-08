@@ -487,16 +487,23 @@ export function formatDaySummaryBrief(opts: {
   events: DayEvent[];
   hints: DayNormHint[];
   extraLines?: string[];
+  headerLines?: string[];
+  skipBabyTotals?: boolean;
+  allowedDiaries?: string[];
 }): string {
-  const lines: string[] = [
-    `Малыш: ${opts.name}${opts.age ? ` (${opts.age})` : ""}`,
-    `День: ${opts.dateLabel}`,
-    `Сон: ${opts.totals.sleepSec > 0 ? formatDurationRu(opts.totals.sleepSec) : "нет записей"} (${opts.totals.sleepCount} запис.)`,
-    `Кормления: ГВ ${opts.totals.bfCount}, смесь ${opts.totals.formulaCount} (${opts.totals.formulaMl} мл), прикорм ${opts.totals.solidsCount}`,
-    `Подгузники: ${opts.totals.diaperCount} (мокрых ${opts.totals.diaperWet}, грязных ${opts.totals.diaperDirty})`,
-  ];
-  if (opts.totals.bfSec > 0) {
-    lines.push(`ГВ суммарно: ${formatDurationRu(opts.totals.bfSec)}`);
+  const lines: string[] = opts.headerLines?.length
+    ? [...opts.headerLines]
+    : [`Малыш: ${opts.name}${opts.age ? ` (${opts.age})` : ""}`];
+  lines.push(`День: ${opts.dateLabel}`);
+  if (!opts.skipBabyTotals) {
+    lines.push(
+      `Сон: ${opts.totals.sleepSec > 0 ? formatDurationRu(opts.totals.sleepSec) : "нет записей"} (${opts.totals.sleepCount} запис.)`,
+      `Кормления: ГВ ${opts.totals.bfCount}, смесь ${opts.totals.formulaCount} (${opts.totals.formulaMl} мл), прикорм ${opts.totals.solidsCount}`,
+      `Подгузники: ${opts.totals.diaperCount} (мокрых ${opts.totals.diaperWet}, грязных ${opts.totals.diaperDirty})`,
+    );
+    if (opts.totals.bfSec > 0) {
+      lines.push(`ГВ суммарно: ${formatDurationRu(opts.totals.bfSec)}`);
+    }
   }
   if (opts.hints.length) {
     lines.push("Ориентиры:");
@@ -509,12 +516,17 @@ export function formatDaySummaryBrief(opts: {
     for (const e of opts.events.slice(0, 20)) {
       lines.push(`- ${e.title}: ${e.detail}`);
     }
-  } else {
+  } else if (!opts.skipBabyTotals) {
     lines.push("Лента пустая, почти нет записей.");
   }
   if (opts.extraLines?.length) {
-    lines.push("Ещё:");
+    lines.push("Дневники беременности / ещё:");
     lines.push(...opts.extraLines.map((l) => `- ${l}`));
+  }
+  if (opts.allowedDiaries?.length) {
+    lines.push(
+      `Дневники в меню слева (советуй только их): ${opts.allowedDiaries.join(", ")}`,
+    );
   }
   return lines.join("\n");
 }

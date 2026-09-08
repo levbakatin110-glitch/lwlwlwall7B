@@ -353,7 +353,9 @@ export default function ProfilePage() {
               // eslint-disable-next-line @next/next/no-img-element
               <img src={form.photoData} alt="" className="h-full w-full object-cover" />
             ) : (
-              <span className="text-xs text-accent">фото</span>
+              <span className="font-display text-2xl font-semibold text-accent">
+                {childDisplayName(form).slice(0, 1).toUpperCase() || "М"}
+              </span>
             )}
             <input
               type="file"
@@ -363,7 +365,7 @@ export default function ProfilePage() {
             />
           </label>
           <div className="min-w-0 flex-1">
-            <p className="text-xs text-muted">Сейчас редактируете</p>
+            <p className="text-xs text-muted">Сейчас редактируете · фото по желанию</p>
             <p className="font-display text-xl font-semibold">
               {childDisplayName(form)}
             </p>

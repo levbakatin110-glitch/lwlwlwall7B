@@ -17,12 +17,21 @@ import {
   type DayEventKind,
 } from "@/lib/day-summary";
 import { buildDayRhythm } from "@/lib/day-rhythm";
+import { MODULE_BY_ID } from "@/lib/modules";
+import {
+  filterModulesForNav,
+  hasBornChild,
+} from "@/lib/module-audience";
+import {
+  pregnancyWeek,
+  trimesterLabel,
+} from "@/lib/pregnancy";
 import {
   canSendAiChat,
 } from "@/lib/subscription";
 import { useAppStore } from "@/lib/store";
 import type { IconName } from "@/lib/icons";
-import type { JournalEntry } from "@/lib/types";
+import type { JournalEntry, ModuleId } from "@/lib/types";
 
 const KIND_META: Record<
   DayEventKind,
@@ -60,9 +69,22 @@ const KIND_META: Record<
   },
 };
 
+const PREG_DAY_LABELS: { id: string; label: string }[] = [
+  { id: "preg_sleep", label: "Сон мамы" },
+  { id: "preg_pressure", label: "Давление" },
+  { id: "preg_symptoms", label: "Самочувствие" },
+  { id: "preg_visits", label: "Визиты" },
+  { id: "preg_belly", label: "Животик" },
+  { id: "preg_meds", label: "Лекарства" },
+  { id: "kicks", label: "Шевеления" },
+  { id: "contractions", label: "Схватки" },
+  { id: "birth_plan", label: "План родов" },
+];
+
 function extrasForDay(
   date: string,
   journals: Record<string, JournalEntry[]>,
+  includePregnancy: boolean,
 ): string[] {
   const lines: string[] = [];
   const pick = (id: string, label: string) => {
@@ -76,12 +98,17 @@ function extrasForDay(
   };
   pick("water", "Вода");
   pick("walk", "Прогулка");
+  if (includePregnancy) {
+    for (const row of PREG_DAY_LABELS) pick(row.id, row.label);
+  }
   return lines;
 }
 
 export default function SummaryPage() {
   const journals = useAppStore((s) => s.journals);
   const profile = useAppStore((s) => s.profile);
+  const pregnancy = useAppStore((s) => s.pregnancy);
+  const childrenList = useAppStore((s) => s.children ?? []);
   const enabledModules = useAppStore((s) => s.enabledModules);
   const customModules = useAppStore((s) => s.customModules);
   const wardrobe = useAppStore((s) => s.wardrobe);
@@ -100,9 +127,14 @@ export default function SummaryPage() {
     () => buildDaySummary({ date, journals }),
     [date, journals],
   );
+  const pregnant = Boolean(pregnancy?.active);
+  const hasChild = hasBornChild(childrenList);
   const hints = useMemo(
-    () => dayNormHints({ birthDate: profile.birthDate, totals }),
-    [profile.birthDate, totals],
+    () =>
+      hasChild
+        ? dayNormHints({ birthDate: profile.birthDate, totals })
+        : [],
+    [hasChild, profile.birthDate, totals],
   );
   const rhythm = useMemo(
     () => buildDayRhythm(journals),
@@ -114,6 +146,17 @@ export default function SummaryPage() {
   const isToday = date === todayIso();
   const feedCount = totals.bfCount + totals.formulaCount;
   const shownVerdict = verdictForDate === date ? verdict : null;
+  const visibleModuleIds = filterModulesForNav(enabledModules, {
+    pregnant,
+    hasChild,
+  });
+  const allowedDiaryTitles = visibleModuleIds
+    .map((id) => MODULE_BY_ID[id as ModuleId]?.shortTitle || id)
+    .filter(Boolean);
+  const pregWeek =
+    pregnant && pregnancy?.dueDate
+      ? pregnancyWeek(pregnancy.dueDate, pregnancy.lmpDate)
+      : null;
 
   function askMayaVerdict() {
     if (pending) return;
@@ -129,24 +172,49 @@ export default function SummaryPage() {
       return;
     }
 
+    const headerLines: string[] = [];
+    if (hasChild) {
+      headerLines.push(
+        `Малыш: ${name}${age ? ` (${age})` : ""}`,
+      );
+    }
+    if (pregnant) {
+      headerLines.push(
+        pregWeek != null
+          ? `Беременность: ≈ ${pregWeek}-я неделя (${trimesterLabel(pregWeek)})`
+          : "Беременность: активна, неделя не рассчитана",
+      );
+    }
+    if (!headerLines.length) {
+      headerLines.push(`Профиль: ${name}`);
+    }
+
     const brief = formatDaySummaryBrief({
       name,
       age,
       dateLabel: formatDayLabel(date),
       totals,
-      events,
+      events: hasChild ? events : [],
       hints,
-      extraLines: extrasForDay(date, journals),
+      extraLines: extrasForDay(date, journals, pregnant),
+      headerLines,
+      skipBabyTotals: !hasChild,
+      allowedDiaries: allowedDiaryTitles,
     });
 
-    const prompt = `Посмотри итоги дня малыша и скажи простыми словами маме: как прошёл день, нормально ли в целом или на что обратить внимание.
+    const who = pregnant && hasChild
+      ? "итоги дня мамы и малыша"
+      : pregnant
+        ? "итоги дня беременной мамы"
+        : "итоги дня малыша";
+    const prompt = `Посмотри ${who} и скажи простыми словами: как прошёл день, нормально ли в целом или на что обратить внимание.
 
 Правила ответа:
 - 4–7 коротких предложений, тёплым тоном «как мама маме»
 - Без паники и диагнозов; если мало данных, честно скажи, что рано судить
-- Не заменяй педиатра
-- Можно 1 мягкий совет, что записать завтра
-
+- Не заменяй врача
+- Можно 1 мягкий совет, что записать завтра, НО только из дневников в меню слева. Не предлагай сон/ГВ/смесь/подгузник малыша, если их нет в списке доступных дневников.
+${pregnant ? "- Обязательно учти дневники беременности за этот день (давление, самочувствие, визиты, сон мамы, шевеления, схватки, животик).\n" : ""}
 Данные:
 ${brief}`;
 
@@ -176,6 +244,7 @@ ${brief}`;
               aiDescription: w.aiDescription,
             })),
             journals,
+            pregnancy,
           }),
         });
         if (!res.ok) {
@@ -255,7 +324,7 @@ ${brief}`;
         </button>
       </div>
 
-      {isToday && (rhythm.nextFeed || rhythm.nextSleep) ? (
+      {hasChild && isToday && (rhythm.nextFeed || rhythm.nextSleep) ? (
         <div className="mt-5 rounded-2xl border border-accent/25 bg-accent-soft/40 px-4 py-3">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-accent">
             По вашему ритму
@@ -273,7 +342,7 @@ ${brief}`;
         </div>
       ) : null}
 
-      {isToday && rhythm.compare.phrase ? (
+      {hasChild && isToday && rhythm.compare.phrase ? (
         <p
           className={`mt-3 text-sm leading-relaxed ${
             rhythm.compare.tone === "watch"
@@ -285,6 +354,8 @@ ${brief}`;
         </p>
       ) : null}
 
+      {hasChild ? (
+        <>
       <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatTile
           label="Сон"
@@ -356,6 +427,67 @@ ${brief}`;
           )}
         </p>
       )}
+        </>
+      ) : pregnant ? (
+        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <StatTile
+            label="Сон мамы"
+            value={
+              (journals.preg_sleep ?? []).filter((e) => e.date === date).length
+                ? formatDurationRu(
+                    (journals.preg_sleep ?? [])
+                      .filter((e) => e.date === date)
+                      .reduce((s, e) => {
+                        const n = Number(e.fields?.totalSec);
+                        return s + (Number.isFinite(n) ? n : 0);
+                      }, 0),
+                  )
+                : "—"
+            }
+            hint={
+              (journals.preg_sleep ?? []).filter((e) => e.date === date).length
+                ? `${(journals.preg_sleep ?? []).filter((e) => e.date === date).length} запис.`
+                : "нет записей"
+            }
+            href="/m/preg_sleep"
+            icon="sleep"
+          />
+          <StatTile
+            label="Самочувствие"
+            value={
+              String(
+                (journals.preg_symptoms ?? []).filter((e) => e.date === date)
+                  .length || "—",
+              )
+            }
+            hint="за день"
+            href="/m/preg_symptoms"
+            icon="health"
+          />
+          <StatTile
+            label="Давление"
+            value={
+              (journals.preg_pressure ?? []).filter((e) => e.date === date)
+                .slice(-1)[0]?.value || "—"
+            }
+            hint="последнее"
+            href="/m/preg_pressure"
+            icon="pulse"
+          />
+          <StatTile
+            label="Визиты"
+            value={
+              String(
+                (journals.preg_visits ?? []).filter((e) => e.date === date)
+                  .length || "—",
+              )
+            }
+            hint="за день"
+            href="/m/preg_visits"
+            icon="list"
+          />
+        </div>
+      ) : null}
 
       <div className="mt-6 space-y-2">
         {hints.map((h) => (
@@ -375,7 +507,7 @@ ${brief}`;
         ))}
       </div>
 
-      {hints.some((h) => h.tone === "watch") ? (
+      {hasChild && hints.some((h) => h.tone === "watch") ? (
         <div className="mt-4">
           <PlanOfferBanner
             moduleId={
@@ -414,7 +546,7 @@ ${brief}`;
       <div className="mt-8 flex items-end justify-between gap-3">
         <p className="font-display text-xl font-semibold">Лента</p>
         <Link
-          href="/m/sleep"
+          href={hasChild ? "/m/sleep" : "/m/preg_symptoms"}
           className="text-xs font-medium text-accent underline"
         >
           + запись
@@ -425,30 +557,32 @@ ${brief}`;
         <div className="mt-4 rounded-2xl border border-dashed border-line bg-card/40 px-4 py-8 text-center">
           <p className="text-sm text-muted">За этот день записей пока нет.</p>
           <div className="mt-3 flex flex-wrap justify-center gap-2">
-            <Link
-              href="/m/sleep"
-              className="rounded-xl bg-accent px-3 py-2 text-xs font-semibold text-white"
-            >
-              Сон
-            </Link>
-            <Link
-              href="/m/breastfeeding"
-              className="rounded-xl border border-line bg-card px-3 py-2 text-xs font-semibold"
-            >
-              ГВ
-            </Link>
-            <Link
-              href="/m/formula"
-              className="rounded-xl border border-line bg-card px-3 py-2 text-xs font-semibold"
-            >
-              Смесь
-            </Link>
-            <Link
-              href="/m/diaper"
-              className="rounded-xl border border-line bg-card px-3 py-2 text-xs font-semibold"
-            >
-              Подгузник
-            </Link>
+            {(hasChild || !pregnant
+              ? [
+                  { href: "/m/sleep", label: "Сон", primary: true },
+                  { href: "/m/breastfeeding", label: "ГВ" },
+                  { href: "/m/formula", label: "Смесь" },
+                  { href: "/m/diaper", label: "Подгузник" },
+                ]
+              : [
+                  { href: "/m/preg_sleep", label: "Сон мамы", primary: true },
+                  { href: "/m/preg_symptoms", label: "Самочувствие" },
+                  { href: "/m/preg_pressure", label: "Давление" },
+                  { href: "/m/preg_visits", label: "Визиты" },
+                ]
+            ).map((chip) => (
+              <Link
+                key={chip.href}
+                href={chip.href}
+                className={
+                  chip.primary
+                    ? "rounded-xl bg-accent px-3 py-2 text-xs font-semibold text-white"
+                    : "rounded-xl border border-line bg-card px-3 py-2 text-xs font-semibold"
+                }
+              >
+                {chip.label}
+              </Link>
+            ))}
           </div>
         </div>
       ) : (
@@ -486,8 +620,9 @@ ${brief}`;
       )}
 
       <p className="mt-8 text-[11px] leading-relaxed text-muted">
-        Ориентиры по возрасту, очень приблизительные и не заменяют педиатра.
-        Смотрите на вес, подгузники и самочувствие малыша.
+        {hasChild
+          ? "Ориентиры по возрасту, очень приблизительные и не заменяют педиатра. Смотрите на вес, подгузники и самочувствие малыша."
+          : "Это не замена врачу. Смотрите на самочувствие и то, что сказал ваш доктор."}
       </p>
     </div>
   );
