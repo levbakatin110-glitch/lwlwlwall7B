@@ -6,7 +6,7 @@ import {
   DiaryEmpty,
   DiaryPage,
   DiaryPrimaryButton,
-  DiarySpreadHead,
+  DiarySectionTitle,
   DiarySpreadLog,
   DiaryStats,
   DiaryStickyCta,
@@ -15,53 +15,25 @@ import {
 } from "@/components/diary/DiaryShell";
 import { DiaryInsightCard } from "@/components/diary/DiaryInsightCard";
 import { sleepInsight } from "@/lib/diary-insights";
+import { formatClock, formatDuration } from "@/lib/diary-day";
 import {
-  entriesForToday,
-  entryTimeMs,
-  formatClock,
-  formatDuration,
-  wakeMinutesSince,
-} from "@/lib/diary-day";
+  buildSleepDays,
+  currentWakeMs,
+  collectSleepSpans,
+  sleepDurationSec,
+  type SleepKind,
+} from "@/lib/sleep-day";
 import { liveGet, liveSet } from "@/lib/live-session";
 import { ISLAND_EVENT, notifyIslandChanged } from "@/lib/live-timer-actions";
 import { timerIsland } from "@/lib/timer-island";
 import { useAppStore } from "@/lib/store";
-import type { JournalEntry } from "@/lib/types";
-
-type Kind = "nap" | "night";
 
 type SleepLive = {
-  kind: Kind;
+  kind: SleepKind;
   startedAt: number;
 };
 
 const KEY = "maya-sleep-session";
-
-function sleepStartMs(e: JournalEntry): number {
-  if (typeof e.fields?.startMs === "number") return e.fields.startMs;
-  if (typeof e.fields?.from === "string") {
-    const t = Date.parse(e.fields.from);
-    if (!Number.isNaN(t)) return t;
-  }
-  return entryTimeMs(e);
-}
-
-function sleepEndMs(e: JournalEntry): number {
-  if (typeof e.fields?.endMs === "number") return e.fields.endMs;
-  if (typeof e.fields?.to === "string") {
-    const t = Date.parse(e.fields.to);
-    if (!Number.isNaN(t)) return t;
-  }
-  const sec = Number(e.fields?.totalSec);
-  if (Number.isFinite(sec)) return sleepStartMs(e) + sec * 1000;
-  return sleepStartMs(e);
-}
-
-function sleepDurationSec(e: JournalEntry): number {
-  const sec = Number(e.fields?.totalSec);
-  if (Number.isFinite(sec)) return sec;
-  return Math.max(0, Math.floor((sleepEndMs(e) - sleepStartMs(e)) / 1000));
-}
 
 function kindLabel(kind: string | undefined, isMom: boolean): string {
   if (kind === "night") return "ночной";
@@ -108,8 +80,7 @@ export function SleepTracker({ journalId = "sleep" }: { journalId?: string }) {
   }, [live, storageKey]);
 
   useEffect(() => {
-    if (!live) return;
-    const id = window.setInterval(() => setNow(Date.now()), 500);
+    const id = window.setInterval(() => setNow(Date.now()), live ? 500 : 15_000);
     return () => window.clearInterval(id);
   }, [live]);
 
@@ -118,40 +89,28 @@ export function SleepTracker({ journalId = "sleep" }: { journalId?: string }) {
     return Math.max(0, Math.floor((now - live.startedAt) / 1000));
   }, [live, now]);
 
-  const todayEntries = useMemo(() => {
-    return entriesForToday(entries)
-      .slice()
-      .sort((a, b) => sleepEndMs(b) - sleepEndMs(a));
-  }, [entries]);
-
-  const stats = useMemo(() => {
-    const totalSec = todayEntries.reduce((s, e) => s + sleepDurationSec(e), 0);
-    const wake = wakeMinutesSince(entries);
-    return {
-      totalSec,
-      count: todayEntries.length,
-      wakeLabel: wake != null ? `${wake} мин` : "—",
-      wakeMin: wake,
-    };
-  }, [todayEntries, entries]);
+  const days = useMemo(
+    () => buildSleepDays(entries, now, live),
+    [entries, now, live],
+  );
+  const today = days[0];
+  const spans = useMemo(
+    () => collectSleepSpans(entries, live, now),
+    [entries, live, now],
+  );
+  const wakeMs = currentWakeMs(spans, now);
 
   const insight = useMemo(
-    () => (isMomSleep ? null : sleepInsight(entries, birthDate)),
-    [isMomSleep, entries, birthDate],
+    () => (isMomSleep ? null : sleepInsight(entries, birthDate, now)),
+    [isMomSleep, entries, birthDate, now],
   );
 
-  const sleepSpans = useMemo(() => {
-    const spans = todayEntries.map((e) => ({
-      startMs: sleepStartMs(e),
-      endMs: sleepEndMs(e),
-    }));
-    if (live) {
-      spans.push({ startMs: live.startedAt, endMs: now });
-    }
-    return spans;
-  }, [todayEntries, live, now]);
+  const sleepSpans = useMemo(
+    () => spans.map((s) => ({ startMs: s.startMs, endMs: s.endMs })),
+    [spans],
+  );
 
-  function start(kind: Kind) {
+  function start(kind: SleepKind) {
     const startedAt = Date.now();
     const next = { kind, startedAt };
     try {
@@ -205,18 +164,28 @@ export function SleepTracker({ journalId = "sleep" }: { journalId?: string }) {
     setLive(null);
   }
 
-  const hasTimeline = todayEntries.length > 0 || live;
+  const hasTimeline = days.some((d) => d.rows.length > 0) || live;
 
   return (
     <DiaryPage stickyPad>
       <DiaryStats
         items={[
           {
-            label: "Сегодня",
-            value: stats.totalSec > 0 ? formatDuration(stats.totalSec) : "—",
+            label: "Сон за сутки",
+            value: today && today.sleepSec > 0 ? formatDuration(today.sleepSec) : "—",
           },
-          { label: "Снов", value: stats.count },
-          { label: "Бодрств.", value: stats.wakeLabel },
+          {
+            label: "Ночной",
+            value: today && today.nightSec > 0 ? formatDuration(today.nightSec) : "—",
+          },
+          {
+            label: "Бодрств.",
+            value: live
+              ? "спит"
+              : wakeMs != null
+                ? formatDuration(Math.floor(wakeMs / 1000))
+                : "—",
+          },
         ]}
       />
 
@@ -225,7 +194,7 @@ export function SleepTracker({ journalId = "sleep" }: { journalId?: string }) {
       <DiaryDayStrip now={now} spans={sleepSpans} />
 
       {live ? (
-        <div className="mt-6 text-center">
+        <div className="mt-2 text-center">
           <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">
             {live.kind === "night" ? "Ночной" : isMomSleep ? "Отдых" : "Дневной"}
           </p>
@@ -236,64 +205,81 @@ export function SleepTracker({ journalId = "sleep" }: { journalId?: string }) {
       ) : null}
 
       {hasTimeline ? (
-        <div className="mt-5">
-          <DiarySpreadHead left="Время" middle="Длительность" right="Тип" />
-          <DiaryTimeline>
-            {live ? (
-              <li>
-                <DiaryTimelineRow
-                  accent
-                  mark={todayEntries.length + 1}
-                  left={
-                    <DiarySpreadLog
-                      accent
-                      time={`${formatClock(live.startedAt)}–…`}
-                      value={formatDuration(elapsed)}
-                      detail={kindLabel(live.kind, isMomSleep)}
-                    />
+        <div className="mt-2 flex flex-col gap-5">
+          {days.map((day) => {
+            if (!day.rows.length && day.sleepSec <= 0) return null;
+            const sleepMarks = day.rows.filter((r) => r.type === "sleep");
+            return (
+              <div key={day.ymd}>
+                <DiarySectionTitle
+                  left={day.label}
+                  right={
+                    day.sleepSec > 0
+                      ? `${formatDuration(day.sleepSec)} сна · ${formatDuration(day.wakeSec)} бодрств.`
+                      : undefined
                   }
                 />
-              </li>
-            ) : null}
-            {todayEntries.map((e, i) => {
-              const startMs = sleepStartMs(e);
-              const endMs = sleepEndMs(e);
-              const dur = sleepDurationSec(e);
-              const isNewest = i === 0 && !live;
-              return (
-                <li key={e.id}>
-                  <DiaryTimelineRow
-                    accent={isNewest}
-                    mark={todayEntries.length - i}
-                    onClick={() => {
-                      if (
-                        window.confirm(
-                          isMomSleep
-                            ? "Удалить эту запись об отдыхе?"
-                            : "Удалить эту запись о сне?",
-                        )
-                      ) {
-                        removeJournalEntry(journalId, e.id);
-                      }
-                    }}
-                    left={
-                      <DiarySpreadLog
-                        accent={isNewest}
-                        time={`${formatClock(startMs)}–${formatClock(endMs)}`}
-                        value={formatDuration(dur)}
-                        detail={kindLabel(
-                          typeof e.fields?.kind === "string"
-                            ? e.fields.kind
-                            : undefined,
-                          isMomSleep,
-                        )}
-                      />
+                <DiaryTimeline>
+                  {day.rows.map((row) => {
+                    if (row.type === "wake") {
+                      return (
+                        <li key={`wake-${row.startMs}`}>
+                          <DiaryTimelineRow
+                            mark="б"
+                            left={
+                              <DiarySpreadLog
+                                time={`${formatClock(row.startMs)}–${formatClock(row.endMs)}`}
+                                value={formatDuration(
+                                  sleepDurationSec(row),
+                                )}
+                                detail="бодрствование"
+                                accent={row.current}
+                              />
+                            }
+                          />
+                        </li>
+                      );
                     }
-                  />
-                </li>
-              );
-            })}
-          </DiaryTimeline>
+                    const { span } = row;
+                    const mark = sleepMarks.findIndex((r) => r.span.id === span.id) + 1;
+                    return (
+                      <li key={span.id}>
+                        <DiaryTimelineRow
+                          accent={Boolean(span.live)}
+                          mark={span.live ? "…" : mark}
+                          onClick={
+                            span.live
+                              ? undefined
+                              : () => {
+                                  if (
+                                    window.confirm(
+                                      isMomSleep
+                                        ? "Удалить эту запись об отдыхе?"
+                                        : "Удалить эту запись о сне?",
+                                    )
+                                  ) {
+                                    removeJournalEntry(journalId, span.id);
+                                  }
+                                }
+                          }
+                          left={
+                            <DiarySpreadLog
+                              accent={Boolean(span.live)}
+                              time={`${formatClock(span.startMs)}–${
+                                span.live ? "…" : formatClock(span.endMs)
+                              }`}
+                              value={formatDuration(sleepDurationSec(span))}
+                              detail={kindLabel(span.kind, isMomSleep)}
+                            />
+                          }
+                        />
+                      </li>
+                    );
+                  })}
+                </DiaryTimeline>
+              </div>
+            );
+          })}
         </div>
       ) : (
         <DiaryEmpty>Пока пусто</DiaryEmpty>

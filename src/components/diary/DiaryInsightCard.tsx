@@ -16,30 +16,36 @@ export function DiaryInsightCard({ view }: { view: DiaryInsightView }) {
 
   return (
     <div className={`rounded-2xl border px-3.5 py-3 ${insight ? toneClass(insight.tone) : "border-line bg-card/80"}`}>
-      {visible.length >= 2 ? (
+      {visible.length >= 1 ? (
         <div className="mb-2.5">
           <p className="text-[10px] font-medium tracking-wide text-muted">
             {sparkCaption ?? "динамика"}
           </p>
-          <div className="mt-2 flex h-14 items-end gap-1">
+          <div className="mt-2 flex h-[4.5rem] gap-0.5">
             {spark.map((p) => (
               <div
                 key={p.key}
-                className="flex h-full min-w-0 flex-1 flex-col justify-end"
+                className="flex min-w-0 flex-1 flex-col items-center"
+                title={`${p.label}: ${p.value}`}
               >
-                <span
-                  className="w-full rounded-sm bg-accent/80"
-                  style={{
-                    height: `${p.value > 0 ? Math.max(10, (p.value / max) * 100) : 0}%`,
-                  }}
-                  title={`${p.label}: ${p.value}`}
-                />
+                <div className="flex w-full flex-1 items-end justify-center">
+                  <span
+                    className={`w-[72%] max-w-[14px] rounded-[3px] ${
+                      p.value > 0 ? "bg-accent" : "bg-foreground/[0.08]"
+                    }`}
+                    style={{
+                      height:
+                        p.value > 0
+                          ? `${Math.max(14, (p.value / max) * 100)}%`
+                          : "3px",
+                    }}
+                  />
+                </div>
+                <span className="mt-1 text-[9px] leading-none text-muted">
+                  {p.label}
+                </span>
               </div>
             ))}
-          </div>
-          <div className="mt-1 flex justify-between text-[9px] text-muted">
-            <span>{spark[0]?.label}</span>
-            <span>{spark[spark.length - 1]?.label}</span>
           </div>
         </div>
       ) : null}

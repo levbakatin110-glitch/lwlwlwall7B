@@ -2,6 +2,13 @@
 
 import { ageMonths } from "./growth-norms";
 import { toLocalDateIso } from "./local-date";
+import {
+  collectSleepSpans,
+  overlapMs,
+  sleepDurationSec,
+  sleepHoursByYmd,
+  ymdStartMs,
+} from "./sleep-day";
 import type { JournalEntry } from "./types";
 
 export type InsightTone = "ok" | "watch" | "info";
@@ -307,22 +314,17 @@ export function sleepInsight(
 ): DiaryInsightView {
   const today = toLocalDateIso(new Date(now));
   const days = lastDays(today, 7);
-  const secByDay = new Map<string, number>();
-  for (const e of entries) {
-    secByDay.set(e.date, (secByDay.get(e.date) ?? 0) + entrySec(e));
-  }
-  const spark = sparkFromDays(
-    days,
-    (iso) => Math.round(((secByDay.get(iso) ?? 0) / 3600) * 10) / 10,
-  );
+  const hours = sleepHoursByYmd(entries, days, now);
+  const spark = sparkFromDays(days, (iso) => hours.get(iso) ?? 0);
   const sparkCaption = "часов сна за день";
-  const todayH = (secByDay.get(today) ?? 0) / 3600;
+  const todayH = hours.get(today) ?? 0;
   const months = ageMonths(birthDate);
   const range = typicalSleepH(months);
-  const todayList = (entries.filter((e) => e.date === today) ?? []).sort(
-    (a, b) => entryStartMs(a) - entryStartMs(b),
+  const dayFrom = ymdStartMs(today);
+  const todaySpans = collectSleepSpans(entries, null, now).filter(
+    (s) => overlapMs(s.startMs, s.endMs, dayFrom, now) > 0,
   );
-  if (!todayList.length && todayH === 0) {
+  if (!todaySpans.length && todayH === 0) {
     return {
       spark,
       sparkCaption,
@@ -331,7 +333,7 @@ export function sleepInsight(
   }
 
   let longest = 0;
-  for (const e of todayList) longest = Math.max(longest, entrySec(e));
+  for (const s of todaySpans) longest = Math.max(longest, sleepDurationSec(s));
 
   if (todayH > 0 && months != null && todayH < range.min - 2) {
     return {
