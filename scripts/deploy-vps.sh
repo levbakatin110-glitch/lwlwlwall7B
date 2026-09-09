@@ -3,24 +3,37 @@
 set -euo pipefail
 cd /var/www/maya
 
-if [ -z "${NEXT_SERVER_ACTIONS_ENCRYPTION_KEY:-}" ]; then
-  if [ -f .env.production ]; then
-    # shellcheck disable=SC1091
-    set -a
-    source .env.production
-    set +a
-  fi
-fi
+# .env — не bash: скобки/кавычки в секретах ломают `source`.
+load_dotenv() {
+  local file="$1"
+  [ -f "$file" ] || return 0
+  local line key val
+  while IFS= read -r line || [ -n "$line" ]; do
+    line="${line%$'\r'}"
+    case "$line" in
+      ""|\#*) continue ;;
+    esac
+    [[ "$line" == *=* ]] || continue
+    key="${line%%=*}"
+    val="${line#*=}"
+    key="${key%"${key##*[![:space:]]}"}"
+    key="${key#"${key%%[![:space:]]*}"}"
+    [[ "$key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || continue
+    if [[ "$val" == \"*\" && "$val" == *\" ]]; then
+      val="${val#\"}"
+      val="${val%\"}"
+    elif [[ "$val" == \'*\' && "$val" == *\' ]]; then
+      val="${val#\'}"
+      val="${val%\'}"
+    fi
+    printf -v "$key" '%s' "$val"
+    export "$key"
+  done < "$file"
+}
+
+load_dotenv .env.production
 if [ -z "${NEXT_SERVER_ACTIONS_ENCRYPTION_KEY:-}" ]; then
   export NEXT_SERVER_ACTIONS_ENCRYPTION_KEY='DPEZn35NF4GXiXF/tJrPE4tgrGS55JeVCSpLVZ39sWM='
-fi
-
-# Подтянуть переменные чата из .env.production если есть
-if [ -f .env.production ]; then
-  set -a
-  # shellcheck disable=SC1091
-  source .env.production
-  set +a
 fi
 
 # Репозиторий закрытый для git pull — качаем публичный tarball ветки main
