@@ -1,4 +1,5 @@
-/** Тихий зацикленный WAV, iPhone берёт в островок только HTML-аудио, не Web Audio. */
+/** Тихий зацикленный WAV, iPhone берёт в островок только HTML-аудио, не Web Audio.
+ * Амплитуда 1 — формально не тишина (иначе iOS может не держать Now Playing), на слух пусто. */
 export function buildQuietLoopWav(): Blob {
   const sampleRate = 22050;
   const seconds = 2;
@@ -23,7 +24,7 @@ export function buildQuietLoopWav(): Blob {
   writeStr(36, "data");
   view.setUint32(40, dataSize, true);
   for (let i = 0; i < n; i++) {
-    const sample = Math.sin((2 * Math.PI * 48 * i) / sampleRate) * 120;
+    const sample = Math.sin((2 * Math.PI * 48 * i) / sampleRate) * 1;
     view.setInt16(44 + i * 2, sample, true);
   }
   return new Blob([buf], { type: "audio/wav" });

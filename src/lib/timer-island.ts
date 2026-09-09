@@ -3,6 +3,7 @@ import {
   type IslandKind,
   type IslandTarget,
 } from "@/lib/live-timer-actions";
+import { buildQuietLoopWav } from "@/lib/quiet-loop-wav";
 import { formatLockClock } from "@/lib/timer-lock-art";
 
 const ISLAND_ART: Record<IslandKind, string> = {
@@ -26,7 +27,6 @@ type Playing = {
 };
 
 const SW_URL = "/sw.js?v=17";
-const KEEP_SRC = "/timer-keep.wav";
 
 class TimerIsland {
   private el: HTMLAudioElement | null = null;
@@ -34,7 +34,7 @@ class TimerIsland {
   private handlers: IslandHandlers = {};
   private posTimer: number | null = null;
   private visBound = false;
-  private noticeTicks = 0;
+  private keepUrl: string | null = null;
   private listeners = new Set<(p: Playing | null) => void>();
 
   subscribe(fn: (p: Playing | null) => void) {
@@ -68,12 +68,11 @@ class TimerIsland {
     this.bindVisibility();
     this.refreshMedia();
     if (!this.playing.paused) {
-      el.volume = 0.18;
       el.muted = false;
+      el.volume = 1;
       const play = el.play();
       if (play) void play.catch(() => undefined);
     }
-    this.askNoticeInGesture();
     this.emit();
   }
 
@@ -109,7 +108,6 @@ class TimerIsland {
       this.bindMedia();
       this.refreshMedia();
       if (!target.paused) this.unlock();
-      this.pushLockNotice();
       this.emit();
       return;
     }
@@ -118,7 +116,6 @@ class TimerIsland {
       this.playing.paused = true;
       this.el?.pause();
       this.refreshMedia();
-      this.pushLockNotice();
       this.emit();
       return;
     }
@@ -126,7 +123,6 @@ class TimerIsland {
       this.playing.paused = false;
       this.unlock();
       this.refreshMedia();
-      this.pushLockNotice();
       this.emit();
       return;
     }
@@ -138,7 +134,6 @@ class TimerIsland {
     this.playing = { ...this.playing, paused: true };
     this.el?.pause();
     this.refreshMedia();
-    this.pushLockNotice();
     this.emit();
     this.handlers.onPause?.();
   }
@@ -148,7 +143,6 @@ class TimerIsland {
     this.playing = { ...this.playing, paused: false };
     this.unlock();
     this.refreshMedia();
-    this.pushLockNotice();
     this.emit();
     this.handlers.onPlay?.();
   }
@@ -167,8 +161,10 @@ class TimerIsland {
     el.loop = true;
     el.preload = "auto";
     el.controls = false;
-    el.volume = 0.18;
-    el.src = KEEP_SRC;
+    el.volume = 1;
+    el.muted = false;
+    if (!this.keepUrl) this.keepUrl = URL.createObjectURL(buildQuietLoopWav());
+    el.src = this.keepUrl;
     el.setAttribute("aria-hidden", "true");
     document.body.appendChild(el);
     this.el = el;
@@ -181,7 +177,6 @@ class TimerIsland {
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) {
         this.applyMetadata();
-        this.pushLockNotice();
         return;
       }
       if (this.playing && !this.playing.paused) this.unlock();
@@ -195,7 +190,6 @@ class TimerIsland {
       this.posTimer = null;
     }
     this.playing = null;
-    this.noticeTicks = 0;
     if (typeof navigator !== "undefined" && navigator.mediaSession) {
       try {
         navigator.mediaSession.metadata = null;
@@ -264,10 +258,6 @@ class TimerIsland {
     if (this.posTimer == null) {
       this.posTimer = window.setInterval(() => {
         this.applyMetadata();
-        if (typeof document !== "undefined" && document.hidden) {
-          this.noticeTicks += 1;
-          if (this.noticeTicks % 15 === 0) this.pushLockNotice();
-        }
       }, 1000);
     }
   }
@@ -279,69 +269,6 @@ class TimerIsland {
     } catch {
       /* */
     }
-  }
-
-  /** requestPermission должен стартовать в том же тапе, что и «Старт». */
-  private askNoticeInGesture() {
-    if (typeof window === "undefined" || !("Notification" in window)) return;
-    if (Notification.permission === "default") {
-      try {
-        const req = Notification.requestPermission();
-        if (req && typeof req.then === "function") {
-          void req.then(() => this.pushLockNotice());
-        }
-      } catch {
-        /* */
-      }
-      return;
-    }
-    this.pushLockNotice();
-  }
-
-  private pushLockNotice() {
-    if (typeof window === "undefined" || !this.playing) return;
-    if (!("Notification" in window) || Notification.permission !== "granted") {
-      return;
-    }
-    const t = this.playing.target;
-    const elapsed = islandElapsedSec(t);
-    const clock = formatLockClock(elapsed);
-    const title = clock;
-    const url = t.href;
-    const text = this.playing.paused
-      ? `${t.title} · пауза · Мая`
-      : `${t.title} · идёт · Мая`;
-    void (async () => {
-      try {
-        if ("serviceWorker" in navigator) {
-          await navigator.serviceWorker.register(SW_URL);
-          const reg = await navigator.serviceWorker.ready;
-          await reg.showNotification(title, {
-            body: text,
-            tag: "maya-live-timer",
-            silent: true,
-            requireInteraction: true,
-            icon: "/icons/icon-192.png",
-            badge: "/icons/icon-192.png",
-            data: { url },
-            renotify: true,
-          } as NotificationOptions);
-          return;
-        }
-      } catch {
-        /* */
-      }
-      try {
-        new Notification(title, {
-          body: text,
-          tag: "maya-live-timer",
-          silent: true,
-          icon: "/icons/icon-192.png",
-        });
-      } catch {
-        /* */
-      }
-    })();
   }
 
   private clearLockNotice() {

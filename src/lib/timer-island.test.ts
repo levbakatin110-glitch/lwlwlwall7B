@@ -45,5 +45,12 @@ describe("buildQuietLoopWav", () => {
     expect(ascii).toBe("RIFF");
     expect(blob.type).toBe("audio/wav");
     expect(buf.byteLength).toBeGreaterThan(44);
+    const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+    let peak = 0;
+    for (let i = 44; i + 1 < buf.byteLength; i += 2) {
+      const s = Math.abs(view.getInt16(i, true));
+      if (s > peak) peak = s;
+    }
+    expect(peak).toBeLessThanOrEqual(2);
   });
 });
