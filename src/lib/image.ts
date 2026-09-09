@@ -1,8 +1,8 @@
 /** Сжимает фото для хранения в браузере (localStorage ограничен). */
 export async function compressImageFile(
   file: File,
-  maxSide = 720,
-  quality = 0.68,
+  maxSide = 960,
+  quality = 0.84,
 ): Promise<string> {
   const bitmap = await createImageBitmap(file);
   const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
@@ -14,6 +14,8 @@ export async function compressImageFile(
   canvas.height = h;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Не удалось обработать фото");
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
   ctx.drawImage(bitmap, 0, 0, w, h);
   bitmap.close();
 

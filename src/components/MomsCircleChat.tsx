@@ -591,7 +591,7 @@ export function MomsCircleChat() {
     if (!file) return;
     try {
       if (file.type.startsWith("image/")) {
-        const dataUrl = await compressImageFile(file, 1280, 0.72);
+        const dataUrl = await compressImageFile(file, 1400, 0.86);
         const blob = await (await fetch(dataUrl)).blob();
         const compressed = new File([blob], "photo.jpg", { type: "image/jpeg" });
         clearPendingMedia();

@@ -124,7 +124,7 @@ export default function WardrobePage() {
   async function onPickClothing(file: File | null) {
     if (!file) return;
     try {
-      const compressed = await compressImageFile(file);
+      const compressed = await compressImageFile(file, 1280, 0.86);
       setImageData(compressed);
       await runAnalyze(compressed, labelImageData, note);
     } catch {
@@ -135,7 +135,7 @@ export default function WardrobePage() {
   async function onPickLabel(file: File | null) {
     if (!file) return;
     try {
-      const compressed = await compressImageFile(file, 960, 0.72);
+      const compressed = await compressImageFile(file, 1600, 0.92);
       setLabelImageData(compressed);
       if (imageData) await runAnalyze(imageData, compressed, note);
     } catch {

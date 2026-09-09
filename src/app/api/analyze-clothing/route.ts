@@ -44,7 +44,7 @@ export async function POST(req: Request) {
   try {
     const userContent: Array<
       | { type: "text"; text: string }
-      | { type: "image_url"; image_url: { url: string } }
+      | { type: "image_url"; image_url: { url: string; detail?: "low" | "high" | "auto" } }
     > = [
       {
         type: "text",
@@ -63,14 +63,14 @@ export async function POST(req: Request) {
       },
       {
         type: "image_url",
-        image_url: { url: imageData },
+        image_url: { url: imageData, detail: "high" },
       },
     ];
 
     if (hasLabel) {
       userContent.push({
         type: "image_url",
-        image_url: { url: labelImageData },
+        image_url: { url: labelImageData, detail: "high" },
       });
     }
 
