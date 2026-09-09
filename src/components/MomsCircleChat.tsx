@@ -25,6 +25,8 @@ import {
 import { childDisplayName } from "@/lib/children";
 import { compressImageFile } from "@/lib/image";
 import { trackEvent } from "@/lib/analytics-client";
+import { getFacingAvStream } from "@/lib/camera-facing";
+import { getMicStream } from "@/lib/media-access";
 import { useAppStore } from "@/lib/store";
 
 type MediaKind = "image" | "video" | "circle" | "voice";
@@ -264,6 +266,8 @@ export function MomsCircleChat() {
   const [pendingPreview, setPendingPreview] = useState<string | null>(null);
   const [circleOpen, setCircleOpen] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
+  const [circleStream, setCircleStream] = useState<MediaStream | null>(null);
+  const [voiceStream, setVoiceStream] = useState<MediaStream | null>(null);
   const [replyTo, setReplyTo] = useState<CommunityMessage | null>(null);
   const [menu, setMenu] = useState<MenuState | null>(null);
   const [flashId, setFlashId] = useState<string | null>(null);
@@ -1089,7 +1093,20 @@ export function MomsCircleChat() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setCircleOpen(true)}
+                    onClick={() => {
+                      void (async () => {
+                        try {
+                          const s = await getFacingAvStream("user", {
+                            width: 480,
+                            height: 480,
+                          });
+                          setCircleStream(s);
+                        } catch {
+                          setCircleStream(null);
+                        }
+                        setCircleOpen(true);
+                      })();
+                    }}
                     disabled={busy}
                     className="flex h-11 w-10 shrink-0 items-center justify-center rounded-xl text-muted hover:bg-accent-soft hover:text-foreground disabled:opacity-40"
                     aria-label="Записать кружок"
@@ -1099,7 +1116,17 @@ export function MomsCircleChat() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setVoiceOpen(true)}
+                    onClick={() => {
+                      void (async () => {
+                        try {
+                          const s = await getMicStream();
+                          setVoiceStream(s);
+                        } catch {
+                          setVoiceStream(null);
+                        }
+                        setVoiceOpen(true);
+                      })();
+                    }}
                     disabled={busy}
                     className="flex h-11 w-10 shrink-0 items-center justify-center rounded-xl text-muted hover:bg-accent-soft hover:text-foreground disabled:opacity-40"
                     aria-label="Записать голосовое"
@@ -1223,9 +1250,14 @@ export function MomsCircleChat() {
 
       {circleOpen && (
         <CircleRecorder
-          onCancel={() => setCircleOpen(false)}
+          initialStream={circleStream}
+          onCancel={() => {
+            setCircleOpen(false);
+            setCircleStream(null);
+          }}
           onReady={(file, previewUrl) => {
             setCircleOpen(false);
+            setCircleStream(null);
             clearPendingMedia();
             setPendingFile(file);
             setPendingKind("circle");
@@ -1236,9 +1268,14 @@ export function MomsCircleChat() {
       )}
       {voiceOpen && (
         <VoiceRecorder
-          onCancel={() => setVoiceOpen(false)}
+          initialStream={voiceStream}
+          onCancel={() => {
+            setVoiceOpen(false);
+            setVoiceStream(null);
+          }}
           onReady={(file) => {
             setVoiceOpen(false);
+            setVoiceStream(null);
             clearPendingMedia();
             setPendingFile(file);
             setPendingKind("voice");

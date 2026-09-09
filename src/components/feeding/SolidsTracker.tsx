@@ -272,10 +272,11 @@ export function SolidsTracker() {
         )}
 
         <p className="mb-1.5 mt-5 text-[11px] text-muted">Сколько</p>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="grid grid-cols-3 gap-1.5">
           {PORTIONS.map((p) => (
             <DiaryChip
               key={p.id}
+              className="w-full"
               active={portion === p.id}
               onClick={() => setPortion(p.id)}
             >
@@ -285,10 +286,11 @@ export function SolidsTracker() {
         </div>
 
         <p className="mb-1.5 mt-5 text-[11px] text-muted">Реакция</p>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="grid grid-cols-2 gap-1.5">
           {REACTIONS.map((r) => (
             <DiaryChip
               key={r.id}
+              className="w-full"
               active={reaction === r.id}
               tone={
                 r.id === "rash"

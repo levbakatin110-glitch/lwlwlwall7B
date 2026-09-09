@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { describeMediaError, getMicStream } from "@/lib/media-access";
 import { isAppleMobile } from "@/lib/media-mime";
 
 const VOICE_MAX_MS = 60_000;
@@ -126,9 +127,10 @@ export function VoiceNotePlayer({ url }: { url: string }) {
 type Props = {
   onCancel: () => void;
   onReady: (file: File) => void;
+  initialStream?: MediaStream | null;
 };
 
-export function VoiceRecorder({ onCancel, onReady }: Props) {
+export function VoiceRecorder({ onCancel, onReady, initialStream }: Props) {
   const streamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -228,24 +230,32 @@ export function VoiceRecorder({ onCancel, onReady }: Props) {
     [clearTick, finish, stopTracks],
   );
 
+  const retryAccess = useCallback(async () => {
+    setError(null);
+    try {
+      const stream = await getMicStream();
+      if (streamRef.current && streamRef.current !== stream) {
+        streamRef.current.getTracks().forEach((t) => t.stop());
+      }
+      streamRef.current = stream;
+      autoStarted.current = true;
+      startRecord(stream);
+    } catch (err) {
+      setError(describeMediaError(err));
+    }
+  }, [startRecord]);
+
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: { echoCancellation: true, noiseSuppression: true },
-        });
-        if (cancelled) {
-          stream.getTracks().forEach((t) => t.stop());
-          return;
-        }
-        streamRef.current = stream;
-        if (!autoStarted.current) {
-          autoStarted.current = true;
-          startRecord(stream);
-        }
-      } catch {
-        if (!cancelled) setError("Нет доступа к микрофону");
+      if (!initialStream) {
+        if (!cancelled) setError("Нажмите «Разрешить микрофон»");
+        return;
+      }
+      streamRef.current = initialStream;
+      if (!autoStarted.current) {
+        autoStarted.current = true;
+        startRecord(initialStream);
       }
     })();
     return () => {
@@ -313,7 +323,16 @@ export function VoiceRecorder({ onCancel, onReady }: Props) {
           </button>
         </div>
         {error ? (
-          <p className="mb-4 text-sm text-red-600 dark:text-red-300">{error}</p>
+          <div className="mb-4 space-y-3">
+            <p className="text-sm text-red-600 dark:text-red-300">{error}</p>
+            <button
+              type="button"
+              onClick={() => void retryAccess()}
+              className="w-full rounded-2xl bg-accent px-4 py-3 text-sm font-semibold text-[var(--on-accent,#fff)]"
+            >
+              Разрешить микрофон
+            </button>
+          </div>
         ) : (
           <p className="mb-4 text-center text-sm text-muted">
             {phase === "recording"

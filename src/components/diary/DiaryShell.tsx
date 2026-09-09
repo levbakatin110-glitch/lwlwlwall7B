@@ -210,27 +210,29 @@ export function DiaryChip({
   onClick,
   children,
   tone = "default",
+  className = "",
 }: {
   active?: boolean;
   onClick: () => void;
   children: ReactNode;
   tone?: "default" | "warn" | "hot";
+  className?: string;
 }) {
   const activeCls =
     tone === "hot"
-      ? "bg-blush-soft text-blush ring-1 ring-blush/30"
+      ? "bg-blush text-white"
       : tone === "warn"
-        ? "bg-amber-500/15 text-amber-900 ring-1 ring-amber-500/25 dark:text-amber-200"
+        ? "bg-[#9a3412] text-white"
         : "bg-accent text-[var(--on-accent,#fff)]";
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full px-3.5 py-2 text-[12px] font-semibold transition ${
+      className={`inline-flex items-center justify-center rounded-full px-3.5 py-2.5 text-[12px] font-semibold leading-tight transition ${
         active
           ? activeCls
-          : "bg-foreground/[0.04] text-muted hover:bg-foreground/[0.07] hover:text-foreground"
-      }`}
+          : "bg-foreground/[0.04] text-foreground hover:bg-foreground/[0.07]"
+      } ${className}`}
     >
       {children}
     </button>

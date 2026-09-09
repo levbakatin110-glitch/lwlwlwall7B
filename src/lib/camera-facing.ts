@@ -72,19 +72,38 @@ export async function getFacingAvStream(
   facing: CameraFacing,
   size: { width?: number; height?: number } = {},
 ): Promise<MediaStream> {
+  if (!navigator.mediaDevices?.getUserMedia) {
+    throw new Error("no-media");
+  }
   const ids = cachedIds;
   const deviceId = ids ? idForFacing(facing, ids) : undefined;
 
-  const stream = await navigator.mediaDevices.getUserMedia({
-    audio: { echoCancellation: true, noiseSuppression: true },
-    video: deviceId
-      ? { deviceId: { exact: deviceId }, ...videoSize(size) }
-      : { facingMode: { ideal: facing }, ...videoSize(size) },
-  });
+  const attempts: MediaStreamConstraints[] = [
+    {
+      audio: { echoCancellation: true, noiseSuppression: true },
+      video: deviceId
+        ? { deviceId: { exact: deviceId }, ...videoSize(size) }
+        : { facingMode: { ideal: facing }, ...videoSize(size) },
+    },
+    {
+      audio: true,
+      video: { facingMode: facing },
+    },
+    { audio: true, video: true },
+  ];
 
-  const vid = stream.getVideoTracks()[0];
-  await rememberCameraIds(vid?.getSettings().deviceId);
-  return stream;
+  let lastErr: unknown;
+  for (const constraints of attempts) {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      const vid = stream.getVideoTracks()[0];
+      await rememberCameraIds(vid?.getSettings().deviceId);
+      return stream;
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error("no-media");
 }
 
 /**
