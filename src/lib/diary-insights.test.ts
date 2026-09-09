@@ -4,6 +4,7 @@ import {
   breastfeedingInsight,
   diaperInsight,
   growthSpark,
+  sideDurationSec,
   sleepInsight,
   sleepNormHint,
 } from "./diary-insights";
@@ -83,6 +84,30 @@ describe("breastfeedingInsight", () => {
     }
     const view = breastfeedingInsight(feeds, "2026-03-01", now);
     expect(view.insight?.title).toMatch(/правая/i);
+  });
+
+  it("does not print hours of feeding when a side was stored in milliseconds", () => {
+    const now = Date.parse("2026-04-10T18:00:00");
+    const feeds: JournalEntry[] = [];
+    for (let i = 0; i < 6; i++) {
+      const start = now - (6 - i) * 3 * 3600_000;
+      feeds.push(
+        entry({
+          id: String(i),
+          date: "2026-04-10",
+          fields: {
+            totalSec: 600,
+            leftSec: 40_000,
+            rightSec: 161_580,
+            startMs: start,
+            endMs: start + 600_000,
+          },
+        }),
+      );
+    }
+    const view = breastfeedingInsight(feeds, "2026-03-01", now);
+    expect(view.insight?.detail ?? "").not.toMatch(/2693/);
+    expect(sideDurationSec(161_580)).toBe(162);
   });
 });
 

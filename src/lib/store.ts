@@ -6,7 +6,6 @@ import {
   createSafePersistStorage,
   durableStateStorage,
 } from "@/lib/durable-storage";
-import { storeHasUserData } from "./backup-merge";
 import {
   DEFAULT_ENABLED_MODULES,
   emptyChildProfile,
@@ -65,9 +64,10 @@ import { ensureCoreCareReminders } from "./care-reminders";
 import {
   applyPayStarterModules,
   filterModulesForNav,
-  hasBornChild,
   isRetiredModuleId,
   modulesForAudience,
+  resolveHasChild,
+  shouldShowModule,
   type AudienceCtx,
 } from "./module-audience";
 import {
@@ -107,6 +107,11 @@ type AppState = {
 
   /** Беременность (профиль мамы, общий) */
   pregnancy: PregnancyProfile;
+  /**
+   * Явный ответ из анкеты «у меня есть ребёнок».
+   * undefined = старые профили, угадываем по детям.
+   */
+  careHasChild?: boolean;
   /** Дневники мамы (беременность / цикл), общие для всех профилей детей */
   momJournals: Record<string, JournalEntry[]>;
 
@@ -156,6 +161,8 @@ type AppState = {
   /** Выход: сброс профиля и данных → снова анкета */
   logoutAccount: () => void;
   setPregnancy: (pregnancy: Partial<PregnancyProfile> | PregnancyProfile) => void;
+  /** Анкета: беременна / есть ребёнок → какие дневники в меню */
+  setCareAudience: (patch: { pregnant?: boolean; hasChild?: boolean }) => void;
   /** Включить все дневники беременности у активного ребёнка/профиля */
   enablePregnancyModules: () => void;
   enableCycleModule: () => void;
@@ -228,14 +235,29 @@ function audienceFromState(s: {
   pregnancy?: PregnancyProfile | null;
   children?: ChildProfile[];
   enabledModules?: ModuleId[];
+  careHasChild?: boolean;
 }): AudienceCtx {
   return {
     pregnant: Boolean(s.pregnancy?.active),
-    hasChild: hasBornChild(s.children),
+    hasChild: resolveHasChild(s.children, s.careHasChild),
     trackCycle:
       Boolean(s.pregnancy?.trackCycle) ||
       (s.enabledModules ?? []).includes("cycle"),
   };
+}
+
+function modulesMatchingAudience(s: {
+  pregnancy?: PregnancyProfile | null;
+  children?: ChildProfile[];
+  enabledModules?: ModuleId[];
+  careHasChild?: boolean;
+}): ModuleId[] {
+  const ctx = audienceFromState(s);
+  const want = modulesForAudience(ctx).filter((id) => !isOptInOnlyModule(id));
+  const extra = (s.enabledModules ?? []).filter(
+    (id) => shouldShowModule(id, ctx) && !want.includes(id),
+  );
+  return [...want, ...extra];
 }
 
 function applyModulesToSpaces(
@@ -398,6 +420,7 @@ export const useAppStore = create<AppState>()(
       dietPlan: null,
       opsErrors: [],
       pregnancy: emptyPregnancy(),
+      careHasChild: undefined,
       momJournals: {},
       subscription: emptySubscription(),
       aiChatUsage: emptyAiUsage(),
@@ -455,6 +478,7 @@ export const useAppStore = create<AppState>()(
           dietPlan: null,
           opsErrors: [],
           pregnancy: emptyPregnancy(),
+          careHasChild: undefined,
           momJournals: {},
           subscription: emptySubscription(),
           aiChatUsage: emptyAiUsage(),
@@ -475,6 +499,22 @@ export const useAppStore = create<AppState>()(
         set((s) => ({
           pregnancy: { ...(s.pregnancy ?? emptyPregnancy()), ...patch },
         })),
+      setCareAudience: (patch) => {
+        set((s) => ({
+          pregnancy:
+            typeof patch.pregnant === "boolean"
+              ? { ...(s.pregnancy ?? emptyPregnancy()), active: patch.pregnant }
+              : s.pregnancy,
+          careHasChild:
+            typeof patch.hasChild === "boolean" ? patch.hasChild : s.careHasChild,
+        }));
+        const s = get();
+        const list = modulesMatchingAudience(s);
+        set({
+          enabledModules: list,
+          childSpaces: applyModulesToSpaces(s.childSpaces, list),
+        });
+      },
       enablePregnancyModules: () => {
         const spaces = { ...get().childSpaces };
         for (const sid of Object.keys(spaces)) {
@@ -940,7 +980,7 @@ export const useAppStore = create<AppState>()(
           (id) => !isOptInOnlyModule(id),
         );
         const spaces = applyModulesToSpaces(s.childSpaces, list);
-        const hasChild = hasBornChild(s.children);
+        const hasChild = resolveHasChild(s.children, s.careHasChild);
         set({
           onboardingDone: true,
           enabledModules: list,
@@ -1020,6 +1060,7 @@ export const useAppStore = create<AppState>()(
         dietPlan: state.dietPlan,
         opsErrors: (state.opsErrors ?? []).slice(0, 30),
         pregnancy: state.pregnancy,
+        careHasChild: state.careHasChild,
         momJournals: state.momJournals,
         subscription: state.subscription,
         aiChatUsage: state.aiChatUsage,
@@ -1047,6 +1088,15 @@ export const useAppStore = create<AppState>()(
         if (!state.subscription) state.subscription = emptySubscription();
         if (!state.pregnancy || typeof state.pregnancy !== "object") {
           state.pregnancy = emptyPregnancy();
+        }
+        if (
+          state.careHasChild == null &&
+          state.onboardingDone &&
+          Array.isArray(state.children) &&
+          state.children.length > 0 &&
+          state.children.every((c) => c.namePending)
+        ) {
+          state.careHasChild = false;
         }
         if (!state.momJournals) state.momJournals = {};
         if (!state.journals || typeof state.journals !== "object") {
@@ -1374,6 +1424,7 @@ export const useAppStore = create<AppState>()(
             pregnancy: state.pregnancy,
             children: state.children,
             enabledModules: next,
+            careHasChild: state.careHasChild,
           });
           const fill = (list: ModuleId[]) => {
             let out = filterModulesForNav(list, ctx);
@@ -1426,7 +1477,7 @@ export const useAppStore = create<AppState>()(
         }
 
         if (!state.careCorePushesV1 && state.onboardingDone) {
-          const hasChild = hasBornChild(state.children);
+          const hasChild = resolveHasChild(state.children, state.careHasChild);
           for (const sid of Object.keys(state.childSpaces ?? {})) {
             const space = state.childSpaces[sid];
             if (!space) continue;
@@ -1607,7 +1658,7 @@ if (typeof window !== "undefined") {
     remirrorJournalsFromSpaces();
   }
   window.addEventListener("maya-idb-restored", () => {
-    if (storeHasUserData(useAppStore.getState())) return;
+    if (useAppStore.getState().onboardingDone) return;
     void Promise.resolve(useAppStore.persist.rehydrate()).then(() => {
       remirrorJournalsFromSpaces();
     });

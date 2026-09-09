@@ -20,7 +20,7 @@ import { buildDayRhythm } from "@/lib/day-rhythm";
 import { MODULE_BY_ID } from "@/lib/modules";
 import {
   filterModulesForNav,
-  hasBornChild,
+  resolveHasChild,
 } from "@/lib/module-audience";
 import {
   pregnancyWeek,
@@ -109,6 +109,7 @@ export default function SummaryPage() {
   const profile = useAppStore((s) => s.profile);
   const pregnancy = useAppStore((s) => s.pregnancy);
   const childrenList = useAppStore((s) => s.children ?? []);
+  const careHasChild = useAppStore((s) => s.careHasChild);
   const enabledModules = useAppStore((s) => s.enabledModules);
   const customModules = useAppStore((s) => s.customModules);
   const wardrobe = useAppStore((s) => s.wardrobe);
@@ -128,7 +129,7 @@ export default function SummaryPage() {
     [date, journals],
   );
   const pregnant = Boolean(pregnancy?.active);
-  const hasChild = hasBornChild(childrenList);
+  const hasChild = resolveHasChild(childrenList, careHasChild);
   const hints = useMemo(
     () =>
       hasChild

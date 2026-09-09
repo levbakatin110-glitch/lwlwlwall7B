@@ -23,6 +23,15 @@ export function hasBornChild(children: ChildProfile[] | undefined): boolean {
   );
 }
 
+/** Явный выбор из анкеты важнее, чем «похоже, есть ребёнок по имени». */
+export function resolveHasChild(
+  children: ChildProfile[] | undefined,
+  explicit?: boolean,
+): boolean {
+  if (typeof explicit === "boolean") return explicit;
+  return hasBornChild(children);
+}
+
 export function isBabyModuleId(id: string): boolean {
   return (BABY_MODULE_IDS as readonly string[]).includes(id);
 }

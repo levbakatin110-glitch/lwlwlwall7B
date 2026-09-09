@@ -36,6 +36,14 @@ function num(v: unknown): number | null {
   return null;
 }
 
+/** Секунды у груди. Если в запись попали миллисекунды, это часы «кормления» — делим. */
+export function sideDurationSec(raw: unknown): number {
+  const n = num(raw) ?? 0;
+  if (n <= 0) return 0;
+  if (n > 4 * 3600) return Math.round(n / 1000);
+  return Math.round(n);
+}
+
 export function addDaysIso(iso: string, delta: number): string {
   const [y, m, d] = iso.split("-").map(Number);
   return toLocalDateIso(new Date(y, m - 1, d + delta));
@@ -191,8 +199,8 @@ export function breastfeedingInsight(
   let left = 0;
   let right = 0;
   for (const e of recent) {
-    left += num(e.fields?.leftSec) ?? 0;
-    right += num(e.fields?.rightSec) ?? 0;
+    left += sideDurationSec(e.fields?.leftSec);
+    right += sideDurationSec(e.fields?.rightSec);
   }
   const sides = left + right;
 
@@ -213,7 +221,7 @@ export function breastfeedingInsight(
       insight: {
         tone: "watch",
         title: `${weak} заметно меньше`,
-        detail: `За последние кормления ${Math.round((left / 60) * 10) / 10} мин слева и ${Math.round((right / 60) * 10) / 10} мин справа. Так бывает, если малыш предпочитает одну сторону. Чередуйте старт, и смотрите, нет ли уплотнения. Это не диагноз.`,
+        detail: `За последние кормления ${formatMin(left / 60)} слева и ${formatMin(right / 60)} справа. Так бывает, если малыш предпочитает одну сторону. Чередуйте старт, и смотрите, нет ли уплотнения. Это не диагноз.`,
       },
     };
   }

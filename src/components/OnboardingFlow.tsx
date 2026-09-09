@@ -154,6 +154,7 @@ export function OnboardingFlow({
   const router = useRouter();
 
   const setPregnancy = useAppStore((s) => s.setPregnancy);
+  const setCareAudience = useAppStore((s) => s.setCareAudience);
   const enablePregnancyModules = useAppStore((s) => s.enablePregnancyModules);
   const enableCycleModule = useAppStore((s) => s.enableCycleModule);
 
@@ -577,6 +578,10 @@ export function OnboardingFlow({
     setSaving(true);
     try {
       persistPregnancy();
+      setCareAudience({
+        pregnant: isPregnant,
+        hasChild: hasChild || mode === "add",
+      });
       if (hasChild || mode === "add") {
         persistDraft();
       } else if (isFirstSave.current) {

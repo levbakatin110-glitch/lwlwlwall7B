@@ -9,7 +9,7 @@ import { OPTIONAL_MODULES, MODULE_BY_ID } from "@/lib/modules";
 import {
   isBabyModuleId,
   isRetiredModuleId,
-  hasBornChild,
+  resolveHasChild,
 } from "@/lib/module-audience";
 import { isPregnancyModuleId } from "@/lib/pregnancy";
 import {
@@ -34,8 +34,9 @@ export default function ModulesPage() {
   const subscription = useAppStore((s) => s.subscription);
   const pregnancy = useAppStore((s) => s.pregnancy);
   const childrenList = useAppStore((s) => s.children ?? []);
+  const careHasChild = useAppStore((s) => s.careHasChild);
   const premium = isSubscriptionActive(subscription);
-  const hasChild = hasBornChild(childrenList);
+  const hasChild = resolveHasChild(childrenList, careHasChild);
   const pregnant = Boolean(pregnancy?.active);
 
   const babyMods = withStarterModulesFirst(

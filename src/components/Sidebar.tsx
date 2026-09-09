@@ -10,7 +10,8 @@ import { SketchCorner, SketchSprig } from "@/components/illustrations/MayaSketch
 import { childDisplayName } from "@/lib/children";
 import {
   filterModulesForNav,
-  hasBornChild,
+  resolveHasChild,
+  shouldShowModule,
 } from "@/lib/module-audience";
 import { LEGAL_OPERATOR } from "@/lib/legal";
 import { MODULE_BY_ID, customToDef } from "@/lib/modules";
@@ -93,6 +94,7 @@ export function Sidebar({
   const customModules = useAppStore((s) => s.customModules ?? []);
   const childrenList = useAppStore((s) => s.children ?? []);
   const pregnancy = useAppStore((s) => s.pregnancy);
+  const careHasChild = useAppStore((s) => s.careHasChild);
   const activeChildId = useAppStore((s) => s.activeChildId);
   const switchChild = useAppStore((s) => s.switchChild);
   const subscription = useAppStore((s) => s.subscription);
@@ -137,7 +139,7 @@ export function Sidebar({
 
   const audience = {
     pregnant: Boolean(pregnancy?.active),
-    hasChild: hasBornChild(childrenList),
+    hasChild: resolveHasChild(childrenList, careHasChild),
   };
   const navModules = new Set(filterModulesForNav(enabledModules, audience));
 
@@ -160,7 +162,8 @@ export function Sidebar({
         return audience.hasChild;
       }
       if (!item.moduleId) return true;
-      return navModules.has(item.moduleId);
+      if (!navModules.has(item.moduleId)) return false;
+      return shouldShowModule(item.moduleId, audience);
     });
   }
 

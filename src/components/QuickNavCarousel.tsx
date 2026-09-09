@@ -10,7 +10,7 @@ import { MODULE_BY_ID, customToDef } from "@/lib/modules";
 import { isRecipesCatalogModule } from "@/lib/recipes";
 import {
   filterModulesForNav,
-  hasBornChild,
+  resolveHasChild,
 } from "@/lib/module-audience";
 import { isSubscriptionActive, PAID_ONLY } from "@/lib/subscription";
 import { useAppStore } from "@/lib/store";
@@ -136,9 +136,10 @@ export function QuickNavCarousel({ className = "" }: { className?: string }) {
   const customModules = useAppStore((s) => s.customModules ?? []);
   const pregnancy = useAppStore((s) => s.pregnancy);
   const childrenList = useAppStore((s) => s.children ?? []);
+  const careHasChild = useAppStore((s) => s.careHasChild);
   const subscription = useAppStore((s) => s.subscription);
   const paywalled = PAID_ONLY && !isSubscriptionActive(subscription);
-  const hasChild = hasBornChild(childrenList);
+  const hasChild = resolveHasChild(childrenList, careHasChild);
   const items = buildQuickItems(
     filterModulesForNav(enabledModules, {
       pregnant: Boolean(pregnancy?.active),

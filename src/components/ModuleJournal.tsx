@@ -35,8 +35,8 @@ import { PlanOfferBanner } from "@/components/plan/PlanOffer";
 import { hintForDiary } from "@/lib/diary-hints";
 import { isDietLikeModule } from "@/lib/diet";
 import {
-  hasBornChild,
   isRetiredModuleId,
+  resolveHasChild,
   shouldShowModule,
 } from "@/lib/module-audience";
 import { fallbackSmartForTopic } from "@/lib/module-schema";
@@ -275,9 +275,10 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
   const router = useRouter();
   const pregnancy = useAppStore((s) => s.pregnancy);
   const childrenList = useAppStore((s) => s.children ?? []);
+  const careHasChild = useAppStore((s) => s.careHasChild);
   const audience = {
     pregnant: Boolean(pregnancy?.active),
-    hasChild: hasBornChild(childrenList),
+    hasChild: resolveHasChild(childrenList, careHasChild),
   };
 
   useEffect(() => {

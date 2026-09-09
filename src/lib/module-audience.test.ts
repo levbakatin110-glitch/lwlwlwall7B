@@ -5,6 +5,7 @@ import {
   filterModulesForNav,
   hasBornChild,
   modulesForAudience,
+  resolveHasChild,
   shouldShowModule,
 } from "./module-audience";
 import { BABY_MODULE_IDS, STARTER_ENABLED_MODULES } from "./children";
@@ -32,6 +33,14 @@ describe("module audience", () => {
 
   it("does not treat a pregnancy placeholder as a child", () => {
     expect(hasBornChild([child({ namePending: true })])).toBe(false);
+  });
+
+  it("keeps a named bump out of baby diaries if she said she has no child yet", () => {
+    expect(resolveHasChild([child({ name: "Соня" })], false)).toBe(false);
+    expect(resolveHasChild([child({ name: "Лев", birthDate: "2026-01-01" })], true)).toBe(
+      true,
+    );
+    expect(resolveHasChild([child({ name: "Соня" })])).toBe(true);
   });
 
   it("hides pregnancy diaries when she already has a baby and is not pregnant", () => {

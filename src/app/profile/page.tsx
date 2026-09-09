@@ -10,6 +10,7 @@ import { restoreCloudBackup } from "@/components/CloudBackupSync";
 import { authFetchErrorMessage } from "@/lib/auth-fetch-error";
 import { childDisplayName } from "@/lib/children";
 import { compressImageFile } from "@/lib/image";
+import { resolveHasChild } from "@/lib/module-audience";
 import { useAppStore } from "@/lib/store";
 import type { ChildProfile } from "@/lib/types";
 
@@ -24,6 +25,9 @@ export default function ProfilePage() {
   const emailVerified = useAppStore((s) => s.emailVerified);
   const setAccountEmail = useAppStore((s) => s.setAccountEmail);
   const signOutAccount = useAppStore((s) => s.signOutAccount);
+  const pregnancy = useAppStore((s) => s.pregnancy);
+  const careHasChild = useAppStore((s) => s.careHasChild);
+  const setCareAudience = useAppStore((s) => s.setCareAudience);
   const [form, setForm] = useState<ChildProfile>(profile);
   const [saved, setSaved] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -308,6 +312,65 @@ export default function ProfilePage() {
             )}
           </div>
         )}
+      </div>
+
+      <div className="mt-5 rounded-2xl border border-line bg-card/70 p-5 maya-panel">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+          Кто вы
+        </p>
+        <p className="mt-1 text-sm text-muted">
+          Дневники малыша и дневники беременности не смешиваются. Можно оба,
+          если так и есть.
+        </p>
+        <div className="mt-3 space-y-2">
+          {(
+            [
+              {
+                on: Boolean(pregnancy?.active),
+                toggle: () =>
+                  setCareAudience({ pregnant: !pregnancy?.active }),
+                title: "Я беременна",
+                sub: "Недели, схватки, шевеления",
+              },
+              {
+                on: resolveHasChild(children, careHasChild),
+                toggle: () =>
+                  setCareAudience({
+                    hasChild: !resolveHasChild(children, careHasChild),
+                  }),
+                title: "У меня есть ребёнок",
+                sub: "Сон, кормление, подгузник, рост",
+              },
+            ] as const
+          ).map((opt) => (
+            <button
+              key={opt.title}
+              type="button"
+              onClick={opt.toggle}
+              className={`flex w-full items-start gap-3 rounded-2xl border px-4 py-3 text-left transition ${
+                opt.on
+                  ? "border-accent bg-accent-soft/60"
+                  : "border-line bg-card/60"
+              }`}
+            >
+              <span
+                className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${
+                  opt.on
+                    ? "border-accent bg-accent text-white"
+                    : "border-line bg-background"
+                }`}
+              >
+                {opt.on ? "✓" : ""}
+              </span>
+              <span>
+                <span className="block text-sm font-semibold">{opt.title}</span>
+                <span className="mt-0.5 block text-xs text-muted">
+                  {opt.sub}
+                </span>
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="mt-5 flex gap-2 overflow-x-auto overscroll-x-none pb-1">
