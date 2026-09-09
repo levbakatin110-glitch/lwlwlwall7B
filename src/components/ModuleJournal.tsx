@@ -403,8 +403,14 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
         at,
         label: e.date,
         value: e.value,
-        weight: parseWeightKg(e.value) ?? undefined,
-        height: parseHeightCm(e.value) ?? undefined,
+        weight:
+          typeof e.fields?.weightKg === "number" && e.fields.weightKg > 0
+            ? { kg: e.fields.weightKg, delta: false }
+            : parseWeightKg(e.value) ?? undefined,
+        height:
+          typeof e.fields?.heightCm === "number" && e.fields.heightCm > 0
+            ? { cm: e.fields.heightCm, delta: false }
+            : parseHeightCm(e.value) ?? undefined,
       };
     });
   }, [entries, isGrowth]);
@@ -795,13 +801,17 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
             metric="weight"
             sex={profile.sex}
             birthDate={profile.birthDate}
-            series={weightSeries.filter((s) => s.y >= 2 && s.y <= 25)}
+            series={weightSeries.filter(
+              (s) => s.y >= 0.4 && s.y <= 80,
+            )}
           />
           <WhoGrowthChart
             metric="length"
             sex={profile.sex}
             birthDate={profile.birthDate}
-            series={heightSeries.filter((s) => s.y >= 40 && s.y <= 120)}
+            series={heightSeries.filter(
+              (s) => s.y >= 32 && s.y <= 180,
+            )}
           />
           {weightSeries.length >= 2 && (
             <ProgressMini

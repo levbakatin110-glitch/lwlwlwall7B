@@ -30,13 +30,10 @@ export function parseWeightKg(raw: string): { kg: number; delta: boolean } | nul
   if (!m) return null;
   const kg = Number(m[1].replace(",", "."));
   if (!Number.isFinite(kg)) return null;
-  const delta =
-    t.includes("+") ||
-    t.includes("-") ||
-    /набрал|прибав|убавил|потеря/i.test(t) ||
-    m[1].startsWith("+") ||
-    m[1].startsWith("-");
-  return { kg, delta: delta || Math.abs(kg) < 15 };
+  const signed = m[1].startsWith("+") || m[1].startsWith("-");
+  const words = /набрал|прибав|убавил|потеря/i.test(t);
+  const delta = signed || words;
+  return { kg, delta };
 }
 
 export function parseHeightCm(raw: string): { cm: number; delta: boolean } | null {
@@ -45,18 +42,44 @@ export function parseHeightCm(raw: string): { cm: number; delta: boolean } | nul
   if (m) {
     const cm = Number(m[1].replace(",", "."));
     if (!Number.isFinite(cm)) return null;
-    const delta =
-      m[1].startsWith("+") ||
-      m[1].startsWith("-") ||
-      /вырос|прибав|см за/i.test(t);
-    return { cm, delta: delta || cm < 20 };
+    const signed = m[1].startsWith("+") || m[1].startsWith("-");
+    const words = /вырос|прибав|см за/i.test(t);
+    return { cm, delta: signed || words };
   }
   const bare = t.match(/^(\d{2,3}(?:[.,]\d+)?)$/);
   if (bare) {
     const cm = Number(bare[1].replace(",", "."));
-    if (cm >= 40 && cm <= 130) return { cm, delta: false };
+    if (cm >= 32 && cm <= 180) return { cm, delta: false };
   }
   return null;
+}
+
+/** Число из поля ввода: «68», «68,5», «68 см». */
+export function parseLooseNumber(raw: string): number | null {
+  const t = raw.trim().replace(",", ".");
+  const m = t.match(/-?\d+(?:\.\d+)?/);
+  if (!m) return null;
+  const n = Number(m[0]);
+  return Number.isFinite(n) ? n : null;
+}
+
+export const GROWTH_WEIGHT_MIN_KG = 0.4;
+export const GROWTH_WEIGHT_MAX_KG = 80;
+export const GROWTH_HEIGHT_MIN_CM = 32;
+export const GROWTH_HEIGHT_MAX_CM = 180;
+
+export function parseGrowthWeightInput(raw: string): number | null {
+  const n = parseLooseNumber(raw);
+  if (n == null) return null;
+  if (n < GROWTH_WEIGHT_MIN_KG || n > GROWTH_WEIGHT_MAX_KG) return null;
+  return Math.round(n * 10) / 10;
+}
+
+export function parseGrowthHeightInput(raw: string): number | null {
+  const n = parseLooseNumber(raw);
+  if (n == null) return null;
+  if (n < GROWTH_HEIGHT_MIN_CM || n > GROWTH_HEIGHT_MAX_CM) return null;
+  return Math.round(n * 10) / 10;
 }
 
 /** Ожидаемая прибавка веса кг/мес по возрасту (очень приблизительно) */

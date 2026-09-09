@@ -14,7 +14,13 @@ import {
 import { DiaryInsightCard } from "@/components/diary/DiaryInsightCard";
 import { growthSpark } from "@/lib/diary-insights";
 import { entryTimeMs, formatClock, todayYmd } from "@/lib/diary-day";
-import { parseHeightCm, parseWeightKg } from "@/lib/growth-norms";
+import {
+  parseGrowthHeightInput,
+  parseGrowthWeightInput,
+  parseHeightCm,
+  parseLooseNumber,
+  parseWeightKg,
+} from "@/lib/growth-norms";
 import { useAppStore } from "@/lib/store";
 import type { JournalEntry } from "@/lib/types";
 
@@ -84,19 +90,23 @@ export function GrowthTracker() {
     return null;
   }, [sorted]);
 
-  const weightNum = Number(weight.replace(",", "."));
-  const heightNum = Number(height.replace(",", "."));
-  const hasWeight = Number.isFinite(weightNum) && weightNum >= 1 && weightNum <= 30;
-  const hasHeight = Number.isFinite(heightNum) && heightNum >= 40 && heightNum <= 130;
-  const canSave = hasWeight || hasHeight;
+  const weightNum = parseGrowthWeightInput(weight);
+  const heightNum = parseGrowthHeightInput(height);
+  const typedHeight = parseLooseNumber(height);
+  const typedWeight = parseLooseNumber(weight);
+  const heightOutOfRange =
+    typedHeight != null && heightNum == null && height.trim() !== "";
+  const weightOutOfRange =
+    typedWeight != null && weightNum == null && weight.trim() !== "";
+  const canSave = weightNum != null || heightNum != null;
 
   const insight = useMemo(() => growthSpark(entries), [entries]);
 
   function save() {
     if (!canSave) return;
     const startMs = Date.now();
-    const w = hasWeight ? Math.round(weightNum * 10) / 10 : null;
-    const h = hasHeight ? Math.round(heightNum * 10) / 10 : null;
+    const w = weightNum;
+    const h = heightNum;
     const fields: Record<string, string | number> = { startMs };
     if (w != null) fields.weightKg = w;
     if (h != null) fields.heightCm = h;
@@ -152,6 +162,12 @@ export function GrowthTracker() {
           <span className="mt-1 text-sm font-medium text-muted">см</span>
         </div>
       </div>
+      {(weightOutOfRange || heightOutOfRange) && (
+        <p className="mt-2 text-center text-xs text-blush">
+          {weightOutOfRange ? "Вес обычно 0.4–80 кг. " : ""}
+          {heightOutOfRange ? "Рост обычно 32–180 см." : ""}
+        </p>
+      )}
 
       {sorted.length > 0 ? (
         <div className="mt-6">
