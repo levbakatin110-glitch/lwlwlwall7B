@@ -39,10 +39,7 @@ rsync -a \
 
 npm install
 
-pm2 stop maya 2>/dev/null || true
-pm2 delete maya 2>/dev/null || true
-
-rm -rf .next
+# Сайт не гасим до успешной сборки — иначе nginx отдаёт 502 на всё время build.
 npm run build
 
 if [ ! -f .next/BUILD_ID ]; then
@@ -53,7 +50,9 @@ fi
 # Кластер: общая очередь/квота в SQLite (data/maya.db)
 export CHAT_PM2_INSTANCES="${CHAT_PM2_INSTANCES:-2}"
 export CHAT_MAX_CONCURRENT="${CHAT_MAX_CONCURRENT:-50}"
-pm2 start ecosystem.config.cjs
+pm2 reload maya --update-env 2>/dev/null \
+  || pm2 restart maya --update-env 2>/dev/null \
+  || pm2 start ecosystem.config.cjs
 pm2 save 2>/dev/null || true
 pm2 flush maya 2>/dev/null || true
 
