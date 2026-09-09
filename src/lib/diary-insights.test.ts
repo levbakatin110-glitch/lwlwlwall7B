@@ -152,6 +152,51 @@ describe("growthSpark", () => {
     expect(view.spark).toEqual([]);
     expect(view.insight).toBeNull();
   });
+
+  it("does not copy the last weigh-in onto empty days", () => {
+    const now = Date.parse("2026-04-10T12:00:00");
+    const view = growthSpark(
+      [
+        entry({
+          id: "1",
+          date: "2026-04-05",
+          fields: { weightKg: 1, startMs: Date.parse("2026-04-05T12:00:00") },
+        }),
+        entry({
+          id: "2",
+          date: "2026-04-08",
+          fields: { weightKg: 1, startMs: Date.parse("2026-04-08T12:00:00") },
+        }),
+      ],
+      now,
+    );
+    const filled = view.spark.filter((p) => p.value > 0);
+    expect(filled).toHaveLength(2);
+    expect(filled.map((p) => p.value)).toEqual([1, 1]);
+  });
+
+  it("keeps two different weights on their own days so bars can differ", () => {
+    const now = Date.parse("2026-04-10T12:00:00");
+    const view = growthSpark(
+      [
+        entry({
+          id: "1",
+          date: "2026-04-04",
+          fields: { weightKg: 3.1, startMs: Date.parse("2026-04-04T12:00:00") },
+        }),
+        entry({
+          id: "2",
+          date: "2026-04-10",
+          fields: { weightKg: 3.4, startMs: now },
+        }),
+      ],
+      now,
+    );
+    expect(view.spark.find((p) => p.key === "2026-04-04")?.value).toBe(3.1);
+    expect(view.spark.find((p) => p.key === "2026-04-10")?.value).toBe(3.4);
+    expect(view.sparkFloor).toBeLessThan(3.1);
+    expect(view.insight?.detail).toMatch(/3\.1.*3\.4/);
+  });
 });
 
 describe("sleepInsight", () => {

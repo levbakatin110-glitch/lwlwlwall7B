@@ -25,6 +25,8 @@ export type DiaryInsightView = {
   spark: SparkPoint[];
   sparkCaption?: string;
   insight: DiaryInsight | null;
+  /** Нижняя граница столбиков. Для веса: не от нуля, иначе 1.0 и 1.0 выглядят как стена. */
+  sparkFloor?: number;
 };
 
 function num(v: unknown): number | null {
@@ -606,27 +608,28 @@ export function growthSpark(
     const w = num(e.fields?.weightKg);
     if (w != null && w > 0) lastWeight.set(e.date, w);
   }
-  let cursor: number | null = null;
-  const spark = days.map((key) => {
-    if (lastWeight.has(key)) cursor = lastWeight.get(key)!;
-    return {
-      key,
-      label: weekdayShort(key).replace(".", ""),
-      value: cursor ?? 0,
-    };
-  });
+  const spark = days.map((key) => ({
+    key,
+    label: weekdayShort(key).replace(".", ""),
+    value: lastWeight.get(key) ?? 0,
+  }));
   const sparkCaption = "вес, кг";
-  const measuredDays = days.filter((d) => lastWeight.has(d));
-  if (measuredDays.length < 2) {
+  const vals = days
+    .map((d) => lastWeight.get(d))
+    .filter((n): n is number => n != null && n > 0);
+  if (vals.length < 2) {
     return { spark: [], insight: null };
   }
-  const vals = spark.map((p) => p.value).filter((n) => n > 0);
   const first = vals[0]!;
   const last = vals[vals.length - 1]!;
   const d = last - first;
+  const lo = Math.min(...vals);
+  const hi = Math.max(...vals);
+  const pad = hi === lo ? Math.max(0.2, lo * 0.05) : (hi - lo) * 0.4;
   return {
     spark,
     sparkCaption,
+    sparkFloor: lo - pad,
     insight: {
       tone: d < -0.2 ? "watch" : "ok",
       title: d >= 0 ? "Вес за неделю не падает" : "Вес ушёл вниз на графике",

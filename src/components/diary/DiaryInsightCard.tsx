@@ -15,17 +15,21 @@ function stacked(p: SparkPoint): boolean {
 function SparkColumn({
   p,
   max,
+  floor,
   useStack,
 }: {
   p: SparkPoint;
   max: number;
+  floor: number;
   useStack: boolean;
 }) {
   const night = p.night ?? 0;
   const day = p.day ?? 0;
   const nightPct = night > 0 ? (night / max) * 100 : 0;
   const dayPct = day > 0 ? (day / max) * 100 : 0;
-  const valuePct = p.value > 0 ? Math.max(8, (p.value / max) * 100) : 0;
+  const span = Math.max(0.001, max - floor);
+  const valuePct =
+    p.value > 0 ? Math.max(10, ((p.value - floor) / span) * 100) : 0;
 
   return (
     <div
@@ -69,8 +73,9 @@ export function DiaryInsightCard({ view }: { view: DiaryInsightView }) {
   const visible = spark.filter((p) => p.value > 0);
   if (!insight && visible.length === 0) return null;
   const useStack = spark.some(stacked);
+  const floor = useStack ? 0 : (view.sparkFloor ?? 0);
   const max = Math.max(
-    0.001,
+    floor + 0.001,
     ...spark.map((p) =>
       useStack ? (p.night ?? 0) + (p.day ?? 0) || p.value : p.value,
     ),
@@ -98,7 +103,13 @@ export function DiaryInsightCard({ view }: { view: DiaryInsightView }) {
           ) : null}
           <div className="mt-2 flex items-end gap-1">
             {spark.map((p) => (
-              <SparkColumn key={p.key} p={p} max={max} useStack={useStack} />
+              <SparkColumn
+                key={p.key}
+                p={p}
+                max={max}
+                floor={floor}
+                useStack={useStack}
+              />
             ))}
           </div>
         </div>
