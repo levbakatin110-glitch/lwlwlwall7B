@@ -159,26 +159,33 @@ function wakeRowsInWindow(
   now: number,
 ): Extract<SleepDayRow, { type: "wake" }>[] {
   const rows: Extract<SleepDayRow, { type: "wake" }>[] = [];
-  let cursor = win0;
-  const covering = spans.filter((s) => s.endMs > win0 && s.startMs < win1);
+  const covering = spans
+    .filter((s) => s.endMs > win0 && s.startMs < win1)
+    .sort((a, b) => a.startMs - b.startMs);
 
-  for (const s of covering) {
-    const gapEnd = Math.min(s.startMs, win1);
-    if (gapEnd - cursor >= MIN_WAKE_MS) {
-      rows.push({ type: "wake", startMs: cursor, endMs: gapEnd });
+  for (let i = 0; i < covering.length - 1; i++) {
+    const a = covering[i]!;
+    const b = covering[i + 1]!;
+    const gapStart = Math.max(a.endMs, win0);
+    const gapEnd = Math.min(b.startMs, win1);
+    if (gapEnd - gapStart >= MIN_WAKE_MS) {
+      rows.push({ type: "wake", startMs: gapStart, endMs: gapEnd });
     }
-    cursor = Math.max(cursor, Math.min(s.endMs, win1));
   }
 
-  const tailEnd = allowCurrent ? now : win1;
-  if (tailEnd - cursor >= MIN_WAKE_MS) {
-    const sleeping = covering.some((s) => s.live && s.endMs >= now - 2000);
-    if (!sleeping) {
+  if (allowCurrent) {
+    const last = covering[covering.length - 1];
+    if (
+      last &&
+      !last.live &&
+      now - last.endMs >= MIN_WAKE_MS &&
+      last.endMs < win1
+    ) {
       rows.push({
         type: "wake",
-        startMs: cursor,
-        endMs: tailEnd,
-        current: allowCurrent && tailEnd === now,
+        startMs: last.endMs,
+        endMs: now,
+        current: true,
       });
     }
   }

@@ -308,7 +308,7 @@ export function SleepTracker({ journalId = "sleep" }: { journalId?: string }) {
                     return (
                       <DiaryGap
                         key={`w-${row.startMs}-${row.endMs}`}
-                        label={row.current ? `${label} · сейчас` : label}
+                        label={`не спал ${label}${row.current ? " · сейчас" : ""}`}
                       />
                     );
                   }

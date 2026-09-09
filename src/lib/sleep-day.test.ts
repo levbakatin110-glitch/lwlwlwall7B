@@ -70,6 +70,19 @@ describe("sleep day model", () => {
     );
   });
 
+  it("does not fill the empty morning before the first nap", () => {
+    const now = Date.parse("2026-04-10T16:30:00");
+    const days = buildSleepDays(
+      [sleep("d1", "2026-04-10T15:49:00", "2026-04-10T15:50:00", "nap")],
+      now,
+    );
+    const today = days.find((d) => d.ymd === "2026-04-10")!;
+    const wakes = today.rows.filter((r) => r.type === "wake");
+    expect(wakes).toHaveLength(1);
+    expect(wakes[0]?.current).toBe(true);
+    expect(wakes[0]?.startMs).toBe(Date.parse("2026-04-10T15:50:00"));
+  });
+
   it("does not treat live sleep as a wake window", () => {
     const now = Date.parse("2026-04-10T21:30:00");
     const spansDay = buildSleepDays(
