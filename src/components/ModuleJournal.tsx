@@ -312,6 +312,7 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
   const removeJournalEntry = useAppStore((s) => s.removeJournalEntry);
   const enableModule = useAppStore((s) => s.enableModule);
   const removeCustomModule = useAppStore((s) => s.removeCustomModule);
+  const setPendingChatPrompt = useAppStore((s) => s.setPendingChatPrompt);
 
   if (mod?.custom && isRecipesCatalogModule(mod)) {
     return (
@@ -543,20 +544,33 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
           <IconBadge name={mod.icon} />
           {mod.title}
         </h1>
-        {mod.custom && (
-          <button
-            type="button"
-            onClick={() => {
-              if (confirm("Удалить этот дневник и все записи?")) {
-                removeCustomModule(moduleId);
-                window.location.href = "/modules";
-              }
-            }}
-            className="ml-auto text-xs text-muted hover:text-foreground"
+        <div className="ml-auto flex items-center gap-2">
+          <Link
+            href="/"
+            onClick={() =>
+              setPendingChatPrompt(
+                `Вопрос по дневнику «${mod.shortTitle || mod.title}». Посмотри мои записи и ответь коротко.`,
+              )
+            }
+            className="shrink-0 rounded-full border border-accent/25 bg-accent-soft/80 px-3 py-1.5 text-xs font-semibold text-accent"
           >
-            Удалить
-          </button>
-        )}
+            В чат
+          </Link>
+          {mod.custom && (
+            <button
+              type="button"
+              onClick={() => {
+                if (confirm("Удалить этот дневник и все записи?")) {
+                  removeCustomModule(moduleId);
+                  window.location.href = "/modules";
+                }
+              }}
+              className="text-xs text-muted hover:text-foreground"
+            >
+              Удалить
+            </button>
+          )}
+        </div>
       </div>
 
       {mod.custom && custom && <ModuleRepairBanner mod={custom} />}
@@ -580,6 +594,7 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
           "walk",
           "diaper",
           "notes",
+          "vaccines",
           "health",
           "growth",
           "pregnancy",
