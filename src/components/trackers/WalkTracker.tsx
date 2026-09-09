@@ -9,6 +9,7 @@ import {
   DiaryStickyCta,
 } from "@/components/diary/DiaryShell";
 import {
+  DIARY_ICON_TONE,
   DiaryEntryJournal,
   DiaryEventCard,
 } from "@/components/diary/DiaryHistory";
@@ -225,6 +226,7 @@ export function WalkTracker() {
           {live ? (
             <DiaryEventCard
               icon="walk"
+              tone={DIARY_ICON_TONE.walk}
               accent
               title="Прогулка · идёт"
               meta={`${formatHumanDuration(liveSec)}, с ${formatClock(live.startMs)}`}
@@ -233,6 +235,7 @@ export function WalkTracker() {
           <DiaryEntryJournal
             entries={entries}
             icon="walk"
+            iconTone={DIARY_ICON_TONE.walk}
             getTimeMs={(e) => entryTimeMs(e)}
             titleOf={() => "Прогулка"}
             metaOf={(e) => {

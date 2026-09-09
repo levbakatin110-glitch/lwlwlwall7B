@@ -10,7 +10,7 @@ import {
   DiaryStats,
   DiaryStickyCta,
 } from "@/components/diary/DiaryShell";
-import { DiaryEntryJournal } from "@/components/diary/DiaryHistory";
+import { DiaryEntryJournal, DIARY_ICON_TONE } from "@/components/diary/DiaryHistory";
 import { DiaryInsightCard } from "@/components/diary/DiaryInsightCard";
 import { solidsInsight } from "@/lib/diary-insights";
 import {
@@ -306,6 +306,7 @@ export function SolidsTracker() {
           <DiaryEntryJournal
             entries={entries}
             icon="solids"
+            iconTone={DIARY_ICON_TONE.solids}
             titleOf={(e) =>
               String(e.fields?.food || e.value.split(" · ")[0] || "Прикорм")
             }

@@ -10,7 +10,7 @@ import {
   DiaryStats,
   DiaryStickyCta,
 } from "@/components/diary/DiaryShell";
-import { DiaryEntryJournal } from "@/components/diary/DiaryHistory";
+import { DiaryEntryJournal, DIARY_ICON_TONE } from "@/components/diary/DiaryHistory";
 import { DiaryInsightCard } from "@/components/diary/DiaryInsightCard";
 import { formulaInsight } from "@/lib/diary-insights";
 import {
@@ -261,6 +261,7 @@ export function BottleTracker() {
           <DiaryEntryJournal
             entries={entries}
             icon="formula"
+            iconTone={DIARY_ICON_TONE.formula}
             titleOf={(e) => {
               const entryMl =
                 Number(e.fields?.ml) ||

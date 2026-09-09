@@ -7,7 +7,7 @@ import {
   DiaryStats,
   DiaryStickyCta,
 } from "@/components/diary/DiaryShell";
-import { DiaryEntryJournal } from "@/components/diary/DiaryHistory";
+import { DiaryEntryJournal, DIARY_ICON_TONE } from "@/components/diary/DiaryHistory";
 import { DiaryInsightCard } from "@/components/diary/DiaryInsightCard";
 import { breastfeedingInsight } from "@/lib/diary-insights";
 import {
@@ -312,6 +312,7 @@ export function BreastfeedingTracker() {
         <DiaryEntryJournal
           entries={entries}
           icon="feeding"
+          iconTone={DIARY_ICON_TONE.feeding}
           getTimeMs={bfStartMs}
           gapBetween={(newer, older) => bfStartMs(newer) - bfEndMs(older)}
           titleOf={() => "Кормление"}

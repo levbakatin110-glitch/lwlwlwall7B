@@ -254,3 +254,86 @@ export function sleepHoursByYmd(
   }
   return map;
 }
+
+function weekdayShort(ymd: string): string {
+  const [y, m, d] = ymd.split("-").map(Number);
+  return new Date(y!, m! - 1, d!)
+    .toLocaleDateString("ru-RU", { weekday: "short" })
+    .replace(".", "");
+}
+
+export type SleepBarDay = {
+  ymd: string;
+  label: string;
+  nightSec: number;
+  napSec: number;
+  sleepSec: number;
+  napCount: number;
+  wakeSec: number;
+};
+
+/** Плотный ряд дней для столбиков: ночь / день / бодрствование. */
+export function sleepBarDays(
+  entries: JournalEntry[],
+  now: number,
+  live: { kind: SleepKind; startedAt: number } | null,
+  dayCount: number,
+): SleepBarDay[] {
+  const spans = collectSleepSpans(entries, live, now);
+  const today = toLocalDateIso(new Date(now));
+  const out: SleepBarDay[] = [];
+  for (let i = dayCount - 1; i >= 0; i--) {
+    const ymd = addYmd(today, -i);
+    const from = ymdStartMs(ymd);
+    const until = ymd === today ? now : ymdStartMs(addYmd(ymd, 1));
+    const tot = sleepSecByDay(spans, ymd, until);
+    const windowSec = Math.max(0, Math.floor((until - from) / 1000));
+    const napCount = spans.filter(
+      (s) => s.kind === "nap" && homeYmd(s) === ymd && s.endMs <= until + 1,
+    ).length;
+    out.push({
+      ymd,
+      label: weekdayShort(ymd),
+      nightSec: tot.nightSec,
+      napSec: tot.napSec,
+      sleepSec: tot.sleepSec,
+      napCount,
+      wakeSec: Math.max(0, windowSec - tot.sleepSec),
+    });
+  }
+  return out;
+}
+
+export type SleepPeriodTotals = {
+  daysWithSleep: number;
+  avgSleepSec: number;
+  avgNightSec: number;
+  avgNapSec: number;
+  avgNapCount: number;
+  avgWakeSec: number;
+};
+
+export function sleepPeriodTotals(bars: SleepBarDay[]): SleepPeriodTotals {
+  const filled = bars.filter((b) => b.sleepSec > 0);
+  if (!filled.length) {
+    return {
+      daysWithSleep: 0,
+      avgSleepSec: 0,
+      avgNightSec: 0,
+      avgNapSec: 0,
+      avgNapCount: 0,
+      avgWakeSec: 0,
+    };
+  }
+  const n = filled.length;
+  const sum = (fn: (b: SleepBarDay) => number) =>
+    filled.reduce((s, b) => s + fn(b), 0);
+  return {
+    daysWithSleep: n,
+    avgSleepSec: Math.round(sum((b) => b.sleepSec) / n),
+    avgNightSec: Math.round(sum((b) => b.nightSec) / n),
+    avgNapSec: Math.round(sum((b) => b.napSec) / n),
+    avgNapCount: Math.round((sum((b) => b.napCount) / n) * 10) / 10,
+    avgWakeSec: Math.round(sum((b) => b.wakeSec) / n),
+  };
+}

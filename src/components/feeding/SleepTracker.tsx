@@ -10,12 +10,14 @@ import {
   DiaryStickyCta,
 } from "@/components/diary/DiaryShell";
 import {
+  DIARY_ICON_TONE,
   DiaryDayHeading,
   DiaryEventCard,
   DiaryGap,
 } from "@/components/diary/DiaryHistory";
 import { DiaryInsightCard } from "@/components/diary/DiaryInsightCard";
-import { sleepInsight } from "@/lib/diary-insights";
+import { ageMonths } from "@/lib/growth-norms";
+import { sleepInsight, sleepNormHint } from "@/lib/diary-insights";
 import {
   dateCaptionRu,
   entriesForToday,
@@ -27,8 +29,10 @@ import {
 } from "@/lib/diary-day";
 import {
   buildSleepDays,
+  sleepBarDays,
   sleepDurationSec,
   sleepEndMs,
+  sleepPeriodTotals,
   sleepStartMs,
   type SleepKind,
 } from "@/lib/sleep-day";
@@ -69,6 +73,7 @@ export function SleepTracker({ journalId = "sleep" }: { journalId?: string }) {
 
   const [live, setLive] = useState<SleepLive | null>(null);
   const [now, setNow] = useState(() => Date.now());
+  const [period, setPeriod] = useState<7 | 14>(7);
 
   useEffect(() => {
     const pull = () => {
@@ -119,28 +124,24 @@ export function SleepTracker({ journalId = "sleep" }: { journalId?: string }) {
       .sort((a, b) => sleepEndMs(b) - sleepEndMs(a));
   }, [entries]);
 
-  const stats = useMemo(() => {
-    const totalSec = todayEntries.reduce(
-      (s, e) =>
-        s +
-        sleepDurationSec({
-          startMs: sleepStartMs(e),
-          endMs: sleepEndMs(e),
-        }),
-      0,
-    );
-    const wake = wakeMinutesSince(entries);
-    return {
-      totalSec,
-      count: todayEntries.length,
-      wakeLabel: wake != null ? `${wake} мин` : "—",
-      wakeMin: wake,
-    };
-  }, [todayEntries, entries]);
+  const wakeMin = useMemo(() => wakeMinutesSince(entries), [entries]);
+  const wakeLabel = wakeMin != null ? `${wakeMin} мин` : "—";
+
+  const bars = useMemo(
+    () => sleepBarDays(entries, now, live, period),
+    [entries, now, live, period],
+  );
+  const totals = useMemo(() => sleepPeriodTotals(bars), [bars]);
+  const months = isMomSleep ? null : ageMonths(birthDate);
+  const norm = sleepNormHint(
+    totals.avgSleepSec / 3600,
+    months,
+    totals.daysWithSleep,
+  );
 
   const insight = useMemo(
-    () => (isMomSleep ? null : sleepInsight(entries, birthDate)),
-    [isMomSleep, entries, birthDate],
+    () => sleepInsight(entries, isMomSleep ? null : birthDate, now, period),
+    [isMomSleep, entries, birthDate, now, period],
   );
 
   const sleepSpans = useMemo(() => {
@@ -212,18 +213,70 @@ export function SleepTracker({ journalId = "sleep" }: { journalId?: string }) {
 
   return (
     <DiaryPage stickyPad>
+      <div className="mb-3 flex justify-center">
+        <div className="inline-flex rounded-full border border-line bg-card/70 p-0.5">
+          {([7, 14] as const).map((n) => (
+            <button
+              key={n}
+              type="button"
+              onClick={() => setPeriod(n)}
+              className={`rounded-full px-3.5 py-1 text-[12px] font-semibold ${
+                period === n ? "bg-accent-soft text-accent" : "text-muted"
+              }`}
+            >
+              {n} дней
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {insight ? <DiaryInsightCard view={insight} /> : null}
+
+      <div className="mt-3">
       <DiaryStats
         items={[
           {
-            label: "Сегодня",
-            value: stats.totalSec > 0 ? formatDuration(stats.totalSec) : "—",
+            label: "В среднем / сутки",
+            value:
+              totals.avgSleepSec > 0
+                ? formatHumanDuration(totals.avgSleepSec)
+                : "—",
+            hint: norm.label,
+            hintTone: norm.tone,
           },
-          { label: "Снов", value: stats.count },
-          { label: "Бодрств.", value: stats.wakeLabel },
+          {
+            label: "Ночной сон",
+            value:
+              totals.avgNightSec > 0
+                ? formatHumanDuration(totals.avgNightSec)
+                : "—",
+            hint: `${period} дн.`,
+          },
+          {
+            label: "Дневной сон",
+            value:
+              totals.avgNapSec > 0
+                ? formatHumanDuration(totals.avgNapSec)
+                : "—",
+            hint:
+              totals.avgNapCount > 0
+                ? `${String(totals.avgNapCount).replace(".", ",")} сна`
+                : "за период",
+          },
+          {
+            label: "Бодрствование",
+            value:
+              totals.avgWakeSec > 0
+                ? formatHumanDuration(totals.avgWakeSec)
+                : wakeLabel,
+            hint:
+              wakeMin != null
+                ? `сейчас ${wakeMin} мин`
+                : "среднее ВБ",
+          },
         ]}
       />
-
-      {insight ? <DiaryInsightCard view={insight} /> : null}
+      </div>
 
       <DiaryDayStrip now={now} spans={sleepSpans} />
 
@@ -268,6 +321,7 @@ export function SleepTracker({ journalId = "sleep" }: { journalId?: string }) {
                     <DiaryEventCard
                       key={s.id}
                       icon="sleep"
+                      tone={DIARY_ICON_TONE.sleep}
                       accent={Boolean(s.live)}
                       title={kindTitle(s.kind, isMomSleep, s.live)}
                       meta={meta}

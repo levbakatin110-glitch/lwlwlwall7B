@@ -44,36 +44,50 @@ export function DiaryGap({ label }: { label: string }) {
   );
 }
 
+export const DIARY_ICON_TONE = {
+  sleep:
+    "bg-[color-mix(in_oklab,var(--accent)_22%,transparent)] text-accent",
+  feeding: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
+  formula: "bg-sky-500/15 text-sky-700 dark:text-sky-300",
+  solids: "bg-amber-500/15 text-amber-800 dark:text-amber-200",
+  diaper: "bg-sky-500/15 text-sky-800 dark:text-sky-200",
+  water: "bg-sky-500/15 text-sky-700 dark:text-sky-300",
+  walk: "bg-[color-mix(in_oklab,var(--accent)_22%,transparent)] text-accent",
+} as const;
+
 export function DiaryEventCard({
   icon,
   title,
   meta,
   accent,
   onClick,
+  tone,
 }: {
   icon: IconName;
   title: string;
   meta: string;
   accent?: boolean;
   onClick?: () => void;
+  tone?: string;
 }) {
   const Tag = onClick ? "button" : "div";
   return (
     <Tag
       type={onClick ? "button" : undefined}
       onClick={onClick}
-      className={`flex w-full items-center gap-3 rounded-2xl border border-line bg-card/85 px-3.5 py-3 text-left ${
+      className={`mb-2.5 flex w-full items-center gap-3 rounded-full border border-line bg-card/90 px-3.5 py-3 text-left shadow-[0_1px_0_rgba(0,0,0,0.04)] ${
         accent ? "ring-1 ring-accent/30" : ""
       } ${onClick ? "active:bg-accent-soft/40" : ""}`}
     >
       <span
         className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
-          accent ? "bg-accent-soft text-accent" : "bg-accent-soft/80 text-accent"
+          tone ??
+          (accent ? "bg-accent-soft text-accent" : "bg-accent-soft/80 text-accent")
         }`}
       >
         <MayaIcon name={icon} size={20} />
       </span>
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1 pr-1">
         <p className="font-display text-[15px] font-semibold text-foreground">
           {title}
         </p>
@@ -93,6 +107,7 @@ export function DiaryEntryJournal({
   onRemove,
   confirmText = "Удалить эту запись из дневника?",
   empty,
+  iconTone,
 }: {
   entries: JournalEntry[];
   icon: IconName;
@@ -103,6 +118,7 @@ export function DiaryEntryJournal({
   onRemove?: (id: string) => void;
   confirmText?: string;
   empty?: ReactNode;
+  iconTone?: string;
 }) {
   const days = groupEntriesByDay(entries, getTimeMs);
   if (!days.length) return empty ? <>{empty}</> : null;
@@ -123,6 +139,7 @@ export function DiaryEntryJournal({
               <Fragment key={e.id}>
                 <DiaryEventCard
                   icon={icon}
+                  tone={iconTone}
                   title={titleOf(e)}
                   meta={metaOf(e)}
                   accent={i === 0 && day.label === "Сегодня"}
@@ -137,7 +154,7 @@ export function DiaryEntryJournal({
                 {older && gapMs >= 60_000 ? (
                   <DiaryGap label={formatGap(0, gapMs)} />
                 ) : older ? (
-                  <div className="h-2" />
+                  <div className="h-1" />
                 ) : null}
               </Fragment>
             );

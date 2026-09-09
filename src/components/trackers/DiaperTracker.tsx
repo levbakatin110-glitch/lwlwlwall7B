@@ -8,7 +8,7 @@ import {
   DiaryPage,
   DiaryStats,
 } from "@/components/diary/DiaryShell";
-import { DiaryEntryJournal } from "@/components/diary/DiaryHistory";
+import { DiaryEntryJournal, DIARY_ICON_TONE } from "@/components/diary/DiaryHistory";
 import { DiaryInsightCard } from "@/components/diary/DiaryInsightCard";
 import { diaperInsight } from "@/lib/diary-insights";
 import {
@@ -166,6 +166,7 @@ export function DiaperTracker() {
           <DiaryEntryJournal
             entries={entries}
             icon="diaper"
+            iconTone={DIARY_ICON_TONE.diaper}
             titleOf={(e) => kindLabel(String(e.fields?.kind || ""))}
             metaOf={(e) => {
               const time = formatClock(entryTimeMs(e));

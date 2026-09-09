@@ -586,7 +586,7 @@ ${brief}`;
           </div>
         </div>
       ) : (
-        <ul className="mt-4 space-y-2">
+        <ul className="mt-4 space-y-2.5">
           {events.map((ev, i) => {
             const meta = KIND_META[ev.kind];
             return (
@@ -597,7 +597,7 @@ ${brief}`;
               >
                 <Link
                   href={meta.href}
-                  className="flex items-center gap-3 rounded-full border border-line bg-card/85 px-3 py-2.5 shadow-[0_1px_0_rgba(0,0,0,0.03)] transition hover:border-accent/30"
+                  className="flex items-center gap-3 rounded-full border border-line bg-card/90 px-3.5 py-3 shadow-[0_1px_0_rgba(0,0,0,0.03)] transition hover:border-accent/30"
                 >
                   <span
                     className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${meta.tone}`}

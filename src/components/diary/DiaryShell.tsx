@@ -6,6 +6,7 @@ export type DiaryStat = {
   label: string;
   value: string | number;
   hint?: string;
+  hintTone?: "ok" | "watch" | "muted";
 };
 
 /** Сводка: ровные колонки, без дыры между первой цифрой и остальными. */
@@ -33,7 +34,17 @@ export function DiaryStats({ items }: { items: DiaryStat[] }) {
             {it.value}
           </p>
           {it.hint ? (
-            <p className="mt-0.5 text-[10px] text-muted">{it.hint}</p>
+            <p
+              className={`mt-0.5 text-[10px] ${
+                it.hintTone === "ok"
+                  ? "text-emerald-600 dark:text-emerald-400"
+                  : it.hintTone === "watch"
+                    ? "text-amber-700 dark:text-amber-300"
+                    : "text-muted"
+              }`}
+            >
+              {it.hint}
+            </p>
           ) : null}
         </div>
       ))}

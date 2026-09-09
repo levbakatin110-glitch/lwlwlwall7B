@@ -4,6 +4,8 @@ import {
   breastfeedingInsight,
   diaperInsight,
   growthSpark,
+  sleepInsight,
+  sleepNormHint,
 } from "./diary-insights";
 import type { JournalEntry } from "./types";
 
@@ -124,6 +126,45 @@ describe("growthSpark", () => {
     );
     expect(view.spark).toEqual([]);
     expect(view.insight).toBeNull();
+  });
+});
+
+describe("sleepInsight", () => {
+  it("splits overnight hours onto the morning bar", () => {
+    const now = Date.parse("2026-04-10T14:00:00");
+    const view = sleepInsight(
+      [
+        entry({
+          id: "n1",
+          date: "2026-04-09",
+          fields: {
+            kind: "night",
+            startMs: Date.parse("2026-04-09T22:00:00"),
+            endMs: Date.parse("2026-04-10T07:00:00"),
+            totalSec: 9 * 3600,
+          },
+        }),
+      ],
+      "2026-02-10",
+      now,
+    );
+    expect(view.spark).toHaveLength(7);
+    const today = view.spark[view.spark.length - 1]!;
+    expect(today.night).toBe(7);
+    expect(today.day).toBe(0);
+    expect(today.value).toBe(7);
+  });
+});
+
+describe("sleepNormHint", () => {
+  it("stays quiet until there are a couple of days", () => {
+    expect(sleepNormHint(14, 2, 1).label).toBe("мало записей");
+  });
+
+  it("marks a typical 2-month average as in range", () => {
+    const hint = sleepNormHint(14.5, 2, 5);
+    expect(hint.label).toBe("в норме");
+    expect(hint.tone).toBe("ok");
   });
 });
 

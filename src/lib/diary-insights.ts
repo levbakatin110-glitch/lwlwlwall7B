@@ -2,13 +2,7 @@
 
 import { ageMonths } from "./growth-norms";
 import { toLocalDateIso } from "./local-date";
-import {
-  collectSleepSpans,
-  overlapMs,
-  sleepDurationSec,
-  sleepHoursByYmd,
-  ymdStartMs,
-} from "./sleep-day";
+import { sleepBarDays } from "./sleep-day";
 import type { JournalEntry } from "./types";
 
 export type InsightTone = "ok" | "watch" | "info";
@@ -19,7 +13,13 @@ export type DiaryInsight = {
   detail: string;
 };
 
-export type SparkPoint = { key: string; label: string; value: number };
+export type SparkPoint = {
+  key: string;
+  label: string;
+  value: number;
+  night?: number;
+  day?: number;
+};
 
 export type DiaryInsightView = {
   spark: SparkPoint[];
@@ -124,6 +124,19 @@ function typicalSleepH(months: number | null): { min: number; max: number } {
   if (months < 6) return { min: 12, max: 15 };
   if (months < 12) return { min: 11, max: 14 };
   return { min: 10, max: 13 };
+}
+
+export function sleepNormHint(
+  avgHours: number,
+  months: number | null,
+  daysWithSleep: number,
+): { label: string; tone: "ok" | "watch" | "muted" } {
+  if (daysWithSleep < 2) return { label: "мало записей", tone: "muted" };
+  if (months == null) return { label: "за период", tone: "muted" };
+  const { min, max } = typicalSleepH(months);
+  if (avgHours >= min && avgHours <= max) return { label: "в норме", tone: "ok" };
+  if (avgHours < min) return { label: "ниже ориентира", tone: "watch" };
+  return { label: "выше ориентира", tone: "muted" };
 }
 
 function emptyView(detail: string): DiaryInsightView {
@@ -311,20 +324,27 @@ export function sleepInsight(
   entries: JournalEntry[],
   birthDate?: string | null,
   now = Date.now(),
+  dayCount = 7,
 ): DiaryInsightView {
-  const today = toLocalDateIso(new Date(now));
-  const days = lastDays(today, 7);
-  const hours = sleepHoursByYmd(entries, days, now);
-  const spark = sparkFromDays(days, (iso) => hours.get(iso) ?? 0);
-  const sparkCaption = "часов сна за день";
-  const todayH = hours.get(today) ?? 0;
+  const hours = (sec: number) => Math.round((sec / 3600) * 10) / 10;
+  const bars = sleepBarDays(entries, now, null, dayCount);
+  const spark = bars.map((b) => ({
+    key: b.ymd,
+    label: b.label,
+    value: hours(b.sleepSec),
+    night: hours(b.nightSec),
+    day: hours(b.napSec),
+  }));
+  const sparkCaption = `ночной и дневной · ${dayCount} дн.`;
+  const todayBar = bars[bars.length - 1];
+  const todayH = todayBar ? todayBar.sleepSec / 3600 : 0;
   const months = ageMonths(birthDate);
   const range = typicalSleepH(months);
-  const dayFrom = ymdStartMs(today);
-  const todaySpans = collectSleepSpans(entries, null, now).filter(
-    (s) => overlapMs(s.startMs, s.endMs, dayFrom, now) > 0,
-  );
-  if (!todaySpans.length && todayH === 0) {
+  const todayYmd = todayBar?.ymd;
+  const todayList = (
+    todayYmd ? entries.filter((e) => e.date === todayYmd) : []
+  ).sort((a, b) => entryStartMs(a) - entryStartMs(b));
+  if (!todayList.length && todayH === 0) {
     return {
       spark,
       sparkCaption,
@@ -333,7 +353,10 @@ export function sleepInsight(
   }
 
   let longest = 0;
-  for (const s of todaySpans) longest = Math.max(longest, sleepDurationSec(s));
+  for (const e of todayList) longest = Math.max(longest, entrySec(e));
+  if (todayBar) {
+    longest = Math.max(longest, todayBar.nightSec, todayBar.napSec);
+  }
 
   if (todayH > 0 && months != null && todayH < range.min - 2) {
     return {

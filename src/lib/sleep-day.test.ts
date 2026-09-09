@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import type { JournalEntry } from "./types";
 import {
   buildSleepDays,
+  sleepBarDays,
   sleepHoursByYmd,
+  sleepPeriodTotals,
   sleepSecByDay,
   spanFromEntry,
 } from "./sleep-day";
@@ -90,5 +92,30 @@ describe("sleep day model", () => {
     );
     expect(map.get("2026-04-09")).toBe(2);
     expect(map.get("2026-04-10")).toBe(7);
+  });
+
+  it("stacks overnight night hours and naps on a dense week chart", () => {
+    const now = Date.parse("2026-04-10T14:00:00");
+    const bars = sleepBarDays(
+      [
+        sleep("n1", "2026-04-09T22:00:00", "2026-04-10T07:00:00", "night"),
+        sleep("d1", "2026-04-10T10:00:00", "2026-04-10T11:00:00", "nap"),
+      ],
+      now,
+      null,
+      7,
+    );
+    expect(bars).toHaveLength(7);
+    const today = bars[6]!;
+    const yest = bars[5]!;
+    expect(today.ymd).toBe("2026-04-10");
+    expect(today.nightSec).toBe(7 * 3600);
+    expect(today.napSec).toBe(3600);
+    expect(today.napCount).toBe(1);
+    expect(yest.nightSec).toBe(2 * 3600);
+    const totals = sleepPeriodTotals(bars);
+    expect(totals.daysWithSleep).toBe(2);
+    expect(totals.avgSleepSec).toBe(Math.round(((2 + 8) * 3600) / 2));
+    expect(totals.avgNapCount).toBe(0.5);
   });
 });

@@ -8,7 +8,7 @@ import {
   DiaryStats,
   DiaryStickyCta,
 } from "@/components/diary/DiaryShell";
-import { DiaryEntryJournal } from "@/components/diary/DiaryHistory";
+import { DiaryEntryJournal, DIARY_ICON_TONE } from "@/components/diary/DiaryHistory";
 import { DiaryInsightCard } from "@/components/diary/DiaryInsightCard";
 import { waterInsight } from "@/lib/diary-insights";
 import {
@@ -154,6 +154,7 @@ export function WaterTracker() {
         <DiaryEntryJournal
           entries={entries}
           icon="water"
+          iconTone={DIARY_ICON_TONE.water}
           titleOf={(e) => `+${entryMl(e)} мл`}
           metaOf={(e) => formatClock(entryTimeMs(e))}
           confirmText="Удалить запись?"
