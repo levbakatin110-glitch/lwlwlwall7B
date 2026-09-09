@@ -2,8 +2,10 @@ import { getDb } from "@/lib/db";
 import { normalizeEmail } from "@/lib/email-codes";
 import {
   advanceAfterFire,
+  EMAIL_PUSH_GAP_MS,
   minGapAfterFireMs,
   resolveScheduleWrite,
+  staggerDuePushes,
   type CareReminderMode,
   type ScheduledPushItem,
 } from "@/lib/care-reminders";
@@ -128,14 +130,24 @@ export function claimDuePushes(now = Date.now(), limit = 80): ScheduleRow[] {
        WHERE id = ? AND next_at <= ?`,
     );
     const del = db.prepare("DELETE FROM push_schedule WHERE id = ?");
-    for (const raw of rows) {
-      const row = rowFromDb(raw);
+    const parsed = (rows as Record<string, unknown>[]).map(rowFromDb);
+    const ready: ScheduleRow[] = [];
+    for (const row of parsed) {
       const gap = minGapAfterFireMs(row);
       if (row.lastSentAt != null && now - row.lastSentAt < gap) {
-        const hold = Math.max(row.nextAt, row.lastSentAt + gap);
-        upd.run(row.lastSentAt, hold, now, row.id, now);
+        const holdAt = Math.max(row.nextAt, row.lastSentAt + gap);
+        upd.run(row.lastSentAt, holdAt, now, row.id, now);
         continue;
       }
+      ready.push(row);
+    }
+    const { send, hold } = staggerDuePushes(ready, now);
+    for (const row of hold) {
+      const holdAt = now + EMAIL_PUSH_GAP_MS;
+      upd.run(row.lastSentAt, Math.max(row.nextAt, holdAt), now, row.id, now);
+    }
+    for (const row of send) {
+      const gap = minGapAfterFireMs(row);
       const next = advanceAfterFire(row, now);
       if (next == null) {
         del.run(row.id);

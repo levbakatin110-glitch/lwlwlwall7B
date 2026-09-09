@@ -3,10 +3,11 @@
 import { useEffect, useMemo } from "react";
 import { collectScheduledPushes } from "@/components/CareRemindersSync";
 import { notifyViaSw } from "@/components/PushReminders";
-import { minGapAfterFireMs } from "@/lib/care-reminders";
+import { EMAIL_PUSH_GAP_MS, minGapAfterFireMs } from "@/lib/care-reminders";
 import { useAppStore } from "@/lib/store";
 
 const FIRED_KEY = "maya-reminders-fired-v1";
+const LAST_LOCAL_PUSH_KEY = "maya-push-last-local";
 
 function loadFired(): Set<string> {
   try {
@@ -45,6 +46,12 @@ export function RemindersHost() {
       if (lookingAtMaya()) return;
       const fired = loadFired();
       const now = Date.now();
+      try {
+        const lastLocal = Number(localStorage.getItem(LAST_LOCAL_PUSH_KEY) || 0);
+        if (lastLocal && now - lastLocal < EMAIL_PUSH_GAP_MS) return;
+      } catch {
+        /* */
+      }
       let n = 0;
       const items = collectScheduledPushes(now).sort((a, b) => a.nextAt - b.nextAt);
       for (const c of items) {
@@ -53,7 +60,7 @@ export function RemindersHost() {
         const gapMs = minGapAfterFireMs(c);
         const slot = `${c.id}:${Math.floor(c.nextAt / gapMs)}`;
         if (fired.has(c.id) || fired.has(slot)) continue;
-        if (n >= 5) break;
+        if (n >= 1) break;
         fired.add(slot);
         if (c.mode === "once") fired.add(c.id);
         n += 1;
@@ -64,7 +71,14 @@ export function RemindersHost() {
           url: c.url,
         });
       }
-      if (n) saveFired(fired);
+      if (n) {
+        saveFired(fired);
+        try {
+          localStorage.setItem(LAST_LOCAL_PUSH_KEY, String(now));
+        } catch {
+          /* */
+        }
+      }
     }
     check();
     const id = window.setInterval(check, 20_000);

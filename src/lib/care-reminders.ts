@@ -206,6 +206,8 @@ export function advanceAfterFire(
 
 /** Минимум между пушами одного напоминания: не пачка, если мама не открыла. */
 export const MIN_PUSH_GAP_MS = 60 * 60_000;
+/** Даже разные слоты не сыпем пачкой: один пуш на почту за этот зазор. */
+export const EMAIL_PUSH_GAP_MS = 50 * 60_000;
 
 export function minGapAfterFireMs(item: {
   mode: CareReminderMode | "once";
@@ -392,7 +394,7 @@ export const USAGE_CTAS: UsageCta[] = [
   {
     moduleId: "sleep",
     title: "Мая · сон",
-    body: "Сон малыша: запишите, как спал.",
+    body: "Отметьте сон малыша.",
     href: "/m/sleep",
     slot: "evening",
     kind: "sleep",
@@ -444,11 +446,24 @@ export const INDEPENDENT_CTAS: UsageCta[] = [
   },
 ];
 
-export const DAILY_PUSH_TARGET = 3;
-export const DAILY_PUSH_TIMES = ["11:00", "15:30", "19:30"] as const;
-export const WEEKLY_EXTRA_TIME = "13:00";
+export const DAILY_PUSH_TARGET = 2;
+export const DAILY_PUSH_TIMES = ["12:00", "20:00"] as const;
 export const USAGE_DAY_AT = "12:00";
 export const USAGE_EVENING_AT = "20:00";
+
+const SLEEP_MODULES = new Set(["sleep", "preg_sleep"]);
+
+export function isSleepPush(item: { url?: string; body?: string; tag?: string }): boolean {
+  const url = item.url ?? "";
+  const tag = item.tag ?? "";
+  const body = item.body ?? "";
+  return (
+    url.includes("/m/sleep") ||
+    url.includes("/m/preg_sleep") ||
+    tag.includes("sleep") ||
+    /сон малыша|ваш сон|пора спать/i.test(body)
+  );
+}
 
 const MAYA_CTA =
   INDEPENDENT_CTAS.find((c) => c.moduleId === "maya") ?? INDEPENDENT_CTAS[1];
@@ -499,17 +514,6 @@ function localDayIndex(now: number, tzOffsetMin: number): number {
   return Math.floor(Date.UTC(wall.y, wall.m - 1, wall.d) / 86_400_000);
 }
 
-function localWeekday(now: number, tzOffsetMin: number): number {
-  const wall = wallClock(now, tzOffsetMin);
-  return new Date(Date.UTC(wall.y, wall.m - 1, wall.d)).getUTCDay();
-}
-
-function weeklyMayaWeekday(seed: string): number {
-  let h = 0;
-  for (const ch of seed) h = (h + ch.charCodeAt(0)) % 7;
-  return h;
-}
-
 /** Дневники с записями. Выключенный тип в напоминаниях не берём. */
 export function usedDiaryCtas(
   journals: JournalBag,
@@ -533,8 +537,8 @@ export function usedDiaryCtas(
 export type DailyPushSlot = { cta: UsageCta; at: string };
 
 /**
- * 3 пуша в день: сначала дневники, недостающее добиваем общими.
- * Если дневников много, раз в неделю четвёртый: «напишите Мае».
+ * Два пуша в день: днём дневник или шаблон, вечером сон один раз.
+ * Нет записей сна — вечером общий шаблон, не три «пора спать».
  */
 export function planDailyPushes(
   journals: JournalBag,
@@ -543,34 +547,79 @@ export function planDailyPushes(
   tzOffsetMin: number,
   seed = "maya",
 ): DailyPushSlot[] {
+  void seed;
   const day = localDayIndex(now, tzOffsetMin);
-  const diaries = rotateList(usedDiaryCtas(journals, reminders), day);
-  const diaryPicks = diaries.slice(0, DAILY_PUSH_TARGET);
-  const need = DAILY_PUSH_TARGET - diaryPicks.length;
-  const taken = new Set(diaryPicks.map((c) => c.moduleId));
-  const fillers = rotateList(INDEPENDENT_CTAS, day)
-    .filter((c) => !taken.has(c.moduleId))
-    .slice(0, need);
-  const picks = [...diaryPicks, ...fillers];
-  picks.sort((a, b) => {
-    const ae = a.slot === "evening" ? 1 : 0;
-    const be = b.slot === "evening" ? 1 : 0;
-    return ae - be;
-  });
-  if (
-    diaries.length >= DAILY_PUSH_TARGET &&
-    localWeekday(now, tzOffsetMin) === weeklyMayaWeekday(seed) &&
-    !picks.some((c) => c.moduleId === "maya")
-  ) {
-    picks.push(MAYA_CTA);
+  const diaries = usedDiaryCtas(journals, reminders);
+  const eveningSleep =
+    diaries.find((c) => c.moduleId === "sleep") ??
+    diaries.find((c) => c.moduleId === "preg_sleep") ??
+    null;
+  const dayDiaries = diaries.filter(
+    (c) => c.slot === "day" && !SLEEP_MODULES.has(c.moduleId),
+  );
+  const dayFillers = rotateList(
+    INDEPENDENT_CTAS.filter((c) => c.slot === "day"),
+    day,
+  );
+  const eveningTemplate =
+    INDEPENDENT_CTAS.find((c) => c.slot === "evening") ?? MAYA_CTA;
+  const dayPick = dayDiaries[0] ?? dayFillers[0] ?? MAYA_CTA;
+  const eveningPick = eveningSleep ?? eveningTemplate;
+  const slots: DailyPushSlot[] = [
+    { cta: dayPick, at: DAILY_PUSH_TIMES[0]! },
+  ];
+  if (eveningPick.moduleId !== dayPick.moduleId) {
+    slots.push({ cta: eveningPick, at: DAILY_PUSH_TIMES[1]! });
   }
-  return picks.map((cta, i) => ({
-    cta,
-    at:
-      i < DAILY_PUSH_TIMES.length
-        ? DAILY_PUSH_TIMES[i]
-        : WEEKLY_EXTRA_TIME,
-  }));
+  return slots;
+}
+
+export function staggerDuePushes<
+  T extends {
+    email?: string;
+    lastSentAt: number | null;
+    url?: string;
+    body?: string;
+    tag?: string;
+  },
+>(rows: T[], now: number): { send: T[]; hold: T[] } {
+  const send: T[] = [];
+  const hold: T[] = [];
+  const lastByEmail = new Map<string, number>();
+  const sleepByEmail = new Map<string, number>();
+  for (const row of rows) {
+    const email = row.email ?? "";
+    if (row.lastSentAt) {
+      lastByEmail.set(
+        email,
+        Math.max(lastByEmail.get(email) ?? 0, row.lastSentAt),
+      );
+      if (isSleepPush(row)) {
+        sleepByEmail.set(
+          email,
+          Math.max(sleepByEmail.get(email) ?? 0, row.lastSentAt),
+        );
+      }
+    }
+  }
+  for (const row of rows) {
+    const email = row.email ?? "";
+    const last = lastByEmail.get(email) ?? 0;
+    const sleepLast = sleepByEmail.get(email) ?? 0;
+    const tooSoon = last > 0 && now - last < EMAIL_PUSH_GAP_MS;
+    const sleepTooSoon =
+      isSleepPush(row) &&
+      sleepLast > 0 &&
+      now - sleepLast < 18 * 60 * 60_000;
+    if (tooSoon || sleepTooSoon) {
+      hold.push(row);
+      continue;
+    }
+    send.push(row);
+    lastByEmail.set(email, now);
+    if (isSleepPush(row)) sleepByEmail.set(email, now);
+  }
+  return { send, hold };
 }
 
 export function ctaCopyForKind(
@@ -672,7 +721,7 @@ export function defaultReminder(kind: CareReminderKind): CareReminder {
       mode: "times",
       times: [USAGE_EVENING_AT],
       title: "Мая · сон",
-      body: "Сон малыша: запишите, как спал.",
+      body: "Отметьте сон малыша.",
       href: "/m/sleep",
       resetOnLog: true,
     };
@@ -685,7 +734,7 @@ export function defaultReminder(kind: CareReminderKind): CareReminder {
       mode: "interval",
       intervalMin: 120,
       title: "Мая · бодрствование",
-      body: "Сон малыша: запишите, как спал.",
+      body: "Отметьте сон малыша.",
       href: "/m/sleep",
       resetOnLog: true,
     };

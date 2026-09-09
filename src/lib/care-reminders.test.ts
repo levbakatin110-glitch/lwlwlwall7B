@@ -13,6 +13,7 @@ import {
   planDailyPushes,
   resolveScheduleWrite,
   skipQuiet,
+  staggerDuePushes,
   wallClock,
 } from "./care-reminders";
 
@@ -275,7 +276,6 @@ describe("ensureCoreCareReminders", () => {
 
 describe("usage CTAs", () => {
   const log = (createdAt: string) => [{ createdAt }];
-  const sunday = utc("2026-03-01T12:00:00Z"); // Sunday
   const monday = utc("2026-03-02T12:00:00Z");
 
   it("picks the feed diary she actually used", () => {
@@ -291,13 +291,16 @@ describe("usage CTAs", () => {
     expect(cta.body).toContain("Смесь");
   });
 
-  it("pads to 3 with independent CTAs when there are no diaries", () => {
+  it("pads to 2 with templates when there are no diaries", () => {
     const planned = planDailyPushes({}, [], monday, MSK, "maya");
     expect(planned).toHaveLength(DAILY_PUSH_TARGET);
     expect(planned.every((p) => !p.cta.href.startsWith("/m/"))).toBe(true);
+    expect(planned.some((p) => /сон малыша|пора спать/i.test(p.cta.body))).toBe(
+      false,
+    );
   });
 
-  it("keeps one diary and fills the rest", () => {
+  it("keeps one day diary and an evening template", () => {
     const planned = planDailyPushes(
       { breastfeeding: log("2026-03-02T08:00:00Z") },
       [],
@@ -305,27 +308,45 @@ describe("usage CTAs", () => {
       MSK,
       "maya",
     );
-    expect(planned).toHaveLength(3);
-    expect(planned.filter((p) => p.cta.moduleId === "breastfeeding")).toHaveLength(
-      1,
-    );
-    expect(planned.filter((p) => !p.cta.href.startsWith("/m/")).length).toBe(2);
+    expect(planned).toHaveLength(2);
+    expect(planned[0]?.cta.moduleId).toBe("breastfeeding");
+    expect(planned[0]?.at).toBe("12:00");
+    expect(planned[1]?.cta.moduleId).not.toBe("breastfeeding");
+    expect(planned[1]?.at).toBe("20:00");
   });
 
-  it("caps many diaries at 3, plus weekly Maya", () => {
+  it("sends sleep once in the evening, even if several sleep diaries exist", () => {
+    const planned = planDailyPushes(
+      {
+        sleep: log("2026-03-02T10:00:00Z"),
+        preg_sleep: log("2026-03-02T09:00:00Z"),
+        notes: log("2026-03-02T08:00:00Z"),
+      },
+      [],
+      monday,
+      MSK,
+      "maya",
+    );
+    const sleepSlots = planned.filter((p) =>
+      ["sleep", "preg_sleep"].includes(p.cta.moduleId),
+    );
+    expect(sleepSlots).toHaveLength(1);
+    expect(sleepSlots[0]?.at).toBe("20:00");
+    expect(sleepSlots[0]?.cta.body).toMatch(/Отметьте сон/i);
+    expect(planned).toHaveLength(2);
+  });
+
+  it("caps a busy day at two pushes, with sleep only at night", () => {
     const journals = {
       breastfeeding: log("2026-03-01T12:00:00Z"),
       walk: log("2026-03-01T11:00:00Z"),
       sleep: log("2026-03-01T10:00:00Z"),
       diaper: log("2026-03-01T09:00:00Z"),
     };
-    const weekday = planDailyPushes(journals, [], monday, MSK, "maya");
-    expect(weekday).toHaveLength(3);
-    expect(weekday.every((p) => p.cta.href.startsWith("/m/"))).toBe(true);
-
-    const weekend = planDailyPushes(journals, [], sunday, MSK, "");
-    expect(weekend).toHaveLength(4);
-    expect(weekend.some((p) => p.cta.moduleId === "maya")).toBe(true);
+    const planned = planDailyPushes(journals, [], monday, MSK, "maya");
+    expect(planned).toHaveLength(2);
+    expect(planned.filter((p) => p.cta.moduleId === "sleep")).toHaveLength(1);
+    expect(planned.find((p) => p.cta.moduleId === "sleep")?.at).toBe("20:00");
   });
 
   it("respects a reminder she turned off", () => {
@@ -337,6 +358,40 @@ describe("usage CTAs", () => {
       "maya",
     );
     expect(planned.some((p) => p.cta.moduleId === "walk")).toBe(false);
-    expect(planned).toHaveLength(3);
+    expect(planned).toHaveLength(2);
+  });
+});
+
+describe("staggerDuePushes", () => {
+  it("sends one push per email when several slots are already due", () => {
+    const now = utc("2026-03-02T17:00:00Z");
+    const { send, hold } = staggerDuePushes(
+      [
+        { email: "a@x", lastSentAt: null, url: "/recipes", body: "a", tag: "daily:0" },
+        { email: "a@x", lastSentAt: null, url: "/m/sleep", body: "Отметьте сон малыша.", tag: "daily:1" },
+        { email: "a@x", lastSentAt: null, url: "/community", body: "c", tag: "daily:2" },
+      ],
+      now,
+    );
+    expect(send).toHaveLength(1);
+    expect(hold).toHaveLength(2);
+  });
+
+  it("does not send another sleep within 18 hours", () => {
+    const now = utc("2026-03-02T17:00:00Z");
+    const { send, hold } = staggerDuePushes(
+      [
+        {
+          email: "a@x",
+          lastSentAt: now - 2 * 60 * 60_000,
+          url: "/m/sleep",
+          body: "Отметьте сон малыша.",
+          tag: "daily:1",
+        },
+      ],
+      now,
+    );
+    expect(send).toHaveLength(0);
+    expect(hold).toHaveLength(1);
   });
 });

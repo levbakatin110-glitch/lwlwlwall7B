@@ -154,7 +154,7 @@ export function DiaperTracker() {
             >
               <span className={`flex items-center gap-1 ${k.tone}`}>
                 {k.icons.map((name) => (
-                  <MayaIcon key={name} name={name as IconName} size={22} />
+                  <MayaIcon key={name} name={name as IconName} size={26} />
                 ))}
               </span>
               <p className="mt-1.5 text-sm font-semibold">{k.label}</p>
