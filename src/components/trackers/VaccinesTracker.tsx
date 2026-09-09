@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { MayaIcon } from "@/components/icons/MayaIcon";
 import { VaccineTapHint } from "@/components/VaccineTapHint";
 import {
   CALENDAR_AGE_COLS,
@@ -233,6 +234,50 @@ function VaccineSheet({
   );
 }
 
+function CalendarExpandOverlay({
+  children,
+  onClose,
+  escapeEnabled,
+}: {
+  children: ReactNode;
+  onClose: () => void;
+  escapeEnabled: boolean;
+}) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!escapeEnabled) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [escapeEnabled, onClose]);
+
+  if (!mounted) return null;
+
+  return createPortal(
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Календарь на весь экран"
+      className="fixed inset-0 z-[175] flex min-h-0 flex-col bg-background"
+    >
+      {children}
+    </div>,
+    document.body,
+  );
+}
+
 function CalendarGrid({
   title,
   subtitle,
@@ -242,6 +287,9 @@ function CalendarGrid({
   onCell,
   onVaccine,
   hintFirstCell = false,
+  roomy = false,
+  onExpand,
+  onCollapse,
 }: {
   title: string;
   subtitle: string;
@@ -251,6 +299,9 @@ function CalendarGrid({
   onCell: (vaccine: VaccineInfo, dose: VaccineDose) => void;
   onVaccine: (vaccine: VaccineInfo) => void;
   hintFirstCell?: boolean;
+  roomy?: boolean;
+  onExpand?: () => void;
+  onCollapse?: () => void;
 }) {
   const monthCols = ages.filter((a) => a.band === "m");
   const yearCols = ages.filter((a) => a.band === "y");
@@ -262,23 +313,67 @@ function CalendarGrid({
   const pct = total > 0 ? Math.round((count / total) * 100) : 0;
 
   return (
-    <section className="overflow-hidden rounded-3xl border border-line/80 bg-card shadow-[0_10px_40px_-28px_rgba(80,40,60,0.35)]">
-      <div className="border-b border-line/60 bg-[linear-gradient(180deg,color-mix(in_oklab,var(--accent-soft)_55%,transparent),transparent)] px-4 py-3.5 sm:px-5">
+    <section
+      className={
+        roomy
+          ? "flex min-h-0 flex-1 flex-col bg-card"
+          : "overflow-hidden rounded-3xl border border-line/80 bg-card shadow-[0_10px_40px_-28px_rgba(80,40,60,0.35)]"
+      }
+    >
+      <div
+        className={`shrink-0 border-b border-line/60 bg-[linear-gradient(180deg,color-mix(in_oklab,var(--accent-soft)_55%,transparent),transparent)] px-4 py-3.5 sm:px-5 ${
+          roomy ? "pt-[max(0.9rem,env(safe-area-inset-top))]" : ""
+        }`}
+      >
         <div className="flex flex-wrap items-end justify-between gap-2">
-          <div>
+          <div className="min-w-0">
             <h2 className="font-display text-lg font-semibold tracking-tight sm:text-xl">
               {title}
             </h2>
             <p className="mt-0.5 text-xs text-muted">{subtitle}</p>
+            {onExpand && (
+              <button
+                type="button"
+                onClick={onExpand}
+                className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-line bg-background/80 px-2.5 py-1 text-[11px] font-medium text-muted"
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.85"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden
+                >
+                  <path d="M8.5 4.5H4.5V8.5M15.5 4.5h4V8.5M8.5 19.5H4.5V15.5M15.5 19.5h4V15.5" />
+                </svg>
+                Весь экран
+              </button>
+            )}
           </div>
-          <div className="text-right">
-            <p className="font-display text-xl font-semibold tabular-nums text-accent">
-              {count}
-              <span className="text-sm font-medium text-muted">/{total}</span>
-            </p>
-            <p className="text-[10px] uppercase tracking-[0.14em] text-muted">
-              отмечено
-            </p>
+          <div className="flex items-end gap-2">
+            <div className="text-right">
+              <p className="font-display text-xl font-semibold tabular-nums text-accent">
+                {count}
+                <span className="text-sm font-medium text-muted">/{total}</span>
+              </p>
+              <p className="text-[10px] uppercase tracking-[0.14em] text-muted">
+                отмечено
+              </p>
+            </div>
+            {onCollapse && (
+              <button
+                type="button"
+                onClick={onCollapse}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-line bg-background/80 text-muted"
+                aria-label="Закрыть"
+              >
+                <MayaIcon name="close" size={16} />
+              </button>
+            )}
           </div>
         </div>
         <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-line/80">
@@ -289,7 +384,13 @@ function CalendarGrid({
         </div>
       </div>
 
-      <div className="overflow-x-auto overscroll-x-none">
+      <div
+        className={
+          roomy
+            ? "min-h-0 flex-1 overflow-auto overscroll-contain pb-[env(safe-area-inset-bottom)]"
+            : "overflow-x-auto overscroll-x-none"
+        }
+      >
         <table className="w-max min-w-full border-collapse text-left">
           <thead>
             <tr className="bg-background/70">
@@ -339,13 +440,21 @@ function CalendarGrid({
               >
                 <th
                   scope="row"
-                  className="sticky left-0 z-10 max-w-[7.75rem] border-r border-line bg-inherit px-1.5 py-1.5 text-left shadow-[6px_0_12px_-8px_rgba(40,20,30,0.28)] sm:max-w-[10.5rem]"
+                  className={`sticky left-0 z-10 border-r border-line bg-inherit px-1.5 py-1.5 text-left shadow-[6px_0_12px_-8px_rgba(40,20,30,0.28)] ${
+                    roomy
+                      ? "max-w-[14rem] sm:max-w-[20rem]"
+                      : "max-w-[7.75rem] sm:max-w-[10.5rem]"
+                  }`}
                 >
                   <button
                     type="button"
                     onClick={() => onVaccine(v)}
                     title="Подробнее о прививке"
-                    className="w-full rounded-xl px-1.5 py-1.5 text-left text-[12px] font-semibold leading-snug text-foreground transition hover:bg-accent-soft/70 sm:text-[13px]"
+                    className={`w-full rounded-xl px-1.5 py-1.5 text-left font-semibold leading-snug text-foreground transition hover:bg-accent-soft/70 ${
+                      roomy
+                        ? "text-[14px] sm:text-[15px]"
+                        : "text-[12px] sm:text-[13px]"
+                    }`}
                   >
                     {v.name}
                   </button>
@@ -382,10 +491,11 @@ function CalendarGrid({
                                     : `${dose.label} · ${dose.ageHint} · отметить`
                                 }
                                 onClick={() => onCell(v, dose)}
-                                className={`flex h-8 min-w-[2.75rem] items-center justify-center rounded-xl border px-1.5 text-[11px] font-bold tabular-nums transition hover:-translate-y-0.5 hover:shadow-sm active:scale-95 sm:min-w-[3rem] ${toneClass(
-                                  dose.tone,
-                                  isDone,
-                                )}`}
+                                className={`flex items-center justify-center rounded-xl border px-1.5 font-bold tabular-nums transition hover:-translate-y-0.5 hover:shadow-sm active:scale-95 ${
+                                  roomy
+                                    ? "h-9 min-w-[3.25rem] text-[12px] sm:min-w-[3.5rem]"
+                                    : "h-8 min-w-[2.75rem] text-[11px] sm:min-w-[3rem]"
+                                } ${toneClass(dose.tone, isDone)}`}
                               >
                                 {dose.cell}
                               </button>
@@ -402,7 +512,7 @@ function CalendarGrid({
         </table>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 border-t border-line/60 px-4 py-3 text-[11px] sm:px-5">
+      <div className="flex shrink-0 flex-wrap items-center gap-2 border-t border-line/60 px-4 py-3 text-[11px] sm:px-5">
         <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-background/60 px-2.5 py-1">
           <span className="inline-block h-2.5 w-2.5 rounded-full bg-amber-300" />
           всем
@@ -430,6 +540,7 @@ export function VaccinesTracker() {
 
   const [markDate, setMarkDate] = useState(() => localToday());
   const [sheet, setSheet] = useState<SheetState | null>(null);
+  const [fullCal, setFullCal] = useState<"rf" | "extra" | null>(null);
   const [customName, setCustomName] = useState("");
   const [flash, setFlash] = useState(false);
 
@@ -537,6 +648,7 @@ export function VaccinesTracker() {
         hintFirstCell
         onCell={openCell}
         onVaccine={openVaccineInfo}
+        onExpand={() => setFullCal("rf")}
       />
 
       <CalendarGrid
@@ -547,7 +659,33 @@ export function VaccinesTracker() {
         done={done}
         onCell={openCell}
         onVaccine={openVaccineInfo}
+        onExpand={() => setFullCal("extra")}
       />
+
+      {fullCal && (
+        <CalendarExpandOverlay
+          onClose={() => setFullCal(null)}
+          escapeEnabled={!sheet}
+        >
+          <CalendarGrid
+            title={
+              fullCal === "rf" ? "По календарю РФ" : "Вне календаря"
+            }
+            subtitle={
+              fullCal === "rf"
+                ? "Национальный календарь профилактических прививок"
+                : "Рекомендуемые / платные / по эпидпоказаниям"
+            }
+            ages={fullCal === "rf" ? CALENDAR_AGE_COLS : EXTRA_AGE_COLS}
+            vaccines={fullCal === "rf" ? CALENDAR_VACCINES : EXTRA_VACCINES}
+            done={done}
+            roomy
+            onCell={openCell}
+            onVaccine={openVaccineInfo}
+            onCollapse={() => setFullCal(null)}
+          />
+        </CalendarExpandOverlay>
+      )}
 
       <VaccineTapHint
         onPeek={() => openVaccineInfo(CALENDAR_VACCINES[0])}
