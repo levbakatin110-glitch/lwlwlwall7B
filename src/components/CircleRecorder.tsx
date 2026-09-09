@@ -657,7 +657,7 @@ export function CircleRecorder({ onCancel, onReady, initialStream }: Props) {
           )}
         </div>
 
-        <p className="mt-6 min-h-[1.25rem] text-center text-[13px] text-white/65">
+        <p className="mt-6 min-h-[1.25rem] max-w-[22rem] whitespace-pre-line text-center text-[12px] leading-relaxed text-white/70">
           {error
             ? error
             : flipping
