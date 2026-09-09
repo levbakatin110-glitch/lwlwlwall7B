@@ -225,7 +225,7 @@ export function CircleNotePlayer({ url }: { url: string }) {
 type Props = {
   onCancel: () => void;
   onReady: (file: File, previewUrl: string) => void;
-  /** Поток из того же нажатия — иначе iPhone отвечает «нет доступа». */
+  /** Поток с кнопки открытия — на iOS getUserMedia нельзя вызывать из useEffect. */
   initialStream?: MediaStream | null;
 };
 
@@ -265,15 +265,14 @@ export function CircleRecorder({ onCancel, onReady, initialStream }: Props) {
     if (liveRef.current) liveRef.current.srcObject = null;
   }, []);
 
-  const bindLive = useCallback(async (stream: MediaStream) => {
-    streamRef.current = stream;
+  const bindLiveVideo = useCallback((stream: MediaStream) => {
     const video = liveRef.current;
-    if (video) {
-      video.srcObject = stream;
-      video.muted = true;
-      await video.play().catch(() => undefined);
-    }
-    setCamReady(true);
+    if (!video) return;
+    video.srcObject = stream;
+    video.muted = true;
+    video.playsInline = true;
+    video.setAttribute("webkit-playsinline", "true");
+    void video.play().catch(() => undefined);
   }, []);
 
   const attachStream = useCallback(
@@ -281,10 +280,12 @@ export function CircleRecorder({ onCancel, onReady, initialStream }: Props) {
       stopTracks();
       setCamReady(false);
       const stream = await getFacingAvStream(mode, { width: 480, height: 480 });
+      streamRef.current = stream;
       facingRef.current = mode;
-      await bindLive(stream);
+      bindLiveVideo(stream);
+      setCamReady(true);
     },
-    [bindLive, stopTracks],
+    [bindLiveVideo, stopTracks],
   );
 
   const retryAccess = useCallback(async () => {
@@ -303,14 +304,19 @@ export function CircleRecorder({ onCancel, onReady, initialStream }: Props) {
     void (async () => {
       try {
         if (initialStream) {
+          streamRef.current = initialStream;
           facingRef.current = "user";
-          await bindLive(initialStream);
-          if (!cancelled) setPhase("live");
+          requestAnimationFrame(() => {
+            if (cancelled) return;
+            bindLiveVideo(initialStream);
+            setCamReady(true);
+            setPhase("live");
+          });
           return;
         }
         if (!cancelled) {
-          setPhase("live");
           setError("Нажмите «Разрешить камеру»");
+          setPhase("live");
         }
       } catch (err) {
         if (!cancelled) {
@@ -334,7 +340,7 @@ export function CircleRecorder({ onCancel, onReady, initialStream }: Props) {
       }
       stopTracks();
     };
-  }, [bindLive, clearTick, initialStream, stopTracks]);
+  }, [bindLiveVideo, clearTick, initialStream, stopTracks]);
 
   useEffect(() => {
     return () => {
@@ -629,6 +635,17 @@ export function CircleRecorder({ onCancel, onReady, initialStream }: Props) {
                 Открываем камеру…
               </div>
             )}
+            {error && !camReady ? (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/55 p-4">
+                <button
+                  type="button"
+                  onClick={() => void retryAccess()}
+                  className="rounded-full bg-accent px-4 py-2.5 text-sm font-semibold text-[var(--on-accent,#fff)]"
+                >
+                  Разрешить камеру
+                </button>
+              </div>
+            ) : null}
           </div>
 
           {phase === "recording" && (
@@ -672,14 +689,6 @@ export function CircleRecorder({ onCancel, onReady, initialStream }: Props) {
               Готово
             </button>
           </>
-        ) : error && !camReady ? (
-          <button
-            type="button"
-            onClick={() => void retryAccess()}
-            className="rounded-full bg-accent px-6 py-3 text-sm font-semibold text-[var(--on-accent,#fff)]"
-          >
-            Разрешить камеру
-          </button>
         ) : (
           <button
             type="button"

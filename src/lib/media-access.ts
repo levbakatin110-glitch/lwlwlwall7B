@@ -23,8 +23,16 @@ function errorName(err: unknown): string {
   return "";
 }
 
+function errorMessage(err: unknown): string {
+  if (err && typeof err === "object" && "message" in err) {
+    return String((err as { message: unknown }).message || "");
+  }
+  return "";
+}
+
 export function describeMediaError(err: unknown): string {
   const name = errorName(err);
+  const message = errorMessage(err);
   if (typeof window !== "undefined" && !window.isSecureContext) {
     return "Камера и микрофон работают только на https.";
   }
@@ -34,16 +42,24 @@ export function describeMediaError(err: unknown): string {
   if (name === "NotReadableError" || name === "AbortError") {
     return "Камера занята другим приложением. Закройте его и нажмите ещё раз.";
   }
-  if (typeof navigator !== "undefined" && !navigator.mediaDevices?.getUserMedia) {
-    return "Этот браузер не даёт камеру. Откройте сайт в Safari.";
-  }
   if (isInAppBrowser()) {
     return "Внутри Telegram или Instagram камера не работает. Откройте hey-maya.ru в Safari.";
   }
   if (isStandaloneDisplay()) {
-    return "Разрешение в Safari на сайт не действует на иконку с экрана. Настройки iPhone → Майя → Камера и Микрофон → Разрешить, затем нажмите ещё раз.";
+    return "Разрешение в меню Safari на сайт не действует на иконку с экрана. Настройки iPhone → Майя → Камера и Микрофон → Разрешить, затем нажмите ещё раз.";
   }
-  return "Нажмите «Разрешить» ещё раз. Если уже стоит «Разрешить» в меню сайта — откройте Настройки iPhone → Safari → Камера и Микрофон.";
+  if (
+    name === "NotAllowedError" ||
+    name === "PermissionDeniedError" ||
+    name === "SecurityError" ||
+    /permissions? policy|feature policy/i.test(message)
+  ) {
+    return "В меню страницы Safari этого мало. Настройки iPhone → Safari → Камера и Микрофон — «Спрашивать» или «Разрешить», затем нажмите ещё раз.";
+  }
+  if (typeof navigator !== "undefined" && !navigator.mediaDevices?.getUserMedia) {
+    return "Этот браузер не даёт камеру. Откройте сайт в Safari.";
+  }
+  return "Нажмите «Разрешить» ещё раз. Если в меню сайта уже стоит «Разрешить» — откройте Настройки iPhone → Safari → Камера и Микрофон.";
 }
 
 export async function getMicStream(): Promise<MediaStream> {

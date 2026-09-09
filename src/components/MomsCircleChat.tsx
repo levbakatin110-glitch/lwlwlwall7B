@@ -24,9 +24,9 @@ import {
 } from "@/lib/community-reactions";
 import { childDisplayName } from "@/lib/children";
 import { compressImageFile } from "@/lib/image";
-import { trackEvent } from "@/lib/analytics-client";
 import { getFacingAvStream } from "@/lib/camera-facing";
 import { getMicStream } from "@/lib/media-access";
+import { trackEvent } from "@/lib/analytics-client";
 import { useAppStore } from "@/lib/store";
 
 type MediaKind = "image" | "video" | "circle" | "voice";
@@ -1096,11 +1096,11 @@ export function MomsCircleChat() {
                     onClick={() => {
                       void (async () => {
                         try {
-                          const s = await getFacingAvStream("user", {
+                          const stream = await getFacingAvStream("user", {
                             width: 480,
                             height: 480,
                           });
-                          setCircleStream(s);
+                          setCircleStream(stream);
                         } catch {
                           setCircleStream(null);
                         }
@@ -1119,8 +1119,8 @@ export function MomsCircleChat() {
                     onClick={() => {
                       void (async () => {
                         try {
-                          const s = await getMicStream();
-                          setVoiceStream(s);
+                          const stream = await getMicStream();
+                          setVoiceStream(stream);
                         } catch {
                           setVoiceStream(null);
                         }

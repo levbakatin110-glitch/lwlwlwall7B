@@ -9,4 +9,10 @@ describe("describeMediaError", () => {
   it("explains busy camera", () => {
     expect(describeMediaError({ name: "NotReadableError" })).toMatch(/занята/i);
   });
+
+  it("explains denied permission beyond the Safari page menu", () => {
+    expect(describeMediaError({ name: "NotAllowedError" })).toMatch(
+      /Настройки iPhone/i,
+    );
+  });
 });
