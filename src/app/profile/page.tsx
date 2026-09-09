@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import { InstallAppCard } from "@/components/InstallAppCard";
 import { MayaIcon } from "@/components/icons/MayaIcon";
 import { OnboardingFlow } from "@/components/OnboardingFlow";
+import { restoreCloudBackup } from "@/components/CloudBackupSync";
 import { authFetchErrorMessage } from "@/lib/auth-fetch-error";
 import { childDisplayName } from "@/lib/children";
 import { compressImageFile } from "@/lib/image";
@@ -115,7 +116,8 @@ export default function ProfilePage() {
       const data = (await res.json()) as { error?: string; email?: string };
       if (!res.ok) throw new Error(data.error || "Неверный код");
       setAccountEmail(data.email || email.trim().toLowerCase());
-      setEmailMsg("Почта привязана");
+      await restoreCloudBackup({ force: true });
+      setEmailMsg("Почта привязана, дневники с телефона подтянулись");
       setCodeSent(false);
       setCode("");
     } catch (e) {
@@ -245,7 +247,9 @@ export default function ProfilePage() {
         ) : (
           <div className="mt-3 space-y-3">
             <p className="text-sm text-muted">
-              Привяжите почту, для входа и подписки.
+              На компьютере войдите с той же почтой, что на телефоне. Иначе
+              записи живут только в этом браузере и после обновления могут
+              пропасть.
             </p>
             <input
               type="email"

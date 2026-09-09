@@ -2,7 +2,8 @@
 
 import { useEffect, useRef } from "react";
 import { ensureChildSpace } from "@/lib/children";
-import { mergeBackupData, journalEntryCount } from "@/lib/backup-merge";
+import { mergeBackupData, storeHasBackupWorthyData } from "@/lib/backup-merge";
+import { flushDurablePersist, waitPersistWritesAllowed } from "@/lib/durable-storage";
 import {
   loadChatMessages,
   pickBestChatMessages,
@@ -54,79 +55,73 @@ function syncChatMirror(
 }
 
 function isLocalStoreEmpty(local: ReturnType<typeof useAppStore.getState>): boolean {
-  const hasNamedChild = local.children.some((c) => Boolean(c.name?.trim()));
-  const hasDiaryData = Object.values(local.childSpaces ?? {}).some((sp) => {
-    if ((sp.messages?.length ?? 0) > 0) return true;
-    if (loadChatMessages(local.activeChildId).length > 0) return true;
-    return journalEntryCount(sp.journals) > 0;
+  if (loadChatMessages(local.activeChildId).length > 0) return false;
+  return !storeHasBackupWorthyData({
+    childSpaces: local.childSpaces,
+    momJournals: local.momJournals,
+    customModules: local.customModules,
+    pregnancy: local.pregnancy,
   });
-  const hasCustomModules = (local.customModules?.length ?? 0) > 0;
-  const hasMomJournals = journalEntryCount(local.momJournals) > 0;
-  const hasPregnancy = Boolean(
-    local.pregnancy?.active ||
-      local.pregnancy?.dueDate ||
-      local.pregnancy?.lmpDate,
-  );
-  return (
-    !hasNamedChild &&
-    !hasDiaryData &&
-    !hasCustomModules &&
-    !hasMomJournals &&
-    !hasPregnancy
-  );
 }
 
 function applyBackupPayload(payload: Record<string, unknown>) {
   useAppStore.setState((prev) => {
     const merged = mergeBackupData(
       {
+        children: prev.children,
+        activeChildId: prev.activeChildId,
         childSpaces: prev.childSpaces,
         momJournals: prev.momJournals,
+        customModules: prev.customModules,
+        pregnancy: prev.pregnancy,
       },
       payload,
     );
     const nextChildSpaces = (merged.childSpaces ??
       prev.childSpaces) as typeof prev.childSpaces;
-    const activeId = String(payload.activeChildId ?? prev.activeChildId);
+    const activeId = String(merged.activeChildId ?? prev.activeChildId);
     const chatSync = syncChatMirror(nextChildSpaces, activeId);
     return {
       ...prev,
-      ...(Array.isArray(payload.children) && payload.children.length > 0
-        ? { children: payload.children as typeof prev.children }
+      ...(Array.isArray(merged.children) && merged.children.length > 0
+        ? { children: merged.children as typeof prev.children }
         : {}),
       activeChildId: activeId,
       childSpaces: chatSync.childSpaces,
       messages: chatSync.messages,
-      ...(payload.pregnancy
-        ? { pregnancy: payload.pregnancy as typeof prev.pregnancy }
+      ...(merged.pregnancy
+        ? { pregnancy: merged.pregnancy as typeof prev.pregnancy }
         : {}),
       momJournals: (merged.momJournals ??
         prev.momJournals) as typeof prev.momJournals,
-      ...(payload.enabledModules
+      ...(merged.enabledModules
         ? {
             enabledModules:
-              payload.enabledModules as typeof prev.enabledModules,
+              merged.enabledModules as typeof prev.enabledModules,
           }
         : {}),
-      ...(payload.customModules
+      ...(merged.customModules
         ? {
             customModules:
-              payload.customModules as typeof prev.customModules,
+              merged.customModules as typeof prev.customModules,
           }
         : {}),
-      ...(payload.dietPlan !== undefined
-        ? { dietPlan: payload.dietPlan as typeof prev.dietPlan }
+      ...(merged.dietPlan !== undefined
+        ? { dietPlan: merged.dietPlan as typeof prev.dietPlan }
         : {}),
-      onboardingDone: Boolean(payload.onboardingDone ?? true),
+      onboardingDone: Boolean(merged.onboardingDone ?? true),
     };
   });
   remirrorJournalsFromSpaces();
+  flushDurablePersist();
   if (useAppStore.getState().onboardingDone) {
     useAppStore.getState().completeOnboarding();
   }
 }
 
 let restoreInFlight: Promise<boolean> | null = null;
+/** PUT только после успешного GET бэкапа (сессия есть). Иначе пустой комп затрёт телефон. */
+let backupPullDone = false;
 
 function waitHydration(): Promise<void> {
   if (typeof window === "undefined") return Promise.resolve();
@@ -151,15 +146,16 @@ export async function restoreCloudBackup(opts?: {
   const run = (async () => {
     try {
       await waitHydration();
+      await waitPersistWritesAllowed();
       const res = await fetch("/api/backup", { credentials: "include" });
       if (!res.ok) return false;
       const data = (await res.json()) as {
         backup?: { data?: Record<string, unknown> } | null;
       };
       const payload = data.backup?.data;
-      if (!payload) return false;
-      applyBackupPayload(payload);
-      return true;
+      if (payload) applyBackupPayload(payload);
+      backupPullDone = true;
+      return Boolean(payload);
     } catch {
       return false;
     }
@@ -184,6 +180,7 @@ async function hasSession(): Promise<boolean> {
 }
 
 async function pushBackup(): Promise<void> {
+  if (!backupPullDone) return;
   const local = useAppStore.getState();
   if (isLocalStoreEmpty(local)) return;
   try {
@@ -211,7 +208,9 @@ export function CloudBackupSync() {
     let intervalId: number | null = null;
 
     void (async () => {
-      if (!(await hasSession())) return;
+      if (!(await hasSession())) {
+        return;
+      }
       if (cancelled) return;
       await waitHydration();
       if (cancelled) return;
@@ -235,6 +234,7 @@ export function CloudBackupSync() {
     if (!onboardingDone || !accountEmail) return;
     if (!useAppStore.persist.hasHydrated()) return;
     const t = window.setTimeout(() => {
+      if (!backupPullDone) return;
       void pushBackup();
     }, 1200);
     return () => window.clearTimeout(t);

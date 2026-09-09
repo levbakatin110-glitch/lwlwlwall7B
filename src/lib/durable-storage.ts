@@ -367,7 +367,7 @@ export const durableStateStorage: StateStorage = {
         }
       })
       .finally(() => {
-        persistWritesAllowed = true;
+        releasePersistWrites();
       });
 
     return null;
@@ -389,6 +389,28 @@ export const durableStateStorage: StateStorage = {
 };
 
 let persistWritesAllowed = true;
+const persistReadyWaiters: Array<() => void> = [];
+let persistFlushQueued: (() => void) | null = null;
+
+function releasePersistWrites() {
+  persistWritesAllowed = true;
+  const waiters = persistReadyWaiters.splice(0, persistReadyWaiters.length);
+  for (const wait of waiters) wait();
+  persistFlushQueued?.();
+}
+
+/** Ждём IndexedDB, чтобы не потерять запись, пока persistWritesAllowed=false. */
+export function waitPersistWritesAllowed(): Promise<void> {
+  if (persistWritesAllowed) return Promise.resolve();
+  return new Promise((resolve) => {
+    persistReadyWaiters.push(resolve);
+  });
+}
+
+/** Сразу записать отложенный persist (после облачного restore). */
+export function flushDurablePersist(): void {
+  persistFlushQueued?.();
+}
 
 function parseAndSlim(raw: string): PersistPayload | null {
   try {
@@ -406,7 +428,16 @@ export function createSafePersistStorage(
   let timer: ReturnType<typeof setTimeout> | null = null;
   let pending: { name: string; value: PersistPayload } | null = null;
 
-  function flush() {
+  persistFlushQueued = () => {
+    if (timer != null) {
+      clearTimeout(timer);
+      timer = null;
+    }
+    flush();
+  };
+
+  function flush(force = false) {
+    if (!persistWritesAllowed && !force) return;
     timer = null;
     const job = pending;
     pending = null;
@@ -435,9 +466,9 @@ export function createSafePersistStorage(
   }
 
   if (typeof window !== "undefined") {
-    window.addEventListener("pagehide", () => flush());
+    window.addEventListener("pagehide", () => flush(true));
     document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "hidden") flush();
+      if (document.visibilityState === "hidden") flush(true);
     });
   }
 
@@ -463,8 +494,8 @@ export function createSafePersistStorage(
       }
     },
     setItem: (name, value) => {
-      if (!persistWritesAllowed && name === "maya-mom-ai") return;
       pending = { name, value };
+      if (!persistWritesAllowed && name === "maya-mom-ai") return;
       if (timer != null) clearTimeout(timer);
       if (typeof window === "undefined") {
         flush();

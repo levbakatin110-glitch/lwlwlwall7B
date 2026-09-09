@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { AuthSessionSync } from "./AuthSessionSync";
 import { PresenceHeartbeat } from "./PresenceHeartbeat";
 import { OnboardingGate } from "./OnboardingGate";
+import { DesktopSyncHint } from "./DesktopSyncHint";
 import { PremiumGate } from "./PremiumGate";
 import { ThemeSync } from "./ThemeSync";
 import { MayaIcon } from "@/components/icons/MayaIcon";
@@ -180,6 +181,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="hidden w-[17.5rem] shrink-0 md:block" />
         ) : null}
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden overscroll-none">
+          <DesktopSyncHint />
           {!isCommunity && !isPlanFlow && (
             <header className="z-30 flex shrink-0 items-center gap-2 border-b border-line bg-card/90 px-2 py-1.5 backdrop-blur-xl md:hidden">
               <button

@@ -6,6 +6,7 @@ import {
   createSafePersistStorage,
   durableStateStorage,
 } from "@/lib/durable-storage";
+import { storeHasUserData } from "./backup-merge";
 import {
   DEFAULT_ENABLED_MODULES,
   emptyChildProfile,
@@ -1606,6 +1607,7 @@ if (typeof window !== "undefined") {
     remirrorJournalsFromSpaces();
   }
   window.addEventListener("maya-idb-restored", () => {
+    if (storeHasUserData(useAppStore.getState())) return;
     void Promise.resolve(useAppStore.persist.rehydrate()).then(() => {
       remirrorJournalsFromSpaces();
     });
