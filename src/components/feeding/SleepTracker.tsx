@@ -6,7 +6,8 @@ import {
   DiaryEmpty,
   DiaryPage,
   DiaryPrimaryButton,
-  DiarySectionTitle,
+  DiarySpreadHead,
+  DiarySpreadLog,
   DiaryStats,
   DiaryStickyCta,
   DiaryTimeline,
@@ -236,7 +237,7 @@ export function SleepTracker({ journalId = "sleep" }: { journalId?: string }) {
 
       {hasTimeline ? (
         <div className="mt-5">
-          <DiarySectionTitle left="Время" right="Тип" />
+          <DiarySpreadHead left="Время" middle="Длительность" right="Тип" />
           <DiaryTimeline>
             {live ? (
               <li>
@@ -244,19 +245,12 @@ export function SleepTracker({ journalId = "sleep" }: { journalId?: string }) {
                   accent
                   mark={todayEntries.length + 1}
                   left={
-                    <div className="flex flex-col items-end gap-0.5">
-                      <span className="text-[11px] tabular-nums text-muted">
-                        {formatClock(live.startedAt)}–…
-                      </span>
-                      <span className="font-display text-lg font-semibold tabular-nums text-accent">
-                        {formatDuration(elapsed)}
-                      </span>
-                    </div>
-                  }
-                  right={
-                    <span className="text-sm font-medium">
-                      {kindLabel(live.kind, isMomSleep)}
-                    </span>
+                    <DiarySpreadLog
+                      accent
+                      time={`${formatClock(live.startedAt)}–…`}
+                      value={formatDuration(elapsed)}
+                      detail={kindLabel(live.kind, isMomSleep)}
+                    />
                   }
                 />
               </li>
@@ -283,28 +277,17 @@ export function SleepTracker({ journalId = "sleep" }: { journalId?: string }) {
                       }
                     }}
                     left={
-                      <div className="flex flex-col items-end gap-0.5">
-                        <span className="text-[11px] tabular-nums text-muted">
-                          {formatClock(startMs)}–{formatClock(endMs)}
-                        </span>
-                        <span
-                          className={`font-display text-lg font-semibold tabular-nums ${
-                            isNewest ? "text-accent" : "text-foreground"
-                          }`}
-                        >
-                          {formatDuration(dur)}
-                        </span>
-                      </div>
-                    }
-                    right={
-                      <span className="text-sm font-medium">
-                        {kindLabel(
+                      <DiarySpreadLog
+                        accent={isNewest}
+                        time={`${formatClock(startMs)}–${formatClock(endMs)}`}
+                        value={formatDuration(dur)}
+                        detail={kindLabel(
                           typeof e.fields?.kind === "string"
                             ? e.fields.kind
                             : undefined,
                           isMomSleep,
                         )}
-                      </span>
+                      />
                     }
                   />
                 </li>

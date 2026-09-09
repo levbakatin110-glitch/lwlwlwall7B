@@ -5,7 +5,8 @@ import {
   DiaryEmpty,
   DiaryPage,
   DiaryPrimaryButton,
-  DiarySectionTitle,
+  DiarySpreadHead,
+  DiarySpreadLog,
   DiaryStats,
   DiaryStickyCta,
   DiaryTimeline,
@@ -220,22 +221,24 @@ export function WalkTracker() {
 
       {hasData ? (
         <div className="mt-5">
-          <DiarySectionTitle left="Сегодня" />
+          <DiarySpreadHead left="Время" middle="Длительность" right="Маршрут" />
           <DiaryTimeline>
             {live ? (
               <li>
                 <DiaryTimelineRow
                   accent
-                  left={
-                    <span className="text-[11px] tabular-nums text-muted">
-                      {formatClock(live.startMs)}
-                    </span>
-                  }
                   mark="…"
-                  right={
-                    <span className="font-display text-lg font-semibold tabular-nums text-accent">
-                      {formatDuration(liveSec)}
-                    </span>
+                  left={
+                    <DiarySpreadLog
+                      accent
+                      time={`${formatClock(live.startMs)}–…`}
+                      value={formatDuration(liveSec)}
+                      detail={
+                        [live.from ?? from, live.to ?? to]
+                          .filter(Boolean)
+                          .join(" → ") || "идёт"
+                      }
+                    />
                   }
                 />
               </li>
@@ -247,14 +250,14 @@ export function WalkTracker() {
                 <li key={item.e.id}>
                   <DiaryTimelineRow
                     accent={i === 0 && !live}
+                    mark={todayItems.length - i}
                     left={
-                      <span className="text-[11px] tabular-nums text-muted">
-                        {formatClock(item.startMs)}
-                      </span>
-                    }
-                    mark={Math.max(1, Math.round(item.totalSec / 60))}
-                    right={
-                      <span className="text-sm text-muted">{route}</span>
+                      <DiarySpreadLog
+                        accent={i === 0 && !live}
+                        time={`${formatClock(item.startMs)}–${formatClock(item.endMs)}`}
+                        value={formatDuration(item.totalSec)}
+                        detail={route}
+                      />
                     }
                     onClick={() => {
                       if (window.confirm("Удалить прогулку?")) {

@@ -60,6 +60,65 @@ export function DiarySectionTitle({
   );
 }
 
+/** Шапка под строки с кружком: колонки совпадают с DiarySpreadLog. */
+export function DiarySpreadHead({
+  left,
+  middle,
+  right,
+}: {
+  left: string;
+  middle: string;
+  right: string;
+}) {
+  return (
+    <div className="mb-1.5 flex items-center gap-3 px-0.5">
+      <span className="w-8 shrink-0" aria-hidden />
+      <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-x-3">
+        <span className="text-[11px] font-semibold tracking-wide text-muted">
+          {left}
+        </span>
+        <span className="text-[11px] font-semibold tracking-wide text-muted">
+          {middle}
+        </span>
+        <span className="text-right text-[11px] font-semibold tracking-wide text-muted">
+          {right}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/** Время слева, главное значение по центру, деталь справа — без кучи у правого края. */
+export function DiarySpreadLog({
+  time,
+  value,
+  detail,
+  accent,
+}: {
+  time: ReactNode;
+  value: ReactNode;
+  detail?: ReactNode;
+  accent?: boolean;
+}) {
+  return (
+    <div className="grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-baseline gap-x-3">
+      <span className="min-w-0 truncate text-[11px] tabular-nums text-muted">
+        {time}
+      </span>
+      <span
+        className={`font-display text-center text-lg font-semibold tabular-nums ${
+          accent ? "text-accent" : "text-foreground"
+        }`}
+      >
+        {value}
+      </span>
+      <span className="min-w-0 truncate text-right text-sm font-medium tabular-nums text-foreground">
+        {detail ?? "\u00a0"}
+      </span>
+    </div>
+  );
+}
+
 export function DiaryTimelineRow({
   left,
   right,
@@ -101,7 +160,7 @@ export function DiaryTimelineRow({
       ) : null}
       <div className="min-w-0 flex-1">{left}</div>
       {right != null ? (
-        <div className="max-w-[42%] shrink-0 text-right font-display text-[15px] font-semibold tabular-nums leading-snug">
+        <div className="shrink-0 text-right font-display text-[15px] font-semibold tabular-nums leading-snug">
           {right}
         </div>
       ) : null}

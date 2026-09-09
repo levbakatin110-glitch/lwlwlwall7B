@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   DiaryPage,
   DiaryPrimaryButton,
-  DiarySectionTitle,
+  DiarySpreadHead,
+  DiarySpreadLog,
   DiaryStats,
   DiaryStickyCta,
   DiaryTimeline,
@@ -311,7 +312,7 @@ export function BreastfeedingTracker() {
 
       {todayEntries.length > 0 ? (
         <div>
-          <DiarySectionTitle left="Время" right="Стороны" />
+          <DiarySpreadHead left="Время" middle="Длительность" right="Стороны" />
           <DiaryTimeline>
             {todayEntries.map((e, i) => {
               const startMs = bfStartMs(e);
@@ -330,23 +331,14 @@ export function BreastfeedingTracker() {
                       }
                     }}
                     left={
-                      <div className="flex flex-col items-end gap-0.5">
-                        <span className="text-[11px] tabular-nums text-muted">
-                          {formatClock(startMs)}–{formatClock(endMs)}
-                        </span>
-                        <span
-                          className={`font-display text-lg font-semibold tabular-nums ${
-                            isNewest ? "text-accent" : "text-foreground"
-                          }`}
-                        >
-                          {formatDuration(Number(e.fields?.totalSec) || 0)}
-                        </span>
-                      </div>
-                    }
-                    right={
-                      <span className="text-sm font-medium tabular-nums">
-                        {sideBreakdown(e)}
-                      </span>
+                      <DiarySpreadLog
+                        accent={isNewest}
+                        time={`${formatClock(startMs)}–${formatClock(endMs)}`}
+                        value={formatDuration(
+                          Number(e.fields?.totalSec) || 0,
+                        )}
+                        detail={sideBreakdown(e)}
+                      />
                     }
                   />
                 </li>
