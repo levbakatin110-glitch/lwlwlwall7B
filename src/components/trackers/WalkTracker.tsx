@@ -5,13 +5,13 @@ import {
   DiaryEmpty,
   DiaryPage,
   DiaryPrimaryButton,
-  DiarySpreadHead,
-  DiarySpreadLog,
   DiaryStats,
   DiaryStickyCta,
-  DiaryTimeline,
-  DiaryTimelineRow,
 } from "@/components/diary/DiaryShell";
+import {
+  DiaryEntryJournal,
+  DiaryEventCard,
+} from "@/components/diary/DiaryHistory";
 import { DiaryInsightCard } from "@/components/diary/DiaryInsightCard";
 import { walkInsight } from "@/lib/diary-insights";
 import {
@@ -19,6 +19,7 @@ import {
   entryTimeMs,
   formatClock,
   formatDuration,
+  formatHumanDuration,
   todayYmd,
 } from "@/lib/diary-day";
 import { liveParse, liveSet } from "@/lib/live-session";
@@ -220,55 +221,36 @@ export function WalkTracker() {
       ) : null}
 
       {hasData ? (
-        <div className="mt-5">
-          <DiarySpreadHead left="Время" middle="Длительность" right="Маршрут" />
-          <DiaryTimeline>
-            {live ? (
-              <li>
-                <DiaryTimelineRow
-                  accent
-                  mark="…"
-                  left={
-                    <DiarySpreadLog
-                      accent
-                      time={`${formatClock(live.startMs)}–…`}
-                      value={formatDuration(liveSec)}
-                      detail={
-                        [live.from ?? from, live.to ?? to]
-                          .filter(Boolean)
-                          .join(" → ") || "идёт"
-                      }
-                    />
-                  }
-                />
-              </li>
-            ) : null}
-            {todayItems.map((item, i) => {
+        <div className="mt-2">
+          {live ? (
+            <DiaryEventCard
+              icon="walk"
+              accent
+              title="Прогулка · идёт"
+              meta={`${formatHumanDuration(liveSec)}, с ${formatClock(live.startMs)}`}
+            />
+          ) : null}
+          <DiaryEntryJournal
+            entries={entries}
+            icon="walk"
+            getTimeMs={(e) => entryTimeMs(e)}
+            titleOf={() => "Прогулка"}
+            metaOf={(e) => {
+              const totalSec = entryTotalSec(e);
+              const start = entryTimeMs(e);
+              const end = entryEndMs(e);
               const route =
-                [item.from, item.to].filter(Boolean).join(" → ") || "—";
-              return (
-                <li key={item.e.id}>
-                  <DiaryTimelineRow
-                    accent={i === 0 && !live}
-                    mark={todayItems.length - i}
-                    left={
-                      <DiarySpreadLog
-                        accent={i === 0 && !live}
-                        time={`${formatClock(item.startMs)}–${formatClock(item.endMs)}`}
-                        value={formatDuration(item.totalSec)}
-                        detail={route}
-                      />
-                    }
-                    onClick={() => {
-                      if (window.confirm("Удалить прогулку?")) {
-                        removeJournalEntry("walk", item.e.id);
-                      }
-                    }}
-                  />
-                </li>
-              );
-            })}
-          </DiaryTimeline>
+                [String(e.fields?.from ?? e.fields?.place ?? ""), String(e.fields?.to ?? "")]
+                  .filter(Boolean)
+                  .join(" → ");
+              const time = `${formatClock(start)}–${formatClock(end)}`;
+              return [formatHumanDuration(totalSec), time, route || null]
+                .filter(Boolean)
+                .join(", ");
+            }}
+            confirmText="Удалить прогулку?"
+            onRemove={(id) => removeJournalEntry("walk", id)}
+          />
         </div>
       ) : (
         <DiaryEmpty>Пока пусто</DiaryEmpty>

@@ -5,19 +5,16 @@ import {
   DiaryChip,
   DiaryEmpty,
   DiaryPage,
-  DiarySectionTitle,
   DiaryStats,
   DiaryStickyCta,
-  DiaryTimeline,
-  DiaryTimelineRow,
 } from "@/components/diary/DiaryShell";
+import { DiaryEntryJournal } from "@/components/diary/DiaryHistory";
 import { DiaryInsightCard } from "@/components/diary/DiaryInsightCard";
 import { waterInsight } from "@/lib/diary-insights";
 import {
   entriesForToday,
   entryTimeMs,
   formatClock,
-  formatGap,
   todayYmd,
 } from "@/lib/diary-day";
 import { useAppStore } from "@/lib/store";
@@ -153,50 +150,15 @@ export function WaterTracker() {
         </div>
       </div>
 
-      {todayEntries.length > 0 ? (
-        <div>
-          <DiarySectionTitle left="Сегодня" right={`${todayEntries.length}`} />
-          <DiaryTimeline>
-            {todayEntries.map((item, i) => {
-              const older = todayEntries[i + 1];
-              const running = todayEntries
-                .slice(i)
-                .reduce((s, x) => s + x.ml, 0);
-              return (
-                <li key={item.e.id}>
-                  <DiaryTimelineRow
-                    accent={i === 0}
-                    left={
-                      <div>
-                        <p className="text-[13px] font-medium tabular-nums">
-                          {formatClock(item.startMs)}
-                        </p>
-                        <p className="text-[11px] text-muted">
-                          {older
-                            ? `через ${formatGap(older.startMs, item.startMs)}`
-                            : "первая сегодня"}
-                        </p>
-                      </div>
-                    }
-                    right={
-                      <div>
-                        <p>+{item.ml}</p>
-                        <p className="text-[11px] font-medium text-muted">
-                          Σ {running}
-                        </p>
-                      </div>
-                    }
-                    onClick={() => {
-                      if (window.confirm("Удалить запись?")) {
-                        removeJournalEntry("water", item.e.id);
-                      }
-                    }}
-                  />
-                </li>
-              );
-            })}
-          </DiaryTimeline>
-        </div>
+      {entries.length > 0 ? (
+        <DiaryEntryJournal
+          entries={entries}
+          icon="water"
+          titleOf={(e) => `+${entryMl(e)} мл`}
+          metaOf={(e) => formatClock(entryTimeMs(e))}
+          confirmText="Удалить запись?"
+          onRemove={(id) => removeJournalEntry("water", id)}
+        />
       ) : (
         <DiaryEmpty>Плюс миллилитры сверху</DiaryEmpty>
       )}

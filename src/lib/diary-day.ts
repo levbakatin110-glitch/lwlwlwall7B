@@ -1,4 +1,4 @@
-import { localToday } from "@/lib/local-date";
+import { localToday, toLocalDateIso } from "@/lib/local-date";
 import type { JournalEntry } from "@/lib/types";
 
 export function todayYmd(): string {
@@ -23,6 +23,71 @@ export function formatGap(fromMs: number, toMs: number): string {
   const h = Math.floor(min / 60);
   const m = min % 60;
   return m ? `${h} ч ${m} мин` : `${h} ч`;
+}
+
+/** «29 мин», «1 ч 4 мин» — для карточек журнала. */
+export function formatHumanDuration(sec: number): string {
+  return formatGap(0, Math.max(0, sec) * 1000);
+}
+
+export function addYmd(ymd: string, delta: number): string {
+  const [y, m, d] = ymd.split("-").map(Number);
+  return toLocalDateIso(new Date(y!, m! - 1, d! + delta));
+}
+
+export function dateCaptionRu(ymd: string): string {
+  const [y, m, d] = ymd.split("-").map(Number);
+  return new Date(y!, m! - 1, d!).toLocaleDateString("ru-RU", {
+    day: "numeric",
+    month: "long",
+  });
+}
+
+export function dayLabel(ymd: string, todayYmdValue: string): string {
+  if (ymd === todayYmdValue) return "Сегодня";
+  if (ymd === addYmd(todayYmdValue, -1)) return "Вчера";
+  return dateCaptionRu(ymd);
+}
+
+export type JournalDayGroup = {
+  ymd: string;
+  label: string;
+  dateCaption: string;
+  entries: JournalEntry[];
+};
+
+/** Последние дни, внутри дня новые сверху. Пустые дни пропускаем. */
+export function groupEntriesByDay(
+  entries: JournalEntry[],
+  getMs: (e: JournalEntry) => number = entryTimeMs,
+  keepDays = 10,
+  now = Date.now(),
+): JournalDayGroup[] {
+  const today = toLocalDateIso(new Date(now));
+  const byDay = new Map<string, JournalEntry[]>();
+  for (const e of entries) {
+    const ymd =
+      /^\d{4}-\d{2}-\d{2}$/.test(e.date || "")
+        ? e.date
+        : toLocalDateIso(new Date(getMs(e)));
+    const list = byDay.get(ymd) ?? [];
+    list.push(e);
+    byDay.set(ymd, list);
+  }
+  const out: JournalDayGroup[] = [];
+  for (let i = 0; i < keepDays; i++) {
+    const ymd = addYmd(today, -i);
+    const list = byDay.get(ymd);
+    if (!list?.length) continue;
+    list.sort((a, b) => getMs(b) - getMs(a));
+    out.push({
+      ymd,
+      label: dayLabel(ymd, today),
+      dateCaption: dateCaptionRu(ymd),
+      entries: list,
+    });
+  }
+  return out;
 }
 
 export function formatDuration(sec: number): string {

@@ -1,5 +1,8 @@
+import { addYmd, dayLabel } from "@/lib/diary-day";
 import { toLocalDateIso } from "@/lib/local-date";
 import type { JournalEntry } from "@/lib/types";
+
+export { addYmd, dayLabel };
 
 export type SleepKind = "nap" | "night";
 
@@ -35,11 +38,6 @@ const MIN_WAKE_MS = 60_000;
 export function ymdStartMs(ymd: string): number {
   const [y, m, d] = ymd.split("-").map(Number);
   return new Date(y!, m! - 1, d!).getTime();
-}
-
-export function addYmd(ymd: string, delta: number): string {
-  const [y, m, d] = ymd.split("-").map(Number);
-  return toLocalDateIso(new Date(y!, m! - 1, d! + delta));
 }
 
 export function sleepStartMs(e: JournalEntry): number {
@@ -107,16 +105,6 @@ export function overlapMs(
 
 function homeYmd(span: SleepSpan): string {
   return toLocalDateIso(new Date(span.endMs));
-}
-
-export function dayLabel(ymd: string, todayYmd: string): string {
-  if (ymd === todayYmd) return "Сегодня";
-  if (ymd === addYmd(todayYmd, -1)) return "Вчера";
-  const [y, m, d] = ymd.split("-").map(Number);
-  return new Date(y!, m! - 1, d!).toLocaleDateString("ru-RU", {
-    day: "numeric",
-    month: "long",
-  });
 }
 
 export function collectSleepSpans(

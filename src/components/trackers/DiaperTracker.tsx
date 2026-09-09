@@ -6,11 +6,9 @@ import { useAppStore } from "@/lib/store";
 import {
   DiaryEmpty,
   DiaryPage,
-  DiarySectionTitle,
   DiaryStats,
-  DiaryTimeline,
-  DiaryTimelineRow,
 } from "@/components/diary/DiaryShell";
+import { DiaryEntryJournal } from "@/components/diary/DiaryHistory";
 import { DiaryInsightCard } from "@/components/diary/DiaryInsightCard";
 import { diaperInsight } from "@/lib/diary-insights";
 import {
@@ -164,48 +162,21 @@ export function DiaperTracker() {
           ))}
         </div>
 
-        {todayEntries.length > 0 ? (
-          <div className="mt-5">
-            <DiarySectionTitle left="Сегодня" right={String(stats.total)} />
-            <DiaryTimeline>
-              {todayEntries.map((e, i) => {
-                const k = String(e.fields?.kind || "");
-                const hasRash = Number(e.fields?.rash) === 1;
-                return (
-                  <li key={e.id}>
-                    <DiaryTimelineRow
-                      mark={todayEntries.length - i}
-                      accent={i === 0}
-                      onClick={() => {
-                        if (
-                          window.confirm("Удалить эту запись из дневника?")
-                        ) {
-                          removeJournalEntry("diaper", e.id);
-                        }
-                      }}
-                      left={
-                        <div>
-                          <p className="text-sm font-medium">{kindLabel(k)}</p>
-                          <p className="text-[10px] tabular-nums text-muted/70">
-                            {formatClock(entryTimeMs(e))}
-                          </p>
-                        </div>
-                      }
-                      right={
-                        hasRash ? (
-                          <p className="text-sm font-medium text-blush">
-                            раздражение
-                          </p>
-                        ) : (
-                          <p className="text-sm text-muted/40">—</p>
-                        )
-                      }
-                    />
-                  </li>
-                );
-              })}
-            </DiaryTimeline>
-          </div>
+        {entries.length > 0 ? (
+          <DiaryEntryJournal
+            entries={entries}
+            icon="diaper"
+            titleOf={(e) => kindLabel(String(e.fields?.kind || ""))}
+            metaOf={(e) => {
+              const time = formatClock(entryTimeMs(e));
+              return Number(e.fields?.rash) === 1
+                ? `${time} · раздражение`
+                : time;
+            }}
+            confirmText="Удалить эту запись из дневника?"
+            onRemove={(id) => removeJournalEntry("diaper", id)}
+            empty={<DiaryEmpty>Тип смены, в историю</DiaryEmpty>}
+          />
         ) : (
           <DiaryEmpty>Тип смены, в историю</DiaryEmpty>
         )}

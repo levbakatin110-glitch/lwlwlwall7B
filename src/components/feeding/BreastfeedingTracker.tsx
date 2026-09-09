@@ -4,13 +4,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   DiaryPage,
   DiaryPrimaryButton,
-  DiarySpreadHead,
-  DiarySpreadLog,
   DiaryStats,
   DiaryStickyCta,
-  DiaryTimeline,
-  DiaryTimelineRow,
 } from "@/components/diary/DiaryShell";
+import { DiaryEntryJournal } from "@/components/diary/DiaryHistory";
 import { DiaryInsightCard } from "@/components/diary/DiaryInsightCard";
 import { breastfeedingInsight } from "@/lib/diary-insights";
 import {
@@ -18,6 +15,7 @@ import {
   entryTimeMs,
   formatClock,
   formatDuration,
+  formatHumanDuration,
 } from "@/lib/diary-day";
 import { liveGet, liveSet } from "@/lib/live-session";
 import { ISLAND_EVENT, notifyIslandChanged } from "@/lib/live-timer-actions";
@@ -310,42 +308,19 @@ export function BreastfeedingTracker() {
         })}
       </div>
 
-      {todayEntries.length > 0 ? (
-        <div>
-          <DiarySpreadHead left="Время" middle="Длительность" right="Стороны" />
-          <DiaryTimeline>
-            {todayEntries.map((e, i) => {
-              const startMs = bfStartMs(e);
-              const endMs = bfEndMs(e);
-              const isNewest = i === 0;
-              return (
-                <li key={e.id}>
-                  <DiaryTimelineRow
-                    accent={isNewest}
-                    mark={todayEntries.length - i}
-                    onClick={() => {
-                      if (
-                        window.confirm("Удалить это кормление из дневника?")
-                      ) {
-                        removeJournalEntry("breastfeeding", e.id);
-                      }
-                    }}
-                    left={
-                      <DiarySpreadLog
-                        accent={isNewest}
-                        time={`${formatClock(startMs)}–${formatClock(endMs)}`}
-                        value={formatDuration(
-                          Number(e.fields?.totalSec) || 0,
-                        )}
-                        detail={sideBreakdown(e)}
-                      />
-                    }
-                  />
-                </li>
-              );
-            })}
-          </DiaryTimeline>
-        </div>
+      {entries.length > 0 ? (
+        <DiaryEntryJournal
+          entries={entries}
+          icon="feeding"
+          getTimeMs={bfStartMs}
+          gapBetween={(newer, older) => bfStartMs(newer) - bfEndMs(older)}
+          titleOf={() => "Кормление"}
+          metaOf={(e) =>
+            `${formatHumanDuration(Number(e.fields?.totalSec) || 0)}, ${formatClock(bfStartMs(e))}–${formatClock(bfEndMs(e))} · ${sideBreakdown(e)}`
+          }
+          confirmText="Удалить это кормление из дневника?"
+          onRemove={(id) => removeJournalEntry("breastfeeding", id)}
+        />
       ) : null}
 
       <DiaryStickyCta>

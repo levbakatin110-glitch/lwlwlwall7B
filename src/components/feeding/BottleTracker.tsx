@@ -7,12 +7,10 @@ import {
   DiaryEmpty,
   DiaryPage,
   DiaryPrimaryButton,
-  DiarySectionTitle,
   DiaryStats,
   DiaryStickyCta,
-  DiaryTimeline,
-  DiaryTimelineRow,
 } from "@/components/diary/DiaryShell";
+import { DiaryEntryJournal } from "@/components/diary/DiaryHistory";
 import { DiaryInsightCard } from "@/components/diary/DiaryInsightCard";
 import { formulaInsight } from "@/lib/diary-insights";
 import {
@@ -259,54 +257,26 @@ export function BottleTracker() {
           )}
         </div>
 
-        {todayEntries.length > 0 ? (
-          <div className="mt-6">
-            <DiarySectionTitle
-              left="Сегодня"
-              right={String(todayEntries.length)}
-            />
-            <DiaryTimeline>
-              {todayEntries.map((e, i) => {
-                const entryMl =
-                  Number(e.fields?.ml) ||
-                  Number(e.value.match(/(\d+)/)?.[1]) ||
-                  0;
-                const entryBrand = String(e.fields?.brand || "");
-                return (
-                  <li key={e.id}>
-                    <DiaryTimelineRow
-                      mark={entryMl || "·"}
-                      accent={i === 0}
-                      onClick={() => {
-                        if (
-                          window.confirm("Удалить эту запись из дневника?")
-                        ) {
-                          removeJournalEntry("formula", e.id);
-                        }
-                      }}
-                      left={
-                        <div>
-                          <p className="text-sm font-medium tabular-nums">
-                            {entryMl} мл
-                          </p>
-                          <p className="text-[10px] tabular-nums text-muted/70">
-                            {formatClock(entryTimeMs(e))}
-                          </p>
-                        </div>
-                      }
-                      right={
-                        entryBrand ? (
-                          <p className="text-sm text-muted">{entryBrand}</p>
-                        ) : (
-                          <p className="text-sm text-muted/40">—</p>
-                        )
-                      }
-                    />
-                  </li>
-                );
-              })}
-            </DiaryTimeline>
-          </div>
+        {entries.length > 0 ? (
+          <DiaryEntryJournal
+            entries={entries}
+            icon="formula"
+            titleOf={(e) => {
+              const entryMl =
+                Number(e.fields?.ml) ||
+                Number(e.value.match(/(\d+)/)?.[1]) ||
+                0;
+              return `${entryMl} мл`;
+            }}
+            metaOf={(e) => {
+              const brand = String(e.fields?.brand || "");
+              const time = formatClock(entryTimeMs(e));
+              return brand ? `${time} · ${brand}` : time;
+            }}
+            confirmText="Удалить эту запись из дневника?"
+            onRemove={(id) => removeJournalEntry("formula", id)}
+            empty={<DiaryEmpty>Сегодня ещё не записано</DiaryEmpty>}
+          />
         ) : (
           <DiaryEmpty>Сегодня ещё не записано</DiaryEmpty>
         )}

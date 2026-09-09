@@ -7,12 +7,10 @@ import {
   DiaryEmpty,
   DiaryPage,
   DiaryPrimaryButton,
-  DiarySectionTitle,
   DiaryStats,
   DiaryStickyCta,
-  DiaryTimeline,
-  DiaryTimelineRow,
 } from "@/components/diary/DiaryShell";
+import { DiaryEntryJournal } from "@/components/diary/DiaryHistory";
 import { DiaryInsightCard } from "@/components/diary/DiaryInsightCard";
 import { solidsInsight } from "@/lib/diary-insights";
 import {
@@ -272,11 +270,10 @@ export function SolidsTracker() {
         )}
 
         <p className="mb-1.5 mt-5 text-[11px] text-muted">Сколько</p>
-        <div className="grid grid-cols-3 gap-1.5">
+        <div className="flex flex-wrap gap-1.5">
           {PORTIONS.map((p) => (
             <DiaryChip
               key={p.id}
-              className="w-full"
               active={portion === p.id}
               onClick={() => setPortion(p.id)}
             >
@@ -286,11 +283,10 @@ export function SolidsTracker() {
         </div>
 
         <p className="mb-1.5 mt-5 text-[11px] text-muted">Реакция</p>
-        <div className="grid grid-cols-2 gap-1.5">
+        <div className="flex flex-wrap gap-1.5">
           {REACTIONS.map((r) => (
             <DiaryChip
               key={r.id}
-              className="w-full"
               active={reaction === r.id}
               tone={
                 r.id === "rash"
@@ -306,58 +302,22 @@ export function SolidsTracker() {
           ))}
         </div>
 
-        {todayEntries.length > 0 ? (
-          <div className="mt-6">
-            <DiarySectionTitle left="Сегодня" right={String(todayEntries.length)} />
-            <DiaryTimeline>
-              {todayEntries.map((e, i) => {
-                const f = String(e.fields?.food || e.value.split(" · ")[0] || "");
-                const p = String(e.fields?.portion || "");
-                const r = String(e.fields?.reaction || "");
-                const rLbl = reactionLabel(r);
-                const isHot = r === "rash";
-                return (
-                  <li key={e.id}>
-                    <DiaryTimelineRow
-                      mark={todayEntries.length - i}
-                      accent={i === 0}
-                      onClick={() => {
-                        if (
-                          window.confirm("Удалить эту запись из дневника?")
-                        ) {
-                          removeJournalEntry("solids", e.id);
-                        }
-                      }}
-                      left={
-                        <div>
-                          <p className="text-sm font-medium capitalize">{f}</p>
-                          {p ? (
-                            <p className="text-[11px] text-muted">{p}</p>
-                          ) : null}
-                          <p className="text-[10px] tabular-nums text-muted/70">
-                            {formatClock(entryTimeMs(e))}
-                          </p>
-                        </div>
-                      }
-                      right={
-                        <p
-                          className={`text-sm font-medium ${
-                            isHot
-                              ? "text-blush"
-                              : r === "refused"
-                                ? "text-amber-700 dark:text-amber-300"
-                                : "text-muted"
-                          }`}
-                        >
-                          {rLbl}
-                        </p>
-                      }
-                    />
-                  </li>
-                );
-              })}
-            </DiaryTimeline>
-          </div>
+        {entries.length > 0 ? (
+          <DiaryEntryJournal
+            entries={entries}
+            icon="solids"
+            titleOf={(e) =>
+              String(e.fields?.food || e.value.split(" · ")[0] || "Прикорм")
+            }
+            metaOf={(e) => {
+              const p = String(e.fields?.portion || "");
+              const r = reactionLabel(String(e.fields?.reaction || ""));
+              const time = formatClock(entryTimeMs(e));
+              return [time, p, r].filter(Boolean).join(" · ");
+            }}
+            confirmText="Удалить эту запись из дневника?"
+            onRemove={(id) => removeJournalEntry("solids", id)}
+          />
         ) : (
           <DiaryEmpty>Сегодня ещё ничего не записано</DiaryEmpty>
         )}
