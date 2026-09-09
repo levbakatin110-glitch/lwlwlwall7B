@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { MayaIcon, type IconName } from "@/components/icons/MayaIcon";
 import { useAppStore } from "@/lib/store";
 import {
   DiaryEmpty,
@@ -23,26 +24,26 @@ const KINDS = [
   {
     id: "wet",
     label: "Мокрый",
-    emoji: "💧",
-    tone: "bg-sky-500/15 text-sky-800 dark:text-sky-200",
+    icons: ["drop"] as const,
+    tone: "text-sky-800 dark:text-sky-200",
   },
   {
     id: "dirty",
     label: "Грязный",
-    emoji: "💩",
-    tone: "bg-amber-500/15 text-amber-900 dark:text-amber-200",
+    icons: ["poop"] as const,
+    tone: "text-amber-900 dark:text-amber-200",
   },
   {
     id: "both",
     label: "Оба",
-    emoji: "💧💩",
-    tone: "bg-violet-500/15 text-violet-800 dark:text-violet-200",
+    icons: ["drop", "poop"] as const,
+    tone: "text-violet-800 dark:text-violet-200",
   },
   {
     id: "dry",
     label: "Сухой",
-    emoji: "✓",
-    tone: "bg-emerald-500/15 text-emerald-800 dark:text-emerald-200",
+    icons: ["check"] as const,
+    tone: "text-emerald-800 dark:text-emerald-200",
   },
 ] as const;
 
@@ -153,7 +154,11 @@ export function DiaperTracker() {
                   : "border-line bg-card/50 hover:border-accent/25"
               }`}
             >
-              <p className="text-lg leading-none">{k.emoji}</p>
+              <span className={`flex items-center gap-1 ${k.tone}`}>
+                {k.icons.map((name) => (
+                  <MayaIcon key={name} name={name as IconName} size={22} />
+                ))}
+              </span>
               <p className="mt-1.5 text-sm font-semibold">{k.label}</p>
             </button>
           ))}
