@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { IconBadge, MayaIcon } from "@/components/icons/MayaIcon";
+import { KITCHEN_WIDGETS } from "@/lib/kitchen-widgets";
 import { withStarterModulesFirst } from "@/lib/children";
 import { OPTIONAL_MODULES, MODULE_BY_ID } from "@/lib/modules";
 import {
@@ -122,25 +123,33 @@ export default function ModulesPage() {
         Разделы
       </h1>
 
-      <p className="mb-3 mt-8 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+      <p className="mb-3 mt-8 text-xs font-semibold text-muted">
         Виджеты
       </p>
-      <Link
-        href="/#noise"
-        className="flex items-center gap-3 rounded-2xl border border-line bg-card/70 px-4 py-3.5 transition hover:border-accent/35"
+      <div
+        className="flex snap-x snap-mandatory gap-2 overflow-x-auto overscroll-x-none pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        style={{ WebkitOverflowScrolling: "touch" }}
       >
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent">
-          <MayaIcon name="sleep" size={18} />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="font-display text-base font-semibold leading-snug">
-            Шум для сна
-          </p>
-        </div>
-        <span className="text-sm font-semibold text-accent">→</span>
-      </Link>
+        {KITCHEN_WIDGETS.map((w) => (
+          <Link
+            key={w.id}
+            href={`/#${w.hash}`}
+            className="flex w-[85%] max-w-xs shrink-0 snap-start items-center gap-3 rounded-2xl border border-line bg-card/70 px-4 py-3.5 transition hover:border-accent/35"
+          >
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent">
+              <MayaIcon name={w.icon} size={18} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="font-display text-base font-semibold leading-snug">
+                {w.title}
+              </p>
+            </div>
+            <span className="text-sm font-semibold text-accent">→</span>
+          </Link>
+        ))}
+      </div>
 
-      <p className="mb-3 mt-8 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+      <p className="mb-3 mt-8 text-xs font-semibold text-muted">
         Дневники
       </p>
       <div className="mt-0">
@@ -278,7 +287,7 @@ export default function ModulesPage() {
 
       {customModules.length > 0 && (
         <>
-          <p className="mb-3 mt-8 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+          <p className="mb-3 mt-8 text-xs font-semibold text-muted">
             Мои
           </p>
           <ul className="space-y-3">
@@ -325,7 +334,7 @@ export default function ModulesPage() {
 
       {hasChild ? (
         <>
-      <p className="mb-3 mt-8 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+      <p className="mb-3 mt-8 text-xs font-semibold text-muted">
         Для малыша
       </p>
       <ul className="space-y-3">
@@ -348,7 +357,7 @@ export default function ModulesPage() {
                   <p className="font-medium">
                     {mod.title}
                     {locked ? (
-                      <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-accent">
+                      <span className="ml-2 text-[11px] font-semibold text-accent">
                         Premium
                       </span>
                     ) : null}
@@ -401,7 +410,7 @@ export default function ModulesPage() {
 
       {pregnant ? (
         <>
-      <p className="mb-3 mt-8 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+      <p className="mb-3 mt-8 text-xs font-semibold text-muted">
         Беременность
       </p>
       <ul className="space-y-3">
@@ -424,7 +433,7 @@ export default function ModulesPage() {
                   <p className="font-medium">
                     {mod.title}
                     {locked ? (
-                      <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-accent">
+                      <span className="ml-2 text-[11px] font-semibold text-accent">
                         Premium
                       </span>
                     ) : null}
@@ -477,7 +486,7 @@ export default function ModulesPage() {
 
       {!hasChild ? (
         <>
-      <p className="mb-3 mt-8 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+      <p className="mb-3 mt-8 text-xs font-semibold text-muted">
         Маме
       </p>
       <ul className="space-y-3">
@@ -500,7 +509,7 @@ export default function ModulesPage() {
                   <p className="font-medium">
                     {mod.title}
                     {locked ? (
-                      <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-accent">
+                      <span className="ml-2 text-[11px] font-semibold text-accent">
                         Premium
                       </span>
                     ) : null}

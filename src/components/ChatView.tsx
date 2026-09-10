@@ -36,6 +36,7 @@ import type { ModuleBlueprint, ModuleId, WeatherSnapshot } from "@/lib/types";
 import { decodeWeatherHeader } from "@/lib/weather";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { hashWantsKitchen } from "@/lib/kitchen-widgets";
 
 const ChatChart = dynamic(
   () => import("@/components/ChatChart").then((m) => m.ChatChart),
@@ -79,9 +80,17 @@ function LazyChatBelow({
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    const openIfHash = () => {
+      if (hashWantsKitchen(window.location.hash)) setOn(true);
+    };
+    openIfHash();
+    window.addEventListener("hashchange", openIfHash);
+    if (hashWantsKitchen(window.location.hash)) {
+      return () => window.removeEventListener("hashchange", openIfHash);
+    }
     if (typeof IntersectionObserver === "undefined") {
       setOn(true);
-      return;
+      return () => window.removeEventListener("hashchange", openIfHash);
     }
     const io = new IntersectionObserver(
       ([entry]) => {
@@ -93,7 +102,10 @@ function LazyChatBelow({
       { rootMargin: "280px" },
     );
     io.observe(el);
-    return () => io.disconnect();
+    return () => {
+      io.disconnect();
+      window.removeEventListener("hashchange", openIfHash);
+    };
   }, []);
 
   return (
@@ -1156,7 +1168,7 @@ export function ChatView() {
 
                 {m.diaryOffer && (
                   <div className="maya-diary-offer maya-diary-open maya-diary-open-on mt-3 overflow-hidden rounded-[1.25rem] border border-accent/35 bg-accent-soft/70 p-4 text-foreground">
-                    <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-accent">
+                    <p className="text-xs font-medium text-accent">
                       {m.diaryOffer.mode === "enable"
                         ? "Завести дневник"
                         : "Трекер готов"}
@@ -1180,14 +1192,14 @@ export function ChatView() {
                           onEnable(m.diaryOffer!.moduleId);
                           updateMessage(m.id, { diaryOffer: undefined });
                         }}
-                        className="mt-3 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-[#ffffff]"
+                        className="mt-3 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-on-accent"
                       >
                         {m.diaryOffer.cta}
                       </button>
                     ) : (
                       <Link
                         href={`/m/${m.diaryOffer.moduleId}`}
-                        className="mt-3 inline-flex rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-[#ffffff]"
+                        className="mt-3 inline-flex rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-on-accent"
                       >
                         {m.diaryOffer.cta}
                       </Link>
@@ -1197,8 +1209,7 @@ export function ChatView() {
 
                 {m.suggestedModuleId && !m.diaryOffer && (
                   <div className="maya-diary-offer maya-diary-open maya-diary-open-on mt-3 rounded-[1.25rem] border border-accent/30 bg-accent-soft p-4 text-foreground">
-                    <p className="text-xs text-muted">Могу вести это в дневнике</p>
-                    <p className="mt-1 flex items-center gap-2 font-medium">
+                    <p className="flex items-center gap-2 font-medium">
                       <MayaIcon
                         name={MODULE_BY_ID[m.suggestedModuleId].icon}
                         size={16}
@@ -1208,7 +1219,7 @@ export function ChatView() {
                     <button
                       type="button"
                       onClick={() => onEnable(m.suggestedModuleId!)}
-                      className="mt-2 rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-[#ffffff]"
+                      className="mt-2 rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-on-accent"
                     >
                       Завести и открыть
                     </button>
@@ -1235,7 +1246,7 @@ export function ChatView() {
                           m.createModuleTitle,
                         )
                       }
-                      className="mt-2 rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-[#ffffff] disabled:opacity-50"
+                      className="mt-2 rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-on-accent disabled:opacity-50"
                     >
                       {busyId === m.id
                         ? "Создаю…"
@@ -1260,7 +1271,7 @@ export function ChatView() {
                           m.evolveModule!.instruction,
                         )
                       }
-                      className="mt-2 rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-[#ffffff] disabled:opacity-50"
+                      className="mt-2 rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-on-accent disabled:opacity-50"
                     >
                       {busyId === m.id ? "Обновляю…" : "Изменить"}
                     </button>
@@ -1336,13 +1347,13 @@ export function ChatView() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Напишите Мае…"
-                className="w-full rounded-2xl border border-line bg-background py-3.5 px-4 text-base text-foreground outline-none transition placeholder:text-muted/80 focus:border-accent/50 focus:shadow-[0_0_0_3px_rgba(50,215,175,0.22)]"
+                className="w-full rounded-2xl border border-line bg-background py-3.5 px-4 text-base text-foreground outline-none transition placeholder:text-muted/80 focus:border-accent/50"
               />
             </div>
             <button
               type="submit"
               disabled={pending || !input.trim()}
-              className="rounded-2xl bg-accent px-5 py-3.5 text-sm font-semibold text-[#ffffff] transition enabled:hover:bg-accent-hot disabled:opacity-40"
+              className="rounded-2xl bg-accent px-5 py-3.5 text-sm font-semibold text-on-accent transition enabled:hover:bg-accent-hot disabled:opacity-40"
             >
               {pending ? "…" : "Отправить"}
             </button>

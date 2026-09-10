@@ -5,40 +5,46 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { RecipeOfDayCard } from "@/components/RecipeOfDayCard";
 import { RemindersPeek } from "@/components/RemindersPeek";
 import { WhiteNoiseWidget } from "@/components/WhiteNoiseWidget";
-
-const SLIDES = [
-  {
-    title: "Рецепты",
-    hint: "Каталог, без записей в дневник",
-    href: "/recipes",
-    all: "Все →",
-  },
-  {
-    title: "Шум для сна",
-    hint: "Белый шум, дождь, розовый",
-    href: "/#noise",
-    all: null,
-  },
-  {
-    title: "Напоминания",
-    hint: "Кормление, сон, прогулка",
-    href: "/reminders",
-    all: "Все →",
-  },
-] as const;
+import {
+  KITCHEN_WIDGETS,
+  kitchenSlideFromHash,
+} from "@/lib/kitchen-widgets";
 
 const SLIDE_MS = 5000;
 const PAUSE_AFTER_TOUCH_MS = 12_000;
 
+function scrollKitchenIntoView() {
+  document
+    .getElementById("kitchen")
+    ?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 /** Карусель: рецепт дня → шум → напоминания */
 export function KitchenCarousel() {
-  const [index, setIndex] = useState(0);
+  const [index, setIndex] = useState(() => {
+    if (typeof window === "undefined") return 0;
+    const fromHash = kitchenSlideFromHash(window.location.hash);
+    return fromHash < 0 ? 0 : fromHash;
+  });
   const startX = useRef<number | null>(null);
   const pauseUntil = useRef(0);
 
   const go = useCallback((dir: -1 | 1) => {
     pauseUntil.current = Date.now() + PAUSE_AFTER_TOUCH_MS;
-    setIndex((i) => (i + dir + SLIDES.length) % SLIDES.length);
+    setIndex((i) => (i + dir + KITCHEN_WIDGETS.length) % KITCHEN_WIDGETS.length);
+  }, []);
+
+  useEffect(() => {
+    const applyHash = () => {
+      const next = kitchenSlideFromHash(window.location.hash);
+      if (next < 0) return;
+      pauseUntil.current = Date.now() + PAUSE_AFTER_TOUCH_MS;
+      setIndex(next);
+      window.setTimeout(scrollKitchenIntoView, 40);
+    };
+    applyHash();
+    window.addEventListener("hashchange", applyHash);
+    return () => window.removeEventListener("hashchange", applyHash);
   }, []);
 
   useEffect(() => {
@@ -51,7 +57,7 @@ export function KitchenCarousel() {
     const id = window.setInterval(() => {
       if (Date.now() < pauseUntil.current) return;
       if (document.visibilityState === "hidden") return;
-      setIndex((i) => (i + 1) % SLIDES.length);
+      setIndex((i) => (i + 1) % KITCHEN_WIDGETS.length);
     }, SLIDE_MS);
     return () => window.clearInterval(id);
   }, [index]);
@@ -73,7 +79,7 @@ export function KitchenCarousel() {
     startX.current = null;
   };
 
-  const slide = SLIDES[index];
+  const slide = KITCHEN_WIDGETS[index];
 
   return (
     <div className="relative">
@@ -82,33 +88,32 @@ export function KitchenCarousel() {
           <h2 className="font-display text-xl font-semibold tracking-tight text-foreground">
             {slide.title}
           </h2>
-          <p className="mt-0.5 text-xs text-muted">{slide.hint}</p>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
-          {slide.all ? (
+          {slide.catalogHref && slide.catalogLabel ? (
             <Link
-              href={slide.href}
-              className="mr-1 text-xs font-semibold text-amber-800 underline decoration-amber-500/40 underline-offset-2 dark:text-amber-200"
+              href={slide.catalogHref}
+              className="mr-1 text-xs font-semibold text-accent underline decoration-accent/35 underline-offset-2"
             >
-              {slide.all}
+              {slide.catalogLabel}
             </Link>
           ) : null}
           <button
             type="button"
             onClick={() => go(-1)}
             aria-label="Назад"
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-amber-600/25 bg-white/70 text-amber-900 transition hover:bg-amber-100/80 dark:border-amber-400/25 dark:bg-card/80 dark:text-amber-100 dark:hover:bg-amber-950/50"
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-line bg-card text-foreground transition hover:border-accent/35 hover:bg-accent-soft"
           >
             ‹
           </button>
-          <span className="min-w-[2.5rem] text-center text-[11px] font-medium text-muted">
-            {index + 1}/{SLIDES.length}
+          <span className="min-w-[2.5rem] text-center text-xs font-medium tabular-nums text-muted">
+            {index + 1}/{KITCHEN_WIDGETS.length}
           </span>
           <button
             type="button"
             onClick={() => go(1)}
             aria-label="Вперёд"
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-amber-600/25 bg-white/70 text-amber-900 transition hover:bg-amber-100/80 dark:border-amber-400/25 dark:bg-card/80 dark:text-amber-100 dark:hover:bg-amber-950/50"
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-line bg-card text-foreground transition hover:border-accent/35 hover:bg-accent-soft"
           >
             ›
           </button>
@@ -135,20 +140,18 @@ export function KitchenCarousel() {
       </div>
 
       <div className="mt-3 flex justify-center gap-1.5" aria-hidden>
-        {SLIDES.map((_, i) => (
+        {KITCHEN_WIDGETS.map((item, i) => (
           <button
-            key={i}
+            key={item.id}
             type="button"
             onClick={() => {
               pauseUntil.current = Date.now() + PAUSE_AFTER_TOUCH_MS;
               setIndex(i);
             }}
             className={`h-1.5 rounded-full transition-all ${
-              i === index
-                ? "w-5 bg-amber-700 dark:bg-amber-300"
-                : "w-1.5 bg-amber-700/25 dark:bg-amber-300/30"
+              i === index ? "w-5 bg-accent" : "w-1.5 bg-accent/25"
             }`}
-            aria-label={`Слайд ${i + 1}`}
+            aria-label={item.title}
           />
         ))}
       </div>
