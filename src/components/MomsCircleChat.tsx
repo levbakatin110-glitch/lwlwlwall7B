@@ -706,7 +706,7 @@ export function MomsCircleChat() {
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col bg-background">
-      <header className="flex shrink-0 items-center gap-2 border-b border-line bg-card/95 px-3 py-2.5">
+      <header className="flex shrink-0 items-center justify-between bg-transparent px-2 py-1.5">
         <Link
           href="/"
           className="flex h-9 w-9 items-center justify-center rounded-xl text-lg text-muted hover:bg-accent-soft hover:text-foreground"
@@ -714,12 +714,7 @@ export function MomsCircleChat() {
         >
           ←
         </Link>
-        <div className="min-w-0 flex-1">
-          <p className="truncate font-display text-lg font-semibold tracking-tight">
-            Общение
-          </p>
-        </div>
-        {commProfile && !editingProfile && canPost && (
+        {commProfile && !editingProfile && canPost ? (
           <button
             type="button"
             onClick={openEdit}
@@ -734,6 +729,8 @@ export function MomsCircleChat() {
             />
             Профиль
           </button>
+        ) : (
+          <span className="h-9 w-9" aria-hidden />
         )}
       </header>
 
