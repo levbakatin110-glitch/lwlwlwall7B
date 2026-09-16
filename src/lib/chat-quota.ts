@@ -14,7 +14,7 @@ export const CHAT_INCLUDED_BUDGET_RUB = 150;
 export const CHAT_INCLUDED_MSGS = 150;
 
 /** Доплата, когда базовый пакет исчерпан */
-export const CHAT_TOPUP_RUB = 99;
+export const CHAT_TOPUP_RUB = 199;
 
 /** Сколько сообщений даёт одна доплата (тот же объём, что в базе) */
 export const CHAT_TOPUP_MSGS = CHAT_INCLUDED_MSGS;
