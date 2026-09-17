@@ -28,8 +28,13 @@ const nextConfig: NextConfig = {
       // Кириллические URL → ASCII (Next.js ломает static export на /документы)
       { source: "/документы", destination: "/legal", permanent: true },
       {
+        source: "/legal/offer",
+        destination: "/legal",
+        permanent: true,
+      },
+      {
         source: "/документы/публичная-оферта",
-        destination: "/legal/offer",
+        destination: "/legal",
         permanent: true,
       },
       {

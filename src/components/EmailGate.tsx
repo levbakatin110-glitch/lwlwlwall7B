@@ -25,7 +25,6 @@ export function EmailGate({ children }: { children: React.ReactNode }) {
   const [codeSent, setCodeSent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [consentOffer, setConsentOffer] = useState(false);
   const [consentPrivacy, setConsentPrivacy] = useState(false);
   const [password, setPassword] = useState("");
   const [knownPassword, setKnownPassword] = useState(false);
@@ -35,7 +34,7 @@ export function EmailGate({ children }: { children: React.ReactNode }) {
   }
 
   const needConsents = authMode === "register";
-  const consentsOk = !needConsents || (consentOffer && consentPrivacy);
+  const consentsOk = !needConsents || consentPrivacy;
 
   function switchMode(next: AuthMode) {
     setAuthMode(next);
@@ -235,24 +234,6 @@ export function EmailGate({ children }: { children: React.ReactNode }) {
 
           {!codeSent && needConsents && (
             <div className="space-y-2.5 rounded-xl border border-line bg-card/50 px-3 py-3 text-[11px] leading-snug text-muted">
-              <label className="flex gap-2">
-                <input
-                  type="checkbox"
-                  className="mt-0.5 shrink-0"
-                  checked={consentOffer}
-                  onChange={(e) => setConsentOffer(e.target.checked)}
-                />
-                <span>
-                  Принимаю{" "}
-                  <Link
-                    href="/legal/offer"
-                    target="_blank"
-                    className="text-accent underline"
-                  >
-                    публичную оферту
-                  </Link>
-                </span>
-              </label>
               <label className="flex gap-2">
                 <input
                   type="checkbox"

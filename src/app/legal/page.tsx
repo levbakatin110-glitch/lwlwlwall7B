@@ -3,7 +3,6 @@ import Link from "next/link";
 import { LegalShell } from "@/components/legal/LegalShell";
 import {
   LEGAL_DOCS,
-  LEGAL_EDITION,
   LEGAL_OPERATOR,
   LEGAL_PD_EDITION,
 } from "@/lib/legal";
@@ -11,7 +10,7 @@ import {
 export const metadata: Metadata = {
   title: "Юридические документы · Мая",
   description:
-    "Публичная оферта, политика персональных данных и согласия для сервиса Мая (hey-maya.ru).",
+    "Политика персональных данных и согласие на обработку для сервиса Мая (hey-maya.ru).",
 };
 
 export default function LegalIndexPage() {
@@ -19,8 +18,8 @@ export default function LegalIndexPage() {
     <LegalShell title="Юридические документы">
       <p>
         Пакет документов {LEGAL_OPERATOR.shortName} для сервиса «Мая»
-        (hey-maya.ru). Оферта — ред. {LEGAL_EDITION} г., политика и согласие на
-        обработку персональных данных — ред. {LEGAL_PD_EDITION} г.
+        (hey-maya.ru). Политика и согласие на обработку персональных данных —
+        ред. {LEGAL_PD_EDITION} г.
       </p>
       <div className="rounded-xl border border-line bg-card/60 px-3 py-3 text-xs leading-relaxed text-muted">
         <p className="font-medium text-foreground">{LEGAL_OPERATOR.fullName}</p>
@@ -41,8 +40,8 @@ export default function LegalIndexPage() {
         Мая, информационный сервис, не врач и не медицинская помощь. Ответы ИИ
         могут быть неточными. Решения о здоровье, только ваши и лечащего
         врача. Подробности, в{" "}
-        <Link href="/legal/offer" className="text-accent underline">
-          оферте
+        <Link href="/legal/privacy" className="text-accent underline">
+          политике персональных данных
         </Link>
         .
       </p>

@@ -210,10 +210,6 @@ export default function PricingInner() {
       <p className="mt-4 text-[11px] leading-relaxed text-muted">
         Оплата через Prodamus. Доступ привязывается к вашей почте в Мае
         {accountEmail ? ` (${accountEmail})` : ""}. Оплачивая, вы принимаете{" "}
-        <Link href="/legal/offer" className="underline">
-          публичную оферту
-        </Link>{" "}
-        и{" "}
         <Link href="/legal/privacy" className="underline">
           политику персональных данных
         </Link>{" "}

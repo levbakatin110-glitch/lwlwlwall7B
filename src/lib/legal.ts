@@ -44,13 +44,13 @@ export const LEGAL_SITE_URL = env(
   "https://hey-maya.ru",
 ).replace(/\/$/, "");
 
-export const LEGAL_EDITION = "31.08.2026";
 export const LEGAL_PD_EDITION = "10.09.2026";
+export const LEGAL_EDITION = LEGAL_PD_EDITION;
 
 export const LEGAL_BRAND = "Мая";
 export const LEGAL_PRODUCT = "Maya Premium";
 
-export type LegalDocKey = "offer" | "privacy" | "consent";
+export type LegalDocKey = "privacy" | "consent";
 
 export const LEGAL_DOCS: {
   key: LegalDocKey;
@@ -60,14 +60,6 @@ export const LEGAL_DOCS: {
   pdfHref?: string;
   edition: string;
 }[] = [
-  {
-    key: "offer",
-    href: "/legal/offer",
-    label: "Публичная оферта",
-    fileName: "1_Публичная_оферта.pdf",
-    pdfHref: "/Документы/1_Публичная_оферта.pdf",
-    edition: LEGAL_EDITION,
-  },
   {
     key: "privacy",
     href: "/legal/privacy",
