@@ -10,11 +10,16 @@ import {
 export function LegalShell({
   title,
   children,
+  edition,
+  pdfHref,
 }: {
   title: string;
   children: React.ReactNode;
+  edition?: string;
+  pdfHref?: string;
 }) {
   const incomplete = legalOperatorIncomplete();
+  const shownEdition = edition ?? LEGAL_EDITION;
 
   return (
     <div className="min-h-dvh bg-background text-foreground">
@@ -34,11 +39,23 @@ export function LegalShell({
 
       <main className="mx-auto max-w-3xl px-4 py-8 pb-24">
         <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">
-          Юридические документы · ред. {LEGAL_EDITION}
+          Юридические документы · ред. {shownEdition}
         </p>
         <h1 className="font-display mt-2 text-3xl font-semibold tracking-tight">
           {title}
         </h1>
+        {pdfHref ? (
+          <p className="mt-4">
+            <a
+              href={pdfHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex rounded-xl border border-line bg-card px-3 py-2 text-sm font-medium text-accent underline-offset-2 hover:underline"
+            >
+              Скачать PDF
+            </a>
+          </p>
+        ) : null}
 
         {incomplete && (
           <p className="mt-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-950 dark:text-amber-100">

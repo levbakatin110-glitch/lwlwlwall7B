@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalShell } from "@/components/legal/LegalShell";
-import { LEGAL_DOCS, LEGAL_EDITION, LEGAL_OPERATOR } from "@/lib/legal";
+import {
+  LEGAL_DOCS,
+  LEGAL_EDITION,
+  LEGAL_OPERATOR,
+  LEGAL_PD_EDITION,
+} from "@/lib/legal";
 
 export const metadata: Metadata = {
   title: "Юридические документы · Мая",
@@ -14,7 +19,8 @@ export default function LegalIndexPage() {
     <LegalShell title="Юридические документы">
       <p>
         Пакет документов {LEGAL_OPERATOR.shortName} для сервиса «Мая»
-        (hey-maya.ru). Редакция от {LEGAL_EDITION} г.
+        (hey-maya.ru). Оферта — ред. {LEGAL_EDITION} г., политика и согласие на
+        обработку персональных данных — ред. {LEGAL_PD_EDITION} г.
       </p>
       <div className="rounded-xl border border-line bg-card/60 px-3 py-3 text-xs leading-relaxed text-muted">
         <p className="font-medium text-foreground">{LEGAL_OPERATOR.fullName}</p>
@@ -42,13 +48,23 @@ export default function LegalIndexPage() {
       </p>
       <ul className="mt-6 space-y-3">
         {LEGAL_DOCS.map((d) => (
-          <li key={d.key}>
+          <li key={d.key} className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
             <Link
               href={d.href}
               className="font-medium text-accent underline underline-offset-2"
             >
               {d.label}
             </Link>
+            {d.pdfHref ? (
+              <a
+                href={d.pdfHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-muted underline underline-offset-2"
+              >
+                PDF
+              </a>
+            ) : null}
           </li>
         ))}
       </ul>

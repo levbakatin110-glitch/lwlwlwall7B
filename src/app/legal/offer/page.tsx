@@ -21,7 +21,10 @@ export default function OfferPage() {
   const site = LEGAL_SITE_URL;
 
   return (
-    <LegalShell title="Публичная оферта на оказание платных информационных услуг">
+    <LegalShell
+      title="Публичная оферта на оказание платных информационных услуг"
+      pdfHref="/Документы/1_Публичная_оферта.pdf"
+    >
       <p className="text-muted">в редакции от {LEGAL_EDITION} г.</p>
 
       <p>
@@ -233,6 +236,10 @@ export default function OfferPage() {
         данных по{" "}
         <Link href="/legal/privacy" className="text-accent underline">
           Политике обработки персональных данных
+        </Link>{" "}
+        и{" "}
+        <Link href="/legal/consent" className="text-accent underline">
+          Согласию на обработку персональных данных
         </Link>
         .
       </p>

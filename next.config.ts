@@ -39,7 +39,7 @@ const nextConfig: NextConfig = {
       },
       {
         source: "/документы/согласие-обработка-пдн",
-        destination: "/legal/privacy",
+        destination: "/legal/consent",
         permanent: true,
       },
       {
@@ -54,7 +54,7 @@ const nextConfig: NextConfig = {
       },
       {
         source: "/legal/consent-pd",
-        destination: "/legal/privacy",
+        destination: "/legal/consent",
         permanent: true,
       },
       {

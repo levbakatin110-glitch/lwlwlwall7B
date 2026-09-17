@@ -171,14 +171,7 @@ export function EmailGate({ children }: { children: React.ReactNode }) {
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center bg-background px-5 text-foreground">
       <div className="w-full max-w-md">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-accent">
-          {authMode === "register"
-            ? "Регистрация"
-            : authMode === "login"
-              ? "Вход"
-              : "Восстановление"}
-        </p>
-        <h1 className="font-display mt-3 text-3xl font-semibold tracking-tight">
+        <h1 className="font-display text-3xl font-semibold tracking-tight">
           {authMode === "register"
             ? "Ваша почта"
             : authMode === "login"
@@ -276,7 +269,14 @@ export function EmailGate({ children }: { children: React.ReactNode }) {
                   >
                     политикой персональных данных
                   </Link>{" "}
-                  и обработкой моих данных
+                  и даю{" "}
+                  <Link
+                    href="/legal/consent"
+                    target="_blank"
+                    className="text-accent underline"
+                  >
+                    согласие на обработку персональных данных
+                  </Link>
                 </span>
               </label>
             </div>
@@ -289,7 +289,7 @@ export function EmailGate({ children }: { children: React.ReactNode }) {
                   type="button"
                   disabled={busy}
                   onClick={() => void loginPassword()}
-                  className="w-full rounded-2xl bg-accent py-3.5 text-sm font-semibold text-white disabled:opacity-50"
+                  className="w-full rounded-2xl bg-accent py-3.5 text-sm font-semibold text-on-accent disabled:opacity-50"
                 >
                   {busy ? "Вхожу…" : "Войти по паролю"}
                 </button>
@@ -298,7 +298,7 @@ export function EmailGate({ children }: { children: React.ReactNode }) {
                 type="button"
                 disabled={busy || !consentsOk}
                 onClick={() => void sendCode()}
-                className="w-full rounded-2xl bg-accent py-3.5 text-sm font-semibold text-white disabled:opacity-50"
+                className="w-full rounded-2xl bg-accent py-3.5 text-sm font-semibold text-on-accent disabled:opacity-50"
               >
                 {busy
                   ? "Отправляю…"
@@ -317,7 +317,7 @@ export function EmailGate({ children }: { children: React.ReactNode }) {
                 type="button"
                 disabled={busy || code.length < 6}
                 onClick={() => void verify()}
-                className="w-full rounded-2xl bg-accent py-3.5 text-sm font-semibold text-white disabled:opacity-50"
+                className="w-full rounded-2xl bg-accent py-3.5 text-sm font-semibold text-on-accent disabled:opacity-50"
               >
                 {busy
                   ? "Проверяю…"

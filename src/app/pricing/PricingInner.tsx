@@ -150,21 +150,21 @@ export default function PricingInner() {
         </div>
       ) : null}
 
-      <div className="mt-8 grid gap-3">
+      <div className="mt-8 grid gap-4">
         {PAID_PLANS.map((p) => {
           const popular = p.id === "m6";
           const selected = active && subscription.planId === p.id;
           return (
             <div
               key={p.id}
-              className={`relative rounded-2xl border p-4 ${
+              className={`relative rounded-2xl border p-5 transition ${
                 popular
-                  ? "border-accent/50 bg-accent-soft/50"
-                  : "border-line bg-card/70"
+                  ? "border-accent/45 bg-accent-soft/45 shadow-[0_18px_40px_-28px_color-mix(in_oklab,var(--accent)_55%,transparent)]"
+                  : "border-line bg-card/80"
               }`}
             >
               {popular && (
-                <span className="absolute -top-2 right-4 rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                <span className="absolute -top-2 right-4 rounded-full bg-accent px-2.5 py-0.5 text-[10px] font-semibold text-on-accent">
                   Выгодно
                 </span>
               )}
@@ -175,7 +175,7 @@ export default function PricingInner() {
                   <p className="mt-0.5 text-xs text-muted">
                     {CHAT_INCLUDED_MSGS} сообщений Мае в месяц
                   </p>
-                  <p className="mt-2 text-[11px] text-muted">
+                  <p className="mt-2 text-sm font-medium text-muted">
                     ≈ {formatRub(p.perMonthRub)} / мес
                   </p>
                 </div>
@@ -194,7 +194,7 @@ export default function PricingInner() {
                 type="button"
                 disabled={selected || busy === p.id}
                 onClick={() => void pick(p.id)}
-                className="mt-4 w-full rounded-xl bg-accent py-3 text-sm font-semibold text-white disabled:opacity-50"
+                className="mt-4 w-full rounded-xl bg-accent py-3 text-sm font-semibold text-on-accent transition enabled:hover:bg-accent-hot disabled:opacity-50"
               >
                 {selected
                   ? "Уже активен"
@@ -216,6 +216,10 @@ export default function PricingInner() {
         и{" "}
         <Link href="/legal/privacy" className="underline">
           политику персональных данных
+        </Link>{" "}
+        и{" "}
+        <Link href="/legal/consent" className="underline">
+          согласие на обработку ПДн
         </Link>
         .
         Услуги информационные, не заменяют консультацию врача.

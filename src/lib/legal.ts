@@ -45,30 +45,44 @@ export const LEGAL_SITE_URL = env(
 ).replace(/\/$/, "");
 
 export const LEGAL_EDITION = "31.08.2026";
+export const LEGAL_PD_EDITION = "10.09.2026";
 
 export const LEGAL_BRAND = "Мая";
 export const LEGAL_PRODUCT = "Maya Premium";
 
-/** Для Маи достаточно двух документов: оферта (оплата) + политика ПДн (152-ФЗ). */
-export type LegalDocKey = "offer" | "privacy";
+export type LegalDocKey = "offer" | "privacy" | "consent";
 
 export const LEGAL_DOCS: {
   key: LegalDocKey;
   href: string;
   label: string;
   fileName: string;
+  pdfHref?: string;
+  edition: string;
 }[] = [
   {
     key: "offer",
     href: "/legal/offer",
     label: "Публичная оферта",
     fileName: "1_Публичная_оферта.pdf",
+    pdfHref: "/Документы/1_Публичная_оферта.pdf",
+    edition: LEGAL_EDITION,
   },
   {
     key: "privacy",
     href: "/legal/privacy",
     label: "Политика обработки персональных данных",
-    fileName: "2_Политика_персональных_данных.pdf",
+    fileName: "Политика_обработки_персональных_данных.pdf",
+    pdfHref: "/docs/privacy-policy.pdf",
+    edition: LEGAL_PD_EDITION,
+  },
+  {
+    key: "consent",
+    href: "/legal/consent",
+    label: "Согласие на обработку персональных данных",
+    fileName: "Согласие_на_обработку_ПДн.pdf",
+    pdfHref: "/docs/consent-pd.pdf",
+    edition: LEGAL_PD_EDITION,
   },
 ];
 
