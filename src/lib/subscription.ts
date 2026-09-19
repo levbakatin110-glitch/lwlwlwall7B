@@ -9,6 +9,13 @@ import { CHAT_INCLUDED_MSGS, CHAT_TOPUP_RUB } from "@/lib/chat-quota";
 export const TEMP_UNLOCK_ALL = false;
 
 /**
+ * ВРЕМЕННО: без шагов анкеты сразу на тарифы.
+ * Нужно поддержке проверить оплату, без регистрации.
+ * Потом выключить.
+ */
+export const SKIP_ONBOARDING_TO_PRICING = true;
+
+/**
  * ВРЕМЕННО: кнопка «Оплатить» сразу выдаёт Premium (без Prodamus).
  * Перед боем с реальными деньгами, выключить.
  */

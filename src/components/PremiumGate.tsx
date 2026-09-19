@@ -3,7 +3,11 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { showPaywallHint } from "@/components/PaywallHint";
-import { isSubscriptionActive, PAID_ONLY } from "@/lib/subscription";
+import {
+  isSubscriptionActive,
+  PAID_ONLY,
+  SKIP_ONBOARDING_TO_PRICING,
+} from "@/lib/subscription";
 import { useAppStore } from "@/lib/store";
 
 /** Юр. и админ, без подписки. Тарифы, только после онбординга. */
@@ -47,11 +51,17 @@ export function PremiumGate({ children }: { children: React.ReactNode }) {
     if (!hydrated) return;
 
     if (!onboardingDone && isPricingPath(pathname)) {
+      if (SKIP_ONBOARDING_TO_PRICING) return;
       router.replace("/");
       return;
     }
 
-    if (!onboardingDone) return;
+    if (!onboardingDone) {
+      if (SKIP_ONBOARDING_TO_PRICING && !isAllowedPath(pathname)) {
+        router.replace("/pricing");
+      }
+      return;
+    }
     if (active) return;
     if (isAllowedPath(pathname) || isPricingPath(pathname)) return;
 
@@ -63,6 +73,17 @@ export function PremiumGate({ children }: { children: React.ReactNode }) {
   }, [hydrated, onboardingDone, active, pathname, router]);
 
   if (!hydrated) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-background text-sm text-muted">
+        Мая…
+      </div>
+    );
+  }
+
+  if (SKIP_ONBOARDING_TO_PRICING && !onboardingDone) {
+    if (isAllowedPath(pathname) || isPricingPath(pathname)) {
+      return <>{children}</>;
+    }
     return (
       <div className="flex min-h-dvh items-center justify-center bg-background text-sm text-muted">
         Мая…

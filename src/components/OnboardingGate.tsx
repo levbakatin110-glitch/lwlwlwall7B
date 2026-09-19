@@ -8,6 +8,7 @@ import {
   readIdentityBackup,
   readOnboardingDoneSticky,
 } from "@/lib/identity-backup";
+import { SKIP_ONBOARDING_TO_PRICING } from "@/lib/subscription";
 import { useAppStore } from "@/lib/store";
 
 function MayaSplash() {
@@ -122,7 +123,7 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
     setStickyDone(true);
   }, [onboardingDone]);
 
-  if (stickyDone || onboardingDone) {
+  if (SKIP_ONBOARDING_TO_PRICING || stickyDone || onboardingDone) {
     return <>{children}</>;
   }
 
