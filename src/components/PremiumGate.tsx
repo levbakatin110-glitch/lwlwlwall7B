@@ -43,25 +43,28 @@ export function PremiumGate({ children }: { children: React.ReactNode }) {
       setHydrated(true);
       return;
     }
-    return useAppStore.persist.onFinishHydration(() => setHydrated(true));
+    const unsub = useAppStore.persist.onFinishHydration(() => setHydrated(true));
+    if (useAppStore.persist.hasHydrated()) setHydrated(true);
+    return unsub;
   }, []);
 
   useEffect(() => {
     if (!PAID_ONLY) return;
+
+    if (SKIP_ONBOARDING_TO_PRICING && !onboardingDone) {
+      if (isPricingPath(pathname) || isAllowedPath(pathname)) return;
+      window.location.replace("/pricing");
+      return;
+    }
+
     if (!hydrated) return;
 
     if (!onboardingDone && isPricingPath(pathname)) {
-      if (SKIP_ONBOARDING_TO_PRICING) return;
       router.replace("/");
       return;
     }
 
-    if (!onboardingDone) {
-      if (SKIP_ONBOARDING_TO_PRICING && !isAllowedPath(pathname)) {
-        router.replace("/pricing");
-      }
-      return;
-    }
+    if (!onboardingDone) return;
     if (active) return;
     if (isAllowedPath(pathname) || isPricingPath(pathname)) return;
 
@@ -72,7 +75,10 @@ export function PremiumGate({ children }: { children: React.ReactNode }) {
     router.replace("/pricing");
   }, [hydrated, onboardingDone, active, pathname, router]);
 
-  if (!hydrated) {
+  if (SKIP_ONBOARDING_TO_PRICING && !onboardingDone) {
+    if (isAllowedPath(pathname) || isPricingPath(pathname)) {
+      return <>{children}</>;
+    }
     return (
       <div className="flex min-h-dvh items-center justify-center bg-background text-sm text-muted">
         Мая…
@@ -80,10 +86,7 @@ export function PremiumGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (SKIP_ONBOARDING_TO_PRICING && !onboardingDone) {
-    if (isAllowedPath(pathname) || isPricingPath(pathname)) {
-      return <>{children}</>;
-    }
+  if (!hydrated) {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-background text-sm text-muted">
         Мая…

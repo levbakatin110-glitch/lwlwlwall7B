@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { SKIP_ONBOARDING_TO_PRICING } from "./src/lib/temp-flags";
 
 const nextConfig: NextConfig = {
   // Явно прокидываем DSN в клиентский бандл при сборке на VPS
@@ -25,6 +26,15 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["pdfkit", "web-push"],
   async redirects() {
     return [
+      ...(SKIP_ONBOARDING_TO_PRICING
+        ? [
+            {
+              source: "/",
+              destination: "/pricing",
+              permanent: false,
+            },
+          ]
+        : []),
       // Кириллические URL → ASCII (Next.js ломает static export на /документы)
       { source: "/документы", destination: "/legal", permanent: true },
       {
