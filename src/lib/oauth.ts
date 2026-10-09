@@ -5,6 +5,7 @@ import {
   normalizeEmail,
   RUSSIAN_EMAIL_HINT,
 } from "@/lib/email-codes";
+import { authSecret } from "@/lib/server-secret";
 
 export type OAuthProvider = "mailru";
 
@@ -33,16 +34,6 @@ function tickets() {
 function pkceStore() {
   if (!g.__mayaOAuthPkce) g.__mayaOAuthPkce = new Map();
   return g.__mayaOAuthPkce;
-}
-
-function authSecret(): string {
-  const fromEnv =
-    process.env.AUTH_SECRET?.trim() ||
-    process.env.NEXT_SERVER_ACTIONS_ENCRYPTION_KEY?.trim() ||
-    process.env.TELEGRAM_WEBHOOK_SECRET?.trim() ||
-    process.env.ANALYTICS_PASSWORD?.trim();
-  if (fromEnv) return fromEnv;
-  return "maya-dev-oauth-secret-change-me";
 }
 
 export function siteOrigin(): string {

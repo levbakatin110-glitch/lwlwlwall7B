@@ -9,6 +9,7 @@ import {
   isAdminTelegramUser,
   saveAdminTelegramChat,
 } from "@/lib/admin-notify";
+import { safeEqual } from "@/lib/admin-auth";
 
 export const runtime = "nodejs";
 
@@ -25,7 +26,7 @@ export async function POST(req: Request) {
   const secret = webhookSecret();
   if (secret) {
     const header = req.headers.get("x-telegram-bot-api-secret-token");
-    if (header !== secret) {
+    if (!header || !safeEqual(header, secret)) {
       return Response.json({ error: "forbidden" }, { status: 403 });
     }
   }
@@ -56,7 +57,10 @@ export async function POST(req: Request) {
         reply = "Мая на сайте ↓";
       } else if (cmd === "/notify") {
         const username = update.message.from?.username;
-        if (isAdminTelegramUser(username)) {
+        if (!secret) {
+          reply =
+            "Сначала задайте TELEGRAM_WEBHOOK_SECRET на сервере и заново вызовите /api/telegram/setup.";
+        } else if (isAdminTelegramUser(username)) {
           saveAdminTelegramChat(chatId, username);
           reply =
             "Готово, уведомления о заказах планов будут приходить сюда.";

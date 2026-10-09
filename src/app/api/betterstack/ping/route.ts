@@ -1,16 +1,16 @@
-import { adminPasswordOk } from "@/lib/admin-auth";
+import { adminPasswordOkLimited } from "@/lib/admin-auth";
 import { betterStackDsn, betterStackEnabled } from "@/lib/betterstack-sentry";
 import { initBetterStackServer } from "@/lib/betterstack-sentry-server";
 
 export const runtime = "nodejs";
 
 /**
- * GET /api/betterstack/ping?key=<ADMIN_PASSWORD>
- * Отправляет тест в Better Stack с сервера (не видно в Network браузера).
+ * GET /api/betterstack/ping с заголовком x-admin-password
+ * (curl -H "x-admin-password: …" https://hey-maya.ru/api/betterstack/ping).
+ * Отправляет тест в Better Stack с сервера.
  */
 export async function GET(req: Request) {
-  const key = new URL(req.url).searchParams.get("key");
-  if (!adminPasswordOk(key)) {
+  if (!adminPasswordOkLimited(req, req.headers.get("x-admin-password"))) {
     return Response.json({ error: "forbidden" }, { status: 403 });
   }
 

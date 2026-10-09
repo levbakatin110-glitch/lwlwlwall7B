@@ -2,6 +2,7 @@ import { designModel, createOpenAI } from "@/lib/openai";
 import { validateBlueprint } from "@/lib/blueprint-health";
 import { normalizeBlueprint } from "@/lib/module-schema";
 import { pushServerOpsError } from "@/lib/ops-log";
+import { hitRateLimit, tooManyRequests } from "@/lib/rate-limit";
 import { requirePaidSession } from "@/lib/require-paid-session";
 import type { CustomModule, ModuleBlueprint } from "@/lib/types";
 
@@ -35,6 +36,13 @@ export async function POST(req: Request) {
   if (!module?.id || instruction.length < 2) {
     return Response.json({ error: "Нужны модуль и инструкция" }, { status: 400 });
   }
+  instruction = instruction.slice(0, 2000);
+  if (JSON.stringify(module).length > 60_000) {
+    return Response.json({ error: "Дневник слишком большой" }, { status: 413 });
+  }
+
+  const limit = hitRateLimit(`ai-evolve:${gate.email}`, 60, 86_400);
+  if (!limit.ok) return tooManyRequests(limit);
 
   try {
     const completion = await openai.chat.completions.create({

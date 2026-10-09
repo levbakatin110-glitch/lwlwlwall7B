@@ -31,12 +31,27 @@ load_dotenv() {
   done < "$file"
 }
 
+touch .env.production
 load_dotenv .env.production
-if [ -z "${NEXT_SERVER_ACTIONS_ENCRYPTION_KEY:-}" ]; then
-  export NEXT_SERVER_ACTIONS_ENCRYPTION_KEY='DPEZn35NF4GXiXF/tJrPE4tgrGS55JeVCSpLVZ39sWM='
-fi
 
-# Репозиторий закрытый для git pull — качаем публичный tarball ветки main
+# Этот ключ раньше лежал в публичном репозитории: если он (или пустота) в .env.production — заменяем случайным.
+LEAKED_KEY='DPEZn35NF4GXiXF/tJrPE4tgrGS55JeVCSpLVZ39sWM='
+ensure_secret() {
+  local name="$1"
+  local cur="${!name:-}"
+  if [ -z "$cur" ] || [ "$cur" = "$LEAKED_KEY" ]; then
+    sed -i "/^${name}=/d" .env.production
+    local val
+    val="$(openssl rand -base64 32)"
+    printf '%s=%s\n' "$name" "$val" >> .env.production
+    export "$name=$val"
+    echo "Новый $name записан в .env.production"
+  fi
+}
+ensure_secret AUTH_SECRET
+ensure_secret NEXT_SERVER_ACTIONS_ENCRYPTION_KEY
+
+# Репозиторий публичный — качаем tarball ветки main без логина
 rm -rf /tmp/lwlwlwall7B-main /tmp/main.tar.gz
 curl -fsSL -o /tmp/main.tar.gz https://github.com/levbakatin110-glitch/lwlwlwall7B/archive/refs/heads/main.tar.gz
 tar xzf /tmp/main.tar.gz -C /tmp

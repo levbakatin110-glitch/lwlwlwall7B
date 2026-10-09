@@ -5,6 +5,7 @@ import {
   RUSSIAN_EMAIL_HINT,
   verifyEmailCode,
 } from "@/lib/email-codes";
+import { hitRateLimits, requestIp, tooManyRequests } from "@/lib/rate-limit";
 import { sessionSetCookie } from "@/lib/session";
 
 export const runtime = "nodejs";
@@ -28,6 +29,12 @@ export async function POST(req: Request) {
   if (!/^\d{6}$/.test(code)) {
     return Response.json({ error: "Код, 6 цифр из письма" }, { status: 400 });
   }
+
+  const limit = hitRateLimits([
+    { key: `verify-code:email:${email}`, limit: 10, windowSec: 900 },
+    { key: `verify-code:ip:${requestIp(req)}`, limit: 30, windowSec: 900 },
+  ]);
+  if (!limit.ok) return tooManyRequests(limit);
 
   const result = verifyEmailCode(email, code);
   if (!result.ok) {

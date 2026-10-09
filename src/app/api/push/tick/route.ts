@@ -1,4 +1,4 @@
-import { adminPasswordOk } from "@/lib/admin-auth";
+import { adminPasswordOkLimited, safeEqual } from "@/lib/admin-auth";
 import { runPushTick } from "@/lib/push-tick";
 
 export const runtime = "nodejs";
@@ -10,8 +10,8 @@ function tickKeyOk(req: Request): boolean {
     req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ||
     "";
   const cron = process.env.CRON_SECRET?.trim();
-  if (cron && key === cron) return true;
-  return adminPasswordOk(key);
+  if (cron && key && safeEqual(key, cron)) return true;
+  return adminPasswordOkLimited(req, req.headers.get("x-admin-password"));
 }
 
 /** Ручной/крон тик. На VPS ещё крутится цикл из instrumentation. */

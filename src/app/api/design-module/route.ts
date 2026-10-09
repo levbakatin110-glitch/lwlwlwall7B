@@ -11,6 +11,7 @@ import {
   RECIPES_CATALOG_LABEL,
 } from "@/lib/recipes";
 import { pushServerOpsError } from "@/lib/ops-log";
+import { hitRateLimit, tooManyRequests } from "@/lib/rate-limit";
 import { requirePaidSession } from "@/lib/require-paid-session";
 import type { ModuleBlueprint } from "@/lib/types";
 
@@ -32,8 +33,8 @@ export async function POST(req: Request) {
   let titleHint = "";
   try {
     const body = (await req.json()) as { description?: string; titleHint?: string };
-    description = String(body.description || "").trim();
-    titleHint = String(body.titleHint || "").trim();
+    description = String(body.description || "").trim().slice(0, 2000);
+    titleHint = String(body.titleHint || "").trim().slice(0, 200);
   } catch {
     return Response.json({ error: "Некорректный запрос" }, { status: 400 });
   }
@@ -41,6 +42,9 @@ export async function POST(req: Request) {
   if (description.length < 3) {
     return Response.json({ error: "Опишите, что хотите отслеживать" }, { status: 400 });
   }
+
+  const limit = hitRateLimit(`ai-design:${gate.email}`, 40, 86_400);
+  if (!limit.ok) return tooManyRequests(limit);
 
   const topic = `${titleHint} ${description}`;
   const builtin = detectBuiltinSuggestion(topic);

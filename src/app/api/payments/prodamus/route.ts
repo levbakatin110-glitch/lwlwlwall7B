@@ -1,4 +1,5 @@
 import { trackAnalyticsEvent } from "@/lib/analytics-store";
+import { CHAT_TOPUP_RUB } from "@/lib/chat-quota";
 import { grantChatTopup } from "@/lib/chat-quota-store";
 import { grantPaidPlan } from "@/lib/paid-store";
 import { activatePlanOrderAfterPayment } from "@/lib/plan-order-activate";
@@ -44,6 +45,18 @@ function resolvePlanId(extra: string, orderNum: string): PaidPlanId | null {
   return null;
 }
 
+/** Доступ всё равно выдаём (подпись верна, скидки/промокоды меняют сумму), но расхождение видно в админке. */
+function warnSumMismatch(paid: number, expected: number, detail: string) {
+  if (!Number.isFinite(paid) || paid <= 0) return;
+  if (Math.abs(paid - expected) < 1) return;
+  pushServerOpsError({
+    source: "other",
+    message: `Prodamus: сумма ${paid} ₽ вместо ${expected} ₽`,
+    detail,
+    status: 200,
+  });
+}
+
 export async function POST(req: Request) {
   const { secret } = prodamusConfig();
   if (!secret) {
@@ -84,7 +97,10 @@ export async function POST(req: Request) {
     const email = String(data.customer_email || "").trim().toLowerCase();
     const extra = String(data.customer_extra || "");
     const orderNum = String(data.order_num || data.order_id || "");
-    const paymentRef = String(data.order_id || orderNum || "");
+    const paymentRef = String(
+      data.order_id || orderNum || (sign ? `sign:${sign}` : ""),
+    );
+    const paidSum = Number(String(data.sum ?? "").replace(",", "."));
 
     const planPay = parseProdamusPlanExtra(extra);
     if (planPay && email) {
@@ -101,6 +117,7 @@ export async function POST(req: Request) {
     }
 
     if (email && /^chat_boost:/i.test(extra)) {
+      warnSumMismatch(paidSum, CHAT_TOPUP_RUB, `chat_boost|${email}|${paymentRef}`);
       grantChatTopup(email, paymentRef || extra);
       trackAnalyticsEvent({
         name: "chat_topup",
@@ -121,10 +138,15 @@ export async function POST(req: Request) {
       return new Response("missing email or plan", { status: 500 });
     }
 
+    warnSumMismatch(
+      paidSum,
+      planById(planId)!.priceRub,
+      `${planId}|${email}|${paymentRef}`,
+    );
     grantPaidPlan({
       email,
       planId,
-      orderId: String(data.order_id || orderNum),
+      orderId: paymentRef,
     });
     trackAnalyticsEvent({
       name: "subscribe_activate",

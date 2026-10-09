@@ -22,6 +22,10 @@ import { encodeWeatherHeader, resolveWeather } from "@/lib/weather";
 export const runtime = "nodejs";
 
 const WEATHER_BUDGET_MS = 2800;
+/** Клиент шлёт ≤20 последних сообщений; сервер не доверяет и режет сам. */
+const MAX_HISTORY_MESSAGES = 24;
+const MAX_MESSAGE_CHARS = 8_000;
+const MAX_SYSTEM_CHARS = 80_000;
 
 export async function POST(req: Request) {
   const openai = createChatOpenAI();
@@ -65,7 +69,20 @@ export async function POST(req: Request) {
     return Response.json({ error: "Нет сообщений" }, { status: 400 });
   }
 
-  const lastUser = [...body.messages].reverse().find((m) => m.role === "user");
+  const history = body.messages
+    .filter(
+      (m) =>
+        (m?.role === "user" || m?.role === "assistant") &&
+        typeof m.content === "string" &&
+        m.content.trim(),
+    )
+    .slice(-MAX_HISTORY_MESSAGES)
+    .map((m) => ({ role: m.role, content: m.content.slice(0, MAX_MESSAGE_CHARS) }));
+  if (history.length === 0) {
+    return Response.json({ error: "Нет сообщений" }, { status: 400 });
+  }
+
+  const lastUser = [...history].reverse().find((m) => m.role === "user");
 
   let quotaKey: string | null = null;
   if (premium) {
@@ -184,11 +201,8 @@ export async function POST(req: Request) {
         model: chatModel(),
         stream: true,
         messages: [
-          { role: "system", content: system },
-          ...body.messages.map((m) => ({
-            role: m.role,
-            content: m.content,
-          })),
+          { role: "system", content: system.slice(0, MAX_SYSTEM_CHARS) },
+          ...history,
         ],
         temperature: 0.65,
         max_tokens: 1800,

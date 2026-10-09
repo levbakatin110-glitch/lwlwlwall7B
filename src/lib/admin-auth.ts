@@ -1,40 +1,43 @@
 import { timingSafeEqual } from "crypto";
+import { hitRateLimit, rateLimitExceeded, requestIp } from "@/lib/rate-limit";
 
 const COOKIE = "maya_admin";
 const MAX_AGE_SEC = 60 * 60 * 12;
+const FAIL_LIMIT = 10;
+const FAIL_WINDOW_SEC = 15 * 60;
 
+/** Без ADMIN_PASSWORD/ANALYTICS_PASSWORD в env админка закрыта. */
 export function adminPassword(): string {
   return (
     process.env.ADMIN_PASSWORD?.trim() ||
     process.env.ANALYTICS_PASSWORD?.trim() ||
-    "maya-stats"
+    ""
   );
+}
+
+export function safeEqual(a: string, b: string): boolean {
+  const x = Buffer.from(a);
+  const y = Buffer.from(b);
+  return x.length === y.length && timingSafeEqual(x, y);
 }
 
 export function adminPasswordOk(password: string | null | undefined): boolean {
   const expected = adminPassword();
   if (!password || !expected) return false;
-  try {
-    const a = Buffer.from(password);
-    const b = Buffer.from(expected);
-    if (a.length !== b.length) return false;
-    return timingSafeEqual(a, b);
-  } catch {
-    return password === expected;
-  }
+  return safeEqual(password, expected);
 }
 
-export function readAdminFromRequest(req: Request): boolean {
-  const header = req.headers.get("x-admin-password");
-  if (adminPasswordOk(header)) return true;
-  const raw = req.headers.get("cookie") || "";
-  const match = raw.match(/(?:^|;\s*)maya_admin=([^;]*)/);
-  if (!match?.[1]) return false;
-  try {
-    return decodeURIComponent(match[1]) === "1" && Boolean(raw);
-  } catch {
-    return false;
-  }
+/** Проверка пароля с лимитом неудачных попыток по IP. */
+export function adminPasswordOkLimited(
+  req: Request,
+  password: string | null | undefined,
+  check: (p: string | null | undefined) => boolean = adminPasswordOk,
+): boolean {
+  const key = `admin-fail:${requestIp(req)}`;
+  if (rateLimitExceeded(key, FAIL_LIMIT, FAIL_WINDOW_SEC)) return false;
+  if (check(password)) return true;
+  if (password) hitRateLimit(key, FAIL_LIMIT, FAIL_WINDOW_SEC);
+  return false;
 }
 
 /** Cookie после успешного входа в админку (флаг; пароль проверяем при login). */
@@ -68,5 +71,5 @@ export function adminClearCookie(): string {
  * Cookie, только чтобы UI помнил «уже вошли» и подставлял пароль из sessionStorage.
  */
 export function requireAdmin(req: Request): boolean {
-  return adminPasswordOk(req.headers.get("x-admin-password"));
+  return adminPasswordOkLimited(req, req.headers.get("x-admin-password"));
 }

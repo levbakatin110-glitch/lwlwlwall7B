@@ -1,4 +1,4 @@
-import { adminPasswordOk, adminSetCookie } from "@/lib/admin-auth";
+import { adminPasswordOkLimited, adminSetCookie } from "@/lib/admin-auth";
 
 export const runtime = "nodejs";
 
@@ -9,7 +9,7 @@ export async function POST(req: Request) {
   } catch {
     return Response.json({ error: "Некорректный запрос" }, { status: 400 });
   }
-  if (!adminPasswordOk(body.password)) {
+  if (!adminPasswordOkLimited(req, body.password)) {
     return Response.json({ error: "Неверный пароль" }, { status: 401 });
   }
   return Response.json(

@@ -409,7 +409,7 @@ export function diaperInsight(
   const spark = sparkFromDays(days, (iso) => wetByDay.get(iso) ?? 0);
   const sparkCaption = "мокрых подгузников";
   const todayWet = wetByDay.get(today) ?? 0;
-  const months = ageMonths(birthDate);
+  const months = ageMonths(birthDate, new Date(now));
   const lastWet = [...entries]
     .filter(wetOf)
     .sort((a, b) => entryStartMs(b) - entryStartMs(a))[0];

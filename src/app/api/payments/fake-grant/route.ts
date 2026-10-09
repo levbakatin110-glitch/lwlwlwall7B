@@ -1,5 +1,5 @@
 import { trackAnalyticsEvent } from "@/lib/analytics-store";
-import { grantPaidPlan } from "@/lib/paid-store";
+import { getServerSubscription, grantPaidPlan } from "@/lib/paid-store";
 import { readSessionFromRequest } from "@/lib/session";
 import {
   FAKE_PAYMENTS,
@@ -31,6 +31,16 @@ export async function POST(req: Request) {
   const email = session?.email?.trim().toLowerCase() || "";
   if (!email || !email.includes("@")) {
     return Response.json({ error: "Нужен вход в аккаунт" }, { status: 401 });
+  }
+
+  const active = getServerSubscription(email);
+  if (active) {
+    return Response.json({
+      ok: true,
+      planId: active.planId,
+      expiresAt: active.expiresAt,
+      fake: true,
+    });
   }
 
   const row = grantPaidPlan({

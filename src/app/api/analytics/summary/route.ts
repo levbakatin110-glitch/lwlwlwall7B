@@ -1,3 +1,4 @@
+import { adminPasswordOk, adminPasswordOkLimited } from "@/lib/admin-auth";
 import {
   analyticsPasswordOk,
   clearAnalytics,
@@ -6,15 +7,17 @@ import {
 
 export const runtime = "nodejs";
 
-function passwordFrom(req: Request): string | null {
-  return (
+function authOk(req: Request): boolean {
+  return adminPasswordOkLimited(
+    req,
     req.headers.get("x-analytics-password") ||
-    new URL(req.url).searchParams.get("password")
+      req.headers.get("x-admin-password"),
+    (p) => analyticsPasswordOk(p) || adminPasswordOk(p),
   );
 }
 
 export async function GET(req: Request) {
-  if (!analyticsPasswordOk(passwordFrom(req))) {
+  if (!authOk(req)) {
     return Response.json({ error: "Нужен пароль" }, { status: 401 });
   }
   const days = Number(new URL(req.url).searchParams.get("days") || "14");
@@ -22,7 +25,7 @@ export async function GET(req: Request) {
 }
 
 export async function DELETE(req: Request) {
-  if (!analyticsPasswordOk(passwordFrom(req))) {
+  if (!authOk(req)) {
     return Response.json({ error: "Нужен пароль" }, { status: 401 });
   }
   clearAnalytics();

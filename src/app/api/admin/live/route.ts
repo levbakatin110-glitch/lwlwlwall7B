@@ -1,17 +1,17 @@
-import { adminPasswordOk } from "@/lib/admin-auth";
+import { adminPasswordOk, adminPasswordOkLimited } from "@/lib/admin-auth";
 import { analyticsPasswordOk } from "@/lib/analytics-store";
 import { getLiveLoadReport } from "@/lib/live-load";
 
 export const runtime = "nodejs";
 
 function liveAuthOk(req: Request): boolean {
-  const admin = req.headers.get("x-admin-password");
-  const analytics = req.headers.get("x-analytics-password");
-  return (
-    adminPasswordOk(admin) ||
-    adminPasswordOk(analytics) ||
-    analyticsPasswordOk(admin) ||
-    analyticsPasswordOk(analytics)
+  const pass =
+    req.headers.get("x-admin-password") ||
+    req.headers.get("x-analytics-password");
+  return adminPasswordOkLimited(
+    req,
+    pass,
+    (p) => adminPasswordOk(p) || analyticsPasswordOk(p),
   );
 }
 

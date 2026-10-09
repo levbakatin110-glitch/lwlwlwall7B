@@ -1,23 +1,9 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { normalizeEmail } from "@/lib/email-codes";
+import { authSecret } from "@/lib/server-secret";
 
 const COOKIE = "maya_session";
 const MAX_AGE_SEC = 60 * 60 * 24 * 180; // ~6 месяцев
-
-function authSecret(): string {
-  const fromEnv =
-    process.env.AUTH_SECRET?.trim() ||
-    process.env.NEXT_SERVER_ACTIONS_ENCRYPTION_KEY?.trim() ||
-    process.env.TELEGRAM_WEBHOOK_SECRET?.trim() ||
-    process.env.ANALYTICS_PASSWORD?.trim();
-  if (fromEnv) return fromEnv;
-  if (process.env.NODE_ENV === "production") {
-    console.error(
-      "[maya] AUTH_SECRET не задан. Добавьте в .env на VPS и перезапустите.",
-    );
-  }
-  return "maya-dev-oauth-secret-change-me";
-}
 
 function b64url(buf: Buffer | string): string {
   const b = Buffer.isBuffer(buf) ? buf : Buffer.from(buf, "utf8");

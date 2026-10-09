@@ -76,9 +76,8 @@ export default function AnalyticsPage() {
         <h1 className="font-display text-2xl font-semibold">Аналитика</h1>
         <p className="mt-2 text-sm text-muted">
           Только для тебя. Пароль из{" "}
-          <code className="text-foreground">ANALYTICS_PASSWORD</code> на
-          сервере (по умолчанию{" "}
-          <code className="text-foreground">maya-stats</code>).
+          <code className="text-foreground">ANALYTICS_PASSWORD</code> или{" "}
+          <code className="text-foreground">ADMIN_PASSWORD</code> на сервере.
         </p>
         <form
           className="mt-6 space-y-3"

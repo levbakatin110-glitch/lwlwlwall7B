@@ -3,6 +3,7 @@ import { grantChatTopup } from "@/lib/chat-quota-store";
 import { fetchWithTimeout } from "@/lib/fetch-timeout";
 import { planPaymentsBypass } from "@/lib/plan-products";
 import { prodamusConfig, prodamusSign } from "@/lib/prodamus";
+import { hitRateLimit, tooManyRequests } from "@/lib/rate-limit";
 import { readSessionFromRequest } from "@/lib/session";
 import { FAKE_PAYMENTS, planById, type PaidPlanId } from "@/lib/subscription";
 
@@ -29,6 +30,8 @@ export async function POST(req: Request) {
   if (body.kind === "chat_boost") {
     const orderId = `maya-chatboost-${Date.now()}`;
     if (FAKE_PAYMENTS || planPaymentsBypass()) {
+      const limit = hitRateLimit(`fake-topup:${email}`, 1, 86_400);
+      if (!limit.ok) return tooManyRequests(limit);
       const quota = grantChatTopup(email, orderId);
       return Response.json({
         ok: true,

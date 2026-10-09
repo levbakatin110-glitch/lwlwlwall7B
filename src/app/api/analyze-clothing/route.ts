@@ -1,8 +1,12 @@
 import { createOpenAI, visionModel } from "@/lib/openai";
+import { hitRateLimit, tooManyRequests } from "@/lib/rate-limit";
 import { requirePaidSession } from "@/lib/require-paid-session";
 import type { ClothingAnalysis } from "@/lib/types";
 
 export const runtime = "nodejs";
+
+/** ~2 МБ картинки в base64; клиент и так ужимает фото. */
+const MAX_IMAGE_CHARS = 2_800_000;
 
 export async function POST(req: Request) {
   const gate = requirePaidSession(req);
@@ -38,6 +42,19 @@ export async function POST(req: Request) {
   if (!imageData.startsWith("data:image/")) {
     return Response.json({ error: "Нужно фото одежды" }, { status: 400 });
   }
+  if (
+    imageData.length > MAX_IMAGE_CHARS ||
+    labelImageData.length > MAX_IMAGE_CHARS
+  ) {
+    return Response.json(
+      { error: "Фото слишком большое, попробуйте снимок поменьше" },
+      { status: 413 },
+    );
+  }
+  userHint = userHint.slice(0, 500);
+
+  const limit = hitRateLimit(`ai-clothing:${gate.email}`, 60, 86_400);
+  if (!limit.ok) return tooManyRequests(limit);
 
   const hasLabel = labelImageData.startsWith("data:image/");
 

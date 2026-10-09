@@ -12,11 +12,13 @@ export type GrowthAssessment = {
   needs?: GrowthNeed[];
 };
 
-export function ageMonths(birthDate: string | undefined | null): number | null {
+export function ageMonths(
+  birthDate: string | undefined | null,
+  now = new Date(),
+): number | null {
   if (!birthDate?.trim()) return null;
   const b = new Date(birthDate);
   if (Number.isNaN(b.getTime())) return null;
-  const now = new Date();
   const months =
     (now.getFullYear() - b.getFullYear()) * 12 +
     (now.getMonth() - b.getMonth()) +

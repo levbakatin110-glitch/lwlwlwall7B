@@ -1,3 +1,4 @@
+import { safeEqual } from "@/lib/admin-auth";
 import { getDb } from "@/lib/db";
 
 export type AnalyticsEventName =
@@ -248,6 +249,6 @@ export function analyticsPasswordOk(
   const expected =
     process.env.ANALYTICS_PASSWORD?.trim() ||
     process.env.ADMIN_PASSWORD?.trim() ||
-    "maya-stats";
-  return Boolean(password && password === expected);
+    "";
+  return Boolean(password && expected && safeEqual(password, expected));
 }

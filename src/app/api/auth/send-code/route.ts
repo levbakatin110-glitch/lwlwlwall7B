@@ -6,6 +6,7 @@ import {
   normalizeEmail,
   RUSSIAN_EMAIL_HINT,
 } from "@/lib/email-codes";
+import { hitRateLimits, requestIp, tooManyRequests } from "@/lib/rate-limit";
 import { sendRegistrationCodeEmail } from "@/lib/resend";
 
 export const runtime = "nodejs";
@@ -25,6 +26,12 @@ export async function POST(req: Request) {
   if (!isAllowedRussianEmail(email)) {
     return Response.json({ error: RUSSIAN_EMAIL_HINT }, { status: 400 });
   }
+
+  const limit = hitRateLimits([
+    { key: `send-code:email:${email}`, limit: 5, windowSec: 3600 },
+    { key: `send-code:ip:${requestIp(req)}`, limit: 20, windowSec: 3600 },
+  ]);
+  if (!limit.ok) return tooManyRequests(limit);
 
   const { code, reused } = createEmailCode(email);
   if (reused) {
