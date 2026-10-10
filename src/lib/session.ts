@@ -5,6 +5,11 @@ import { authSecret } from "@/lib/server-secret";
 const COOKIE = "maya_session";
 const MAX_AGE_SEC = 60 * 60 * 24 * 180; // ~6 месяцев
 
+/** Общий гостевой адрес выдавался всем без регистрации: под ним данные разных мам слились в один бэкап. */
+export function isSharedPlaceholderEmail(email: string): boolean {
+  return /@hey-maya\.local$/i.test(email.trim());
+}
+
 function b64url(buf: Buffer | string): string {
   const b = Buffer.isBuffer(buf) ? buf : Buffer.from(buf, "utf8");
   return b
@@ -59,7 +64,9 @@ export function verifySessionToken(
     };
     if (!data.e || typeof data.exp !== "number") return null;
     if (Date.now() > data.exp) return null;
-    return { email: normalizeEmail(data.e) };
+    const email = normalizeEmail(data.e);
+    if (isSharedPlaceholderEmail(email)) return null;
+    return { email };
   } catch {
     return null;
   }
