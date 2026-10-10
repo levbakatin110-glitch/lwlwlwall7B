@@ -12,6 +12,11 @@ import {
   verifyEmailCode,
 } from "@/lib/email-codes";
 import {
+  CONSENT_REQUIRED_ERROR,
+  hasPdConsent,
+  recordRegistrationConsents,
+} from "@/lib/consent-store";
+import {
   hitRateLimit,
   hitRateLimits,
   requestIp,
@@ -45,6 +50,7 @@ export async function POST(req: Request) {
     email?: string;
     password?: string;
     code?: string;
+    consents?: { pd?: boolean; marketing?: boolean };
   };
   try {
     body = (await req.json()) as typeof body;
@@ -74,6 +80,16 @@ export async function POST(req: Request) {
         { status: 401 },
       );
     }
+    if (body.consents?.pd === true) {
+      recordRegistrationConsents({
+        email,
+        marketing: body.consents?.marketing === true,
+        ip: requestIp(req),
+        userAgent: req.headers.get("user-agent") || "",
+      });
+    } else if (!hasPdConsent(email)) {
+      return Response.json(CONSENT_REQUIRED_ERROR, { status: 403 });
+    }
     return Response.json(
       { ok: true, email },
       { headers: { "Set-Cookie": sessionSetCookie(email) } },
@@ -98,10 +114,22 @@ export async function POST(req: Request) {
         { key: `verify-code:ip:${requestIp(req)}`, limit: 30, windowSec: 900 },
       ]);
       if (!limit.ok) return tooManyRequests(limit);
+      const givesPd = body.consents?.pd === true;
+      if (!givesPd && !hasPdConsent(email)) {
+        return Response.json(CONSENT_REQUIRED_ERROR, { status: 403 });
+      }
       const code = String(body.code || "").trim();
       const checked = verifyEmailCode(email, code);
       if (!checked.ok) {
         return Response.json({ error: checked.error }, { status: 400 });
+      }
+      if (givesPd) {
+        recordRegistrationConsents({
+          email,
+          marketing: body.consents?.marketing === true,
+          ip: requestIp(req),
+          userAgent: req.headers.get("user-agent") || "",
+        });
       }
       target = email;
     }

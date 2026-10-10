@@ -81,6 +81,19 @@ function migrateSchema(db: DatabaseSync) {
       PRIMARY KEY (ip, day)
     );
 
+    CREATE TABLE IF NOT EXISTS consents (
+      email TEXT PRIMARY KEY,
+      pd_at TEXT NOT NULL,
+      pd_edition TEXT NOT NULL,
+      marketing INTEGER NOT NULL DEFAULT 0,
+      marketing_at TEXT,
+      marketing_edition TEXT,
+      marketing_revoked_at TEXT,
+      ip TEXT,
+      user_agent TEXT,
+      updated_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS rate_limits (
       key TEXT NOT NULL,
       window_start INTEGER NOT NULL,

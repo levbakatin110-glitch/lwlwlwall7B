@@ -11,6 +11,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${SITE}/legal`, lastModified: now, changeFrequency: "monthly", priority: 0.4 },
     { url: `${SITE}/legal/privacy`, lastModified: now, changeFrequency: "monthly", priority: 0.3 },
     { url: `${SITE}/legal/consent`, lastModified: now, changeFrequency: "monthly", priority: 0.3 },
+    { url: `${SITE}/legal/telegram-consent`, lastModified: now, changeFrequency: "monthly", priority: 0.3 },
+    { url: `${SITE}/legal/marketing`, lastModified: now, changeFrequency: "monthly", priority: 0.3 },
     { url: `${SITE}/register`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
   ];
 }

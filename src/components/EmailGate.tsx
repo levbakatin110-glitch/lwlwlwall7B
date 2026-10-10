@@ -26,15 +26,27 @@ export function EmailGate({ children }: { children: React.ReactNode }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [consentPrivacy, setConsentPrivacy] = useState(false);
+  const [consentMarketing, setConsentMarketing] = useState(false);
   const [password, setPassword] = useState("");
   const [knownPassword, setKnownPassword] = useState(false);
+  const [consentRequired, setConsentRequired] = useState(false);
 
   if (emailVerified && accountEmail) {
     return <>{children}</>;
   }
 
-  const needConsents = authMode === "register";
+  const needConsents = authMode === "register" || consentRequired;
   const consentsOk = !needConsents || consentPrivacy;
+  const consentsBody = needConsents
+    ? { consents: { pd: consentPrivacy, marketing: consentMarketing } }
+    : {};
+
+  function onConsentRequired(data: { code?: string }): boolean {
+    if (data.code !== "consent_required") return false;
+    setConsentRequired(true);
+    setError("Отметьте согласие на обработку персональных данных ниже");
+    return true;
+  }
 
   function switchMode(next: AuthMode) {
     setAuthMode(next);
@@ -101,9 +113,15 @@ export function EmailGate({ children }: { children: React.ReactNode }) {
           action: "login",
           email: trimmed,
           password,
+          ...consentsBody,
         }),
       });
-      const data = (await res.json()) as { error?: string; email?: string };
+      const data = (await res.json()) as {
+        error?: string;
+        email?: string;
+        code?: string;
+      };
+      if (!res.ok && onConsentRequired(data)) return;
       if (!res.ok) throw new Error(data.error || "Неверный пароль");
       setAccountEmail(data.email || trimmed);
       trackEvent("login");
@@ -124,6 +142,10 @@ export function EmailGate({ children }: { children: React.ReactNode }) {
 
   async function verify() {
     setError(null);
+    if (!consentsOk) {
+      setError("Отметьте обязательные согласия под формой");
+      return;
+    }
     setBusy(true);
     try {
       const res = await fetch("/api/auth/verify-code", {
@@ -133,9 +155,15 @@ export function EmailGate({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({
           email: email.trim().toLowerCase(),
           code,
+          ...consentsBody,
         }),
       });
-      const data = (await res.json()) as { error?: string; email?: string };
+      const data = (await res.json()) as {
+        error?: string;
+        email?: string;
+        code?: string;
+      };
+      if (!res.ok && onConsentRequired(data)) return;
       if (!res.ok) throw new Error(data.error || "Неверный код");
       setAccountEmail(data.email || email.trim().toLowerCase());
       trackEvent(authMode === "register" ? "register" : "login");
@@ -232,7 +260,7 @@ export function EmailGate({ children }: { children: React.ReactNode }) {
           )}
           {error && <p className="text-sm text-red-600 dark:text-red-300">{error}</p>}
 
-          {!codeSent && needConsents && (
+          {needConsents && (!codeSent || consentRequired) && (
             <div className="space-y-2.5 rounded-xl border border-line bg-card/50 px-3 py-3 text-[11px] leading-snug text-muted">
               <label className="flex gap-2">
                 <input
@@ -258,6 +286,34 @@ export function EmailGate({ children }: { children: React.ReactNode }) {
                   >
                     согласие на обработку персональных данных
                   </Link>
+                  , в том числе{" "}
+                  <Link
+                    href="/legal/telegram-consent"
+                    target="_blank"
+                    className="text-accent underline"
+                  >
+                    для Telegram-бота
+                  </Link>
+                  <span className="text-foreground"> (обязательно)</span>
+                </span>
+              </label>
+              <label className="flex gap-2">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 shrink-0"
+                  checked={consentMarketing}
+                  onChange={(e) => setConsentMarketing(e.target.checked)}
+                />
+                <span>
+                  Я согласен получать новости и рекламные рассылки (
+                  <Link
+                    href="/legal/marketing"
+                    target="_blank"
+                    className="text-accent underline"
+                  >
+                    согласие на рассылку
+                  </Link>
+                  ), по желанию
                 </span>
               </label>
             </div>
@@ -296,7 +352,7 @@ export function EmailGate({ children }: { children: React.ReactNode }) {
             <div className="space-y-2">
               <button
                 type="button"
-                disabled={busy || code.length < 6}
+                disabled={busy || code.length < 6 || !consentsOk}
                 onClick={() => void verify()}
                 className="w-full rounded-2xl bg-accent py-3.5 text-sm font-semibold text-on-accent disabled:opacity-50"
               >

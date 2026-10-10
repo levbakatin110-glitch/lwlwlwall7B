@@ -10,6 +10,7 @@ import type { OpsErrorLog } from "@/lib/ops-log";
 import { useAppStore } from "@/lib/store";
 import type { CustomModule, ModuleBlueprint } from "@/lib/types";
 import { AdminLiveLoad } from "@/components/admin/AdminLiveLoad";
+import { AdminMarketing } from "@/components/admin/AdminMarketing";
 import { AdminSales } from "@/components/admin/AdminSales";
 
 const PASS_KEY = "maya-admin-pass";
@@ -319,6 +320,7 @@ export default function AdminPage() {
 
       <AdminLiveLoad />
       <AdminSales />
+      <AdminMarketing />
 
       <div className="mt-6 rounded-2xl border border-line bg-card/60 p-5 text-sm text-muted">
         <p className="font-medium text-foreground">Чаты консультанта</p>

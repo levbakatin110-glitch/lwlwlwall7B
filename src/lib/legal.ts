@@ -46,11 +46,17 @@ export const LEGAL_SITE_URL = env(
 
 export const LEGAL_PD_EDITION = "10.09.2026";
 export const LEGAL_EDITION = LEGAL_PD_EDITION;
+export const LEGAL_TG_EDITION = "19.09.2026";
+export const LEGAL_MARKETING_EDITION = "19.09.2026";
 
 export const LEGAL_BRAND = "Мая";
 export const LEGAL_PRODUCT = "Maya Premium";
 
-export type LegalDocKey = "privacy" | "consent";
+export type LegalDocKey =
+  | "privacy"
+  | "consent"
+  | "telegram-consent"
+  | "marketing";
 
 export const LEGAL_DOCS: {
   key: LegalDocKey;
@@ -75,6 +81,22 @@ export const LEGAL_DOCS: {
     fileName: "Согласие_на_обработку_ПДн.pdf",
     pdfHref: "/docs/consent-pd.pdf",
     edition: LEGAL_PD_EDITION,
+  },
+  {
+    key: "telegram-consent",
+    href: "/legal/telegram-consent",
+    label: "Согласие на обработку персональных данных (Telegram-бот)",
+    fileName: "Согласие_на_ОПД_телеграм-бот.pdf",
+    pdfHref: "/docs/consent-pd-telegram.pdf",
+    edition: LEGAL_TG_EDITION,
+  },
+  {
+    key: "marketing",
+    href: "/legal/marketing",
+    label: "Согласие на получение новостной и рекламной рассылки",
+    fileName: "Согласие_на_получение_новостной_и_рекламной_рассылки.pdf",
+    pdfHref: "/docs/consent-marketing.pdf",
+    edition: LEGAL_MARKETING_EDITION,
   },
 ];
 
