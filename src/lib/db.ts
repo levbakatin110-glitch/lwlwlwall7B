@@ -94,6 +94,11 @@ function migrateSchema(db: DatabaseSync) {
       updated_at TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS session_revocations (
+      email TEXT PRIMARY KEY,
+      revoked_at INTEGER NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS rate_limits (
       key TEXT NOT NULL,
       window_start INTEGER NOT NULL,

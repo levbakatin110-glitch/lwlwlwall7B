@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "crypto";
+import { getDb } from "@/lib/db";
 import { normalizeEmail } from "@/lib/email-codes";
 import { authSecret } from "@/lib/server-secret";
 
@@ -29,6 +30,32 @@ function sign(payload: string): string {
   return b64url(
     createHmac("sha256", authSecret()).update(payload).digest(),
   );
+}
+
+/**
+ * Токен выпущен в момент (exp - MAX_AGE). «Выйти везде» запоминает время,
+ * все токены, выпущенные раньше него, перестают приниматься.
+ */
+function isSessionRevoked(email: string, issuedAtMs: number): boolean {
+  try {
+    const row = getDb()
+      .prepare("SELECT revoked_at FROM session_revocations WHERE email = ?")
+      .get(email) as { revoked_at: number } | undefined;
+    return Boolean(row) && issuedAtMs < Number(row!.revoked_at);
+  } catch {
+    // БД недоступна: не разлогиниваем всех, остальное API всё равно упадёт на БД
+    return false;
+  }
+}
+
+/** Завершает все выданные сессии этого email (на всех устройствах). */
+export function revokeAllSessions(email: string): void {
+  getDb()
+    .prepare(
+      `INSERT INTO session_revocations (email, revoked_at) VALUES (?, ?)
+       ON CONFLICT(email) DO UPDATE SET revoked_at = excluded.revoked_at`,
+    )
+    .run(normalizeEmail(email), Date.now());
 }
 
 export function createSessionToken(email: string): string {
@@ -66,6 +93,7 @@ export function verifySessionToken(
     if (Date.now() > data.exp) return null;
     const email = normalizeEmail(data.e);
     if (isSharedPlaceholderEmail(email)) return null;
+    if (isSessionRevoked(email, data.exp - MAX_AGE_SEC * 1000)) return null;
     return { email };
   } catch {
     return null;

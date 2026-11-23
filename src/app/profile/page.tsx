@@ -53,17 +53,19 @@ export default function ProfilePage() {
     );
   }, [profile]);
 
-  async function doLogout() {
+  async function doLogout(everywhere = false) {
     if (
       !window.confirm(
-        "Выйти из аккаунта? Почта отвяжется на этом устройстве. Данные малыша останутся.",
+        everywhere
+          ? "Выйти на всех устройствах? Придётся заново войти по коду с почты везде, в том числе здесь. Данные малыша останутся."
+          : "Выйти из аккаунта? Почта отвяжется на этом устройстве. Данные малыша останутся.",
       )
     ) {
       return;
     }
     sessionStorage.setItem("maya-signing-out", "1");
     try {
-      await fetch("/api/auth/session", {
+      await fetch(`/api/auth/session${everywhere ? "?all=1" : ""}`, {
         method: "DELETE",
         credentials: "include",
       });
@@ -178,7 +180,7 @@ export default function ProfilePage() {
           <p className="text-sm font-semibold text-foreground">Почта</p>
           <button
             type="button"
-            onClick={doLogout}
+            onClick={() => void doLogout()}
             className="shrink-0 rounded-xl border border-line px-3 py-1.5 text-sm font-medium text-muted transition hover:border-blush/50 hover:text-foreground"
           >
             Выйти
@@ -189,6 +191,13 @@ export default function ProfilePage() {
             <p className="text-sm text-foreground">
               Привязана: <span className="font-medium">{accountEmail}</span>
             </p>
+            <button
+              type="button"
+              onClick={() => void doLogout(true)}
+              className="text-xs text-muted underline underline-offset-2 transition hover:text-foreground"
+            >
+              Выйти на всех устройствах
+            </button>
             <p className="text-xs text-muted">
               Пароль, чтобы входить без кода с почты.
             </p>

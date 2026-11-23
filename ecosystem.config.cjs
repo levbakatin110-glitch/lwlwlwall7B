@@ -8,7 +8,9 @@ module.exports = {
       name: "maya",
       cwd: "/var/www/maya",
       script: "node_modules/next/dist/bin/next",
-      args: "start",
+      // Только localhost: наружу приложение доступно через nginx (X-Real-IP ставит он),
+      // прямой заход на :3000 с подделкой заголовков закрыт.
+      args: "start -H 127.0.0.1",
       instances: Number(process.env.CHAT_PM2_INSTANCES) || 2,
       exec_mode: "cluster",
       max_memory_restart: "700M",

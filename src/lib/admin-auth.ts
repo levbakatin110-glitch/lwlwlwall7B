@@ -3,8 +3,11 @@ import { hitRateLimit, rateLimitExceeded, requestIp } from "@/lib/rate-limit";
 
 const COOKIE = "maya_admin";
 const MAX_AGE_SEC = 60 * 60 * 12;
-const FAIL_LIMIT = 10;
+// 5 неудач за 15 минут, и не больше 20 за сутки с одного IP
+const FAIL_LIMIT = 5;
 const FAIL_WINDOW_SEC = 15 * 60;
+const FAIL_LIMIT_DAY = 20;
+const FAIL_WINDOW_DAY_SEC = 24 * 60 * 60;
 
 /** Без ADMIN_PASSWORD/ANALYTICS_PASSWORD в env админка закрыта. */
 export function adminPassword(): string {
@@ -33,10 +36,20 @@ export function adminPasswordOkLimited(
   password: string | null | undefined,
   check: (p: string | null | undefined) => boolean = adminPasswordOk,
 ): boolean {
-  const key = `admin-fail:${requestIp(req)}`;
-  if (rateLimitExceeded(key, FAIL_LIMIT, FAIL_WINDOW_SEC)) return false;
+  const ip = requestIp(req);
+  const shortKey = `admin-fail:${ip}`;
+  const dayKey = `admin-fail-day:${ip}`;
+  if (
+    rateLimitExceeded(shortKey, FAIL_LIMIT, FAIL_WINDOW_SEC) ||
+    rateLimitExceeded(dayKey, FAIL_LIMIT_DAY, FAIL_WINDOW_DAY_SEC)
+  ) {
+    return false;
+  }
   if (check(password)) return true;
-  if (password) hitRateLimit(key, FAIL_LIMIT, FAIL_WINDOW_SEC);
+  if (password) {
+    hitRateLimit(shortKey, FAIL_LIMIT, FAIL_WINDOW_SEC);
+    hitRateLimit(dayKey, FAIL_LIMIT_DAY, FAIL_WINDOW_DAY_SEC);
+  }
   return false;
 }
 
