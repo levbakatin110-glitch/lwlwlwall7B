@@ -65,7 +65,8 @@ rsync -a \
   --exclude 'data' \
   /tmp/lwlwlwall7B-main/ /var/www/maya/
 
-npm install
+# Нужны и devDependencies (@tailwindcss/postcss и т.п.) — иначе next build падает.
+npm install --include=dev
 
 # Сайт не гасим до успешной сборки — иначе nginx отдаёт 502 на всё время build.
 npm run build
