@@ -84,8 +84,26 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  // Не отдаём "X-Powered-By: Next.js"
+  poweredByHeader: false,
   async headers() {
     return [
+      {
+        // Базовые защитные заголовки на все ответы
+        source: "/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          {
+            key: "Referrer-Policy",
+            value: "strict-origin-when-cross-origin",
+          },
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=31536000",
+          },
+        ],
+      },
       {
         source: "/.well-known/apple-app-site-association",
         headers: [
@@ -124,7 +142,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: "Permissions-Policy",
-            value: "camera=(self), microphone=(self)",
+            value: "camera=(self), microphone=(self), geolocation=(self)",
           },
           {
             key: "Feature-Policy",
