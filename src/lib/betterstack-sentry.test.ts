@@ -22,9 +22,10 @@ describe("betterStackDsn", () => {
 
   it("enabled only in production with dsn", () => {
     process.env.NEXT_PUBLIC_BETTERSTACK_DSN = "https://a@host/1";
-    process.env.NODE_ENV = "production";
+    const e = process.env as Record<string, string | undefined>;
+    e.NODE_ENV = "production";
     expect(betterStackEnabled()).toBe(true);
-    process.env.NODE_ENV = "development";
+    e.NODE_ENV = "development";
     expect(betterStackEnabled()).toBe(false);
   });
 });

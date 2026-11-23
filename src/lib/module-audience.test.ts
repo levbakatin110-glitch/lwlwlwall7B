@@ -52,7 +52,8 @@ describe("module audience", () => {
     expect(shouldShowModule("preg_weight", ctx)).toBe(false);
     expect(shouldShowModule("pregnancy", ctx)).toBe(false);
     expect(shouldShowModule("diet", ctx)).toBe(false);
-    expect(shouldShowModule("cycle", ctx)).toBe(false);
+    // Цикл после родов тоже ведут, его не прячем (см. shouldShowModule)
+    expect(shouldShowModule("cycle", ctx)).toBe(true);
   });
 
   it("hides baby-care diaries while pregnant with no child yet", () => {
@@ -90,10 +91,13 @@ describe("module audience", () => {
       ["sleep", "walk", "kicks", "cycle", "diet"],
       { pregnant: false, hasChild: true },
     );
-    expect(next).toEqual(BABY_MODULE_IDS.filter((id) => id !== "health"));
+    // цикл, если она сама его включила, остаётся
+    expect(next).toEqual([
+      ...BABY_MODULE_IDS.filter((id) => id !== "health"),
+      "cycle",
+    ]);
     expect(next).not.toContain("health");
     expect(next).not.toContain("kicks");
-    expect(next).not.toContain("cycle");
     expect(next).not.toContain("diet");
   });
 
@@ -113,7 +117,8 @@ describe("module audience", () => {
     expect(next).toContain("sleep");
     expect(next).toContain("diaper");
     expect(next).toContain("kicks");
-    expect(next).not.toContain("cycle");
+    // цикл она включила сама, он не скрывается
+    expect(next).toContain("cycle");
   });
 
   it("puts the core baby diaries first", () => {

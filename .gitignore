@@ -50,3 +50,10 @@ ios/DerivedData/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Локальные служебные скрипты с адресом сервера и паролями окружения
+scripts/_*.py
+scripts/_tmp*
+maya-release.aab
+maya-play-cards/
+maya-play-*.png
