@@ -17,6 +17,8 @@ import {
 import { trackEvent } from "@/lib/analytics-client";
 import { useAppStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
+import { OfflineNotice } from "@/components/OfflineNotice";
+import { OFFLINE_MESSAGE, useOnline } from "@/lib/use-online";
 
 export default function PricingInner() {
   const search = useSearchParams();
@@ -25,6 +27,7 @@ export default function PricingInner() {
   const accountEmail = useAppStore((s) => s.accountEmail);
   const emailVerified = useAppStore((s) => s.emailVerified);
   const activateSubscription = useAppStore((s) => s.activateSubscription);
+  const online = useOnline();
   const active = isSubscriptionActive(subscription);
   const current = active ? planById(subscription.planId) : null;
   const [busy, setBusy] = useState<PaidPlanId | null>(null);
@@ -39,7 +42,12 @@ export default function PricingInner() {
     if (search.get("paid") !== "1") return;
     setPaidHint(true);
     if (!accountEmail) return;
-    void fetch("/api/subscription/status", { credentials: "include" })
+    void fetch("/api/payments/yookassa/sync", {
+      method: "POST",
+      credentials: "include",
+    })
+      .catch(() => {})
+      .then(() => fetch("/api/subscription/status", { credentials: "include" }))
       .then((r) => r.json())
       .then(
         (data: {
@@ -67,8 +75,13 @@ export default function PricingInner() {
     setError(null);
     trackEvent("subscribe_click", id);
 
+    if (!online) {
+      setError(OFFLINE_MESSAGE);
+      return;
+    }
+
     if (!emailVerified || !accountEmail) {
-      setError("Сначала войдите по почте, Premium привязывается к email.");
+      router.push("/register?next=/pricing");
       return;
     }
 
@@ -125,6 +138,8 @@ export default function PricingInner() {
         <IconBadge name="spark" />
         Выберите тариф
       </h1>
+
+      {!online ? <OfflineNotice className="mt-4" /> : null}
 
       {paidHint && (
         <p className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm">
@@ -208,7 +223,7 @@ export default function PricingInner() {
       </div>
 
       <p className="mt-4 text-[11px] leading-relaxed text-muted">
-        Оплата через Prodamus. Доступ привязывается к вашей почте в Мае
+        Оплата через ЮKassa. Доступ привязывается к вашей почте в Мае
         {accountEmail ? ` (${accountEmail})` : ""}. Оплачивая, вы принимаете{" "}
         <Link href="/legal/privacy" className="underline">
           политику персональных данных

@@ -12,7 +12,7 @@ import {
 } from "@/lib/chat-queue";
 import { withTimeout } from "@/lib/fetch-timeout";
 import { clientIpFromRequest, lookupIpGeo } from "@/lib/ip-geo";
-import { chatModel, createChatOpenAI } from "@/lib/openai";
+import { chatModel, createChatOpenAI, createOpenAI, visionModel } from "@/lib/openai";
 import { pushServerOpsError } from "@/lib/ops-log";
 import { getServerSubscription } from "@/lib/paid-store";
 import { readSessionFromRequest } from "@/lib/session";
@@ -197,12 +197,34 @@ export async function POST(req: Request) {
         };
       }
 
-      const stream = await openai.chat.completions.create({
-        model: chatModel(),
+      const image =
+        typeof body.imageDataUrl === "string" &&
+        body.imageDataUrl.startsWith("data:image/")
+          ? body.imageDataUrl.slice(0, 1_400_000)
+          : "";
+      const vision = image ? createOpenAI() : null;
+      const chatClient = vision ?? openai;
+      const model = image ? visionModel() : chatModel();
+      const prior = image ? history.slice(0, -1) : history;
+      const last = history[history.length - 1];
+      const tail = image
+        ? [
+            {
+              role: "user" as const,
+              content: [
+                { type: "text" as const, text: last?.content || "Посмотри фото" },
+                { type: "image_url" as const, image_url: { url: image } },
+              ],
+            },
+          ]
+        : history;
+
+      const stream = await chatClient.chat.completions.create({
+        model,
         stream: true,
         messages: [
           { role: "system", content: system.slice(0, MAX_SYSTEM_CHARS) },
-          ...history,
+          ...(image ? [...prior, ...tail] : tail),
         ],
         temperature: 0.65,
         max_tokens: 1800,

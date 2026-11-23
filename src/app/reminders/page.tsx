@@ -122,10 +122,7 @@ export default function RemindersPage() {
 
   return (
     <div className="maya-page mx-auto w-full max-w-2xl px-4 py-8">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">
-        режим
-      </p>
-      <h1 className="font-display mt-1.5 text-3xl font-semibold">Напоминания</h1>
+      <h1 className="font-display text-3xl font-semibold tracking-tight">Напоминания</h1>
       <p className="mt-1.5 max-w-lg text-sm leading-relaxed text-muted">
         На сайте ничего не всплывает. Пуш приходит на экран телефона, когда Мая
         свёрнута или телефон заблокирован. На iPhone сначала поставьте сайт на

@@ -20,6 +20,8 @@ export const ICON_NAMES = [
   "cycle",
   "sleep",
   "vaccines",
+  "teeth",
+  "leaps",
   "health",
   "diet",
   "water",

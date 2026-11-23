@@ -6,7 +6,9 @@ import { JournalEntryChip } from "@/components/JournalEntryChip";
 import type { LogPreviewData } from "@/components/LogPreviewSheet";
 import { MayaChatText } from "@/components/MayaChatText";
 import { LinkifiedText } from "@/components/LinkifiedText";
-import { CHAT_PROMPTS } from "@/lib/chat-prompts";
+import { chipsForBaby } from "@/lib/chat-prompts";
+import { compressImageFile } from "@/lib/image";
+import { buildMorningNote } from "@/lib/morning-note";
 import {
   SketchBackdrop,
   SketchDoodles,
@@ -37,6 +39,8 @@ import { decodeWeatherHeader } from "@/lib/weather";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { hashWantsKitchen } from "@/lib/kitchen-widgets";
+import { OfflineNotice } from "@/components/OfflineNotice";
+import { OFFLINE_MESSAGE, useOnline } from "@/lib/use-online";
 
 const ChatChart = dynamic(
   () => import("@/components/ChatChart").then((m) => m.ChatChart),
@@ -164,11 +168,15 @@ export function ChatView() {
   const premium = isSubscriptionActive(subscription);
   const accountEmail = useAppStore((s) => s.accountEmail);
   const emailVerified = useAppStore((s) => s.emailVerified);
+  const online = useOnline();
 
   const pendingChatPrompt = useAppStore((s) => s.pendingChatPrompt);
   const setPendingChatPrompt = useAppStore((s) => s.setPendingChatPrompt);
 
   const [input, setInput] = useState("");
+  const [photo, setPhoto] = useState("");
+  const photoRef = useRef<HTMLInputElement>(null);
+  const morningOnce = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [needTopup, setNeedTopup] = useState(false);
   const [topupBusy, setTopupBusy] = useState(false);
@@ -263,6 +271,19 @@ export function ChatView() {
   useEffect(() => {
     void refreshPremiumQuota();
   }, [premium, emailVerified, accountEmail]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (new URLSearchParams(window.location.search).get("chatTopup") !== "1") {
+      return;
+    }
+    void fetch("/api/payments/yookassa/sync", {
+      method: "POST",
+      credentials: "include",
+    })
+      .then(() => refreshPremiumQuota())
+      .catch(() => {});
+  }, []);
 
   async function buyChatTopup() {
     if (!accountEmail) {
@@ -416,9 +437,49 @@ export function ChatView() {
     setPendingChatPrompt(null);
   }, [pendingChatPrompt, setPendingChatPrompt]);
 
+  useEffect(() => {
+    if (morningOnce.current) return;
+    morningOnce.current = true;
+    const id = profile?.id || "baby";
+    const day = new Date().toISOString().slice(0, 10);
+    const key = `maya-morning-${id}-${day}`;
+    try {
+      if (localStorage.getItem(key)) return;
+    } catch {
+      return;
+    }
+    const note = buildMorningNote({
+      name: profile?.namePending ? "малыш" : profile?.name || "малыш",
+      journals,
+      wardrobe,
+    });
+    if (!note) return;
+    try {
+      localStorage.setItem(key, "1");
+    } catch {
+      /* ignore */
+    }
+    addMessage({ role: "assistant", content: note });
+  }, [addMessage, journals, profile?.id, profile?.name, profile?.namePending, wardrobe]);
+
+  async function onPhoto(file: File | undefined) {
+    if (!file) return;
+    try {
+      const data = await compressImageFile(file, 900, 0.72);
+      setPhoto(data);
+    } catch {
+      setError("Не получилось прочитать фото.");
+    }
+  }
+
   async function send() {
     const text = input.trim();
-    if (!text || pending) return;
+    const shot = photo;
+    if ((!text && !shot) || pending) return;
+    if (!online) {
+      setError(OFFLINE_MESSAGE);
+      return;
+    }
 
     const gate = canSendAiChat(subscription, aiChatUsage);
     if (!gate.ok) {
@@ -441,11 +502,13 @@ export function ChatView() {
       ? requestPhoneLocation()
       : Promise.resolve(coords);
 
+    const spoken = text || "Посмотри, пожалуйста, это фото.";
     setInput("");
+    setPhoto("");
     setError(null);
     setNeedTopup(false);
 
-    addMessage({ role: "user", content: text });
+    addMessage({ role: "user", content: spoken, photoData: shot || undefined });
     trackEvent("chat_send");
     const assistantId = addMessage({ role: "assistant", content: "" });
     stopStreamReveal();
@@ -485,6 +548,7 @@ export function ChatView() {
           journals: journalsForChat,
           coords: sendCoords,
           pregnancy,
+          imageDataUrl: shot || null,
         };
 
         const busyUntil = Date.now() + 2 * 60 * 1000;
@@ -1013,7 +1077,7 @@ export function ChatView() {
                   </p>
                   <SketchDoodles className="mx-auto mt-4 h-12 w-full max-w-xs opacity-80" />
                   <div className="mt-5 flex flex-wrap justify-center gap-2">
-                    {CHAT_PROMPTS.map((q) => (
+                    {chipsForBaby(profile?.birthDate).map((q) => (
                       <button
                         key={q.label}
                         type="button"
@@ -1095,9 +1159,19 @@ export function ChatView() {
                     live={streamingId === m.id && pending}
                   />
                 ) : (
-                  <p className="whitespace-pre-wrap">
-                    <LinkifiedText text={m.content} />
-                  </p>
+                  <div>
+                    {m.photoData ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={m.photoData}
+                        alt=""
+                        className="mb-2 max-h-48 rounded-xl object-cover"
+                      />
+                    ) : null}
+                    <p className="whitespace-pre-wrap">
+                      <LinkifiedText text={m.content} />
+                    </p>
+                  </div>
                 )}
 
                 {m.wardrobePhotos && m.wardrobePhotos.length > 0 && (
@@ -1334,6 +1408,16 @@ export function ChatView() {
 
           <TodayPulse variant="bar" />
 
+          {premium && premiumQuota ? (
+            <p className="mx-4 mb-1 shrink-0 text-[11px] text-muted">
+              Осталось {premiumQuota.remaining} из {premiumQuota.allowance} сообщений в этом месяце
+            </p>
+          ) : null}
+
+          {!online ? (
+            <OfflineNotice className="mx-4 mb-2" />
+          ) : null}
+
           <form
             className="flex shrink-0 gap-2 border-t border-line p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
             onSubmit={(e) => {
@@ -1341,18 +1425,63 @@ export function ChatView() {
               void send();
             }}
           >
+            <input
+              ref={photoRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                void onPhoto(e.target.files?.[0]);
+                e.target.value = "";
+              }}
+            />
             <div className="relative flex min-w-0 flex-1 items-center">
+              <button
+                type="button"
+                onClick={() => photoRef.current?.click()}
+                disabled={!online || pending}
+                className="absolute left-2.5 text-muted transition hover:text-foreground disabled:opacity-40"
+                aria-label="Прикрепить"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  width="18"
+                  height="18"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden
+                >
+                  <path d="M21.4 11.1 12.3 20.2a5 5 0 0 1-7.1-7.1l9.2-9.2a3.3 3.3 0 0 1 4.7 4.7l-9.2 9.1a1.7 1.7 0 0 1-2.4-2.3l8.5-8.5" />
+                </svg>
+              </button>
+              {photo ? (
+                <button
+                  type="button"
+                  onClick={() => setPhoto("")}
+                  className="absolute left-9 h-6 w-6 overflow-hidden rounded-md ring-1 ring-line"
+                  aria-label="Убрать вложение"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={photo} alt="" className="h-full w-full object-cover" />
+                </button>
+              ) : null}
               <input
                 ref={inputRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Напишите Мае…"
-                className="w-full rounded-2xl border border-line bg-background py-3.5 px-4 text-base text-foreground outline-none transition placeholder:text-muted/80 focus:border-accent/50"
+                placeholder={online ? "Напишите Мае…" : OFFLINE_MESSAGE}
+                disabled={!online}
+                className={`w-full rounded-2xl border border-line bg-background py-3.5 pr-4 text-base text-foreground outline-none transition placeholder:text-muted/80 focus:border-accent/50 disabled:opacity-60 ${
+                  photo ? "pl-[4.25rem]" : "pl-10"
+                }`}
               />
             </div>
             <button
               type="submit"
-              disabled={pending || !input.trim()}
+              disabled={!online || pending || (!input.trim() && !photo)}
               className="rounded-2xl bg-accent px-5 py-3.5 text-sm font-semibold text-on-accent transition enabled:hover:bg-accent-hot disabled:opacity-40"
             >
               {pending ? "…" : "Отправить"}

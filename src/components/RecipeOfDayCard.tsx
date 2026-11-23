@@ -16,7 +16,7 @@ export function RecipeOfDayCard({
   return (
     <Link
       href={`/recipes/${recipe.slug}`}
-      className={`group relative block overflow-hidden rounded-2xl border border-amber-600/20 bg-white/70 shadow-sm transition hover:border-amber-600/40 dark:bg-card/80 ${
+      className={`group relative block overflow-hidden rounded-2xl border border-amber-600/20 bg-white/80 shadow-sm transition hover:border-amber-600/40 hover:shadow-md dark:bg-card/80 ${
         compact ? "p-3" : "p-4"
       }`}
     >
@@ -34,7 +34,7 @@ export function RecipeOfDayCard({
           <MayaIcon name="solids" size={compact ? 18 : 20} />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-800 dark:text-amber-300">
+          <p className="text-xs font-medium text-amber-800 dark:text-amber-300">
             Сегодня
           </p>
           <p

@@ -75,9 +75,13 @@ export function DiaryEventCard({
     <Tag
       type={onClick ? "button" : undefined}
       onClick={onClick}
-      className={`mb-2.5 flex w-full items-center gap-3 rounded-full border border-line bg-card/90 px-3.5 py-3 text-left shadow-[0_1px_0_rgba(0,0,0,0.04)] ${
+      className={`mb-2.5 flex w-full items-center gap-3 rounded-full border border-line bg-card/90 px-3.5 py-3 text-left shadow-[0_8px_24px_-20px_rgba(40,16,24,0.55)] transition ${
         accent ? "ring-1 ring-accent/30" : ""
-      } ${onClick ? "active:bg-accent-soft/40" : ""}`}
+      } ${
+        onClick
+          ? "cursor-pointer hover:border-accent/35 hover:bg-accent-soft/30 active:bg-accent-soft/40"
+          : ""
+      }`}
     >
       <span
         className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${

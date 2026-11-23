@@ -28,6 +28,7 @@ export default function ProfilePage() {
   const pregnancy = useAppStore((s) => s.pregnancy);
   const careHasChild = useAppStore((s) => s.careHasChild);
   const setCareAudience = useAppStore((s) => s.setCareAudience);
+  const hasChild = resolveHasChild(children, careHasChild);
   const [form, setForm] = useState<ChildProfile>(profile);
   const [saved, setSaved] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -162,12 +163,9 @@ export default function ProfilePage() {
           document.body,
         )}
 
-      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">
-        профиль
-      </p>
-      <h1 className="font-display mt-1.5 text-3xl font-semibold">Малыши</h1>
+      <h1 className="font-display text-3xl font-semibold tracking-tight">Малыши</h1>
       <p className="mt-1.5 max-w-lg text-sm leading-relaxed text-muted">
-        Можно вести нескольких детей. У каждого, свои дневники, гардероб и чат с
+        Можно вести нескольких детей. У каждого свои дневники, гардероб и чат с
         Маей.
       </p>
 
@@ -175,11 +173,9 @@ export default function ProfilePage() {
         <InstallAppCard />
       </div>
 
-      <div className="mt-6 rounded-2xl border border-line bg-card/70 p-4">
+      <div className="mt-6 rounded-2xl border border-line bg-card/80 p-4">
         <div className="flex items-start justify-between gap-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
-            Аккаунт · почта
-          </p>
+          <p className="text-sm font-semibold text-foreground">Почта</p>
           <button
             type="button"
             onClick={doLogout}
@@ -234,7 +230,7 @@ export default function ProfilePage() {
                     }
                   })();
                 }}
-                className="rounded-xl bg-accent px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                className="rounded-xl bg-accent px-3 py-2 text-sm font-semibold text-on-accent disabled:opacity-50"
               >
                 Сохранить пароль
               </button>
@@ -286,7 +282,7 @@ export default function ProfilePage() {
                 type="button"
                 disabled={emailBusy}
                 onClick={() => void sendCode()}
-                className="rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+                className="rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-on-accent disabled:opacity-50"
               >
                 {emailBusy ? "Отправляю…" : "Получить код"}
               </button>
@@ -296,7 +292,7 @@ export default function ProfilePage() {
                   type="button"
                   disabled={emailBusy || code.length < 6}
                   onClick={() => void verifyCode()}
-                  className="rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+                  className="rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-on-accent disabled:opacity-50"
                 >
                   {emailBusy ? "Проверяю…" : "Подтвердить"}
                 </button>
@@ -356,7 +352,7 @@ export default function ProfilePage() {
               <span
                 className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${
                   opt.on
-                    ? "border-accent bg-accent text-white"
+                    ? "border-accent bg-accent text-on-accent"
                     : "border-line bg-background"
                 }`}
               >
@@ -373,6 +369,8 @@ export default function ProfilePage() {
         </div>
       </div>
 
+      {hasChild ? (
+      <>
       <div className="mt-5 flex gap-2 overflow-x-auto overscroll-x-none pb-1">
         {children.map((c) => {
           const active = c.id === activeChildId;
@@ -573,7 +571,7 @@ export default function ProfilePage() {
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="submit"
-            className="rounded-xl bg-accent px-4 py-2.5 text-sm font-medium text-white"
+            className="rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-on-accent"
           >
             Сохранить
           </button>
@@ -599,6 +597,8 @@ export default function ProfilePage() {
           )}
         </div>
       </form>
+      </>
+      ) : null}
     </div>
   );
 }

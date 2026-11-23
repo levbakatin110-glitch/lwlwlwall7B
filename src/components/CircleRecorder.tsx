@@ -444,23 +444,20 @@ export function CircleRecorder({ onCancel, onReady, initialStream }: Props) {
       const blob = new Blob(chunksRef.current, { type });
       const ext = type.includes("mp4") ? "mp4" : "webm";
       const file = new File([blob], `circle.${ext}`, { type });
+      stopTracks();
       if (file.size > CIRCLE_MAX_UPLOAD_BYTES) {
         setError("Слишком тяжёлый кружок, запишите короче (до 15–20 сек)");
+        const url = URL.createObjectURL(blob);
+        setReviewFile(file);
+        if (ownedPreviewRef.current) URL.revokeObjectURL(ownedPreviewRef.current);
+        ownedPreviewRef.current = url;
+        setReviewUrl(url);
+        setPhase("review");
+        setElapsedMs(0);
+        return;
       }
       const url = URL.createObjectURL(blob);
-      setReviewFile(file);
-      if (ownedPreviewRef.current) URL.revokeObjectURL(ownedPreviewRef.current);
-      ownedPreviewRef.current = url;
-      setReviewUrl(url);
-      stopTracks();
-      setPhase("review");
-      setElapsedMs(0);
-      window.setTimeout(() => {
-        const v = reviewRef.current;
-        if (!v) return;
-        v.currentTime = 0;
-        void v.play().catch(() => undefined);
-      }, 60);
+      onReady(file, url);
     };
     rec.start(120);
   }

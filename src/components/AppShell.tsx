@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 import { AuthSessionSync } from "./AuthSessionSync";
 import { PresenceHeartbeat } from "./PresenceHeartbeat";
 import { OnboardingGate } from "./OnboardingGate";
-import { DesktopSyncHint } from "./DesktopSyncHint";
 import { PremiumGate } from "./PremiumGate";
 import { ThemeSync } from "./ThemeSync";
 import { MayaIcon } from "@/components/icons/MayaIcon";
@@ -97,6 +96,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isPlanChat =
     pathname.startsWith("/plan/") && !pathname.startsWith("/plan/order");
   const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const kick = () => window.dispatchEvent(new Event("maya-frame-resync"));
+    kick();
+    const a = window.setTimeout(kick, 80);
+    const b = window.setTimeout(kick, 320);
+    return () => {
+      window.clearTimeout(a);
+      window.clearTimeout(b);
+    };
+  }, [menuOpen, pathname]);
   const idleReady = useIdleReady(1600);
   const [loadSidebar, setLoadSidebar] = useState(false);
 
@@ -171,7 +181,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <ThemeSync />
       {extras}
       <TimerIslandHost />
-      <div className="flex h-dvh max-h-dvh overflow-hidden overscroll-none bg-background pt-[env(safe-area-inset-top)] text-foreground">
+      <div className="maya-app-frame flex overflow-hidden overscroll-none bg-background pt-[env(safe-area-inset-top)] text-foreground">
         {loadSidebar && !isCommunity && !isPlanFlow ? (
           <Sidebar
             mobileOpen={menuOpen}
@@ -181,16 +191,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="hidden w-[17.5rem] shrink-0 md:block" />
         ) : null}
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden overscroll-none">
-          <DesktopSyncHint />
           {!isCommunity && !isPlanFlow && (
-            <header className="z-30 flex shrink-0 items-center gap-2 border-b border-line bg-card/90 px-2 py-1.5 backdrop-blur-xl md:hidden">
+            <header className="z-30 flex shrink-0 items-center gap-2 border-b border-line bg-card/90 px-2.5 py-2 backdrop-blur-xl md:hidden">
               <button
                 type="button"
                 onClick={() => setMenuOpen((v) => !v)}
                 aria-expanded={menuOpen}
                 aria-controls="maya-mobile-menu"
                 aria-label={menuOpen ? "Закрыть меню" : "Открыть меню"}
-                className="relative z-30 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-line bg-accent-soft text-foreground"
+                className="relative z-30 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-line bg-accent-soft text-foreground transition hover:border-accent/35 hover:bg-accent-soft active:scale-[0.98]"
               >
                 <MayaIcon name={menuOpen ? "close" : "list"} size={18} />
               </button>
@@ -202,13 +211,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               isPlanChat || isHome || isCommunity
                 ? "overflow-hidden"
                 : "overflow-y-auto"
-            } ${
-              isPlanChat || isHome || isCommunity
-                ? ""
-                : "pb-[env(safe-area-inset-bottom)]"
             }`}
           >
-            {children}
+            {isPlanChat || isHome || isCommunity ? (
+              children
+            ) : (
+              <div className="pb-[env(safe-area-inset-bottom)]">{children}</div>
+            )}
           </main>
         </div>
         {idleReady && !isCommunity && !isPlanFlow && (

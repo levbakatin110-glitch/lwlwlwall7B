@@ -15,6 +15,8 @@ import { DietTracker } from "@/components/diet/DietTracker";
 import { DiaperTracker } from "@/components/trackers/DiaperTracker";
 import { GrowthTracker } from "@/components/trackers/GrowthTracker";
 import { HealthTracker } from "@/components/trackers/HealthTracker";
+import { LeapsTracker } from "@/components/trackers/LeapsTracker";
+import { TeethTracker } from "@/components/trackers/TeethTracker";
 import { VaccinesTracker } from "@/components/trackers/VaccinesTracker";
 import { WalkTracker } from "@/components/trackers/WalkTracker";
 import { WaterTracker } from "@/components/trackers/WaterTracker";
@@ -374,6 +376,8 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
       "diaper",
       "notes",
       "vaccines",
+      "teeth",
+      "leaps",
       "health",
       "growth",
       "sleep",
@@ -602,6 +606,8 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
           "diaper",
           "notes",
           "vaccines",
+          "teeth",
+          "leaps",
           "health",
           "growth",
           "pregnancy",
@@ -663,6 +669,16 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
       {moduleId === "vaccines" && (
         <div className="mt-4">
           <VaccinesTracker />
+        </div>
+      )}
+      {moduleId === "teeth" && (
+        <div className="mt-4">
+          <TeethTracker />
+        </div>
+      )}
+      {moduleId === "leaps" && (
+        <div className="mt-4">
+          <LeapsTracker />
         </div>
       )}
       {moduleId === "health" && (
@@ -766,6 +782,8 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
           "walk",
           "notes",
           "vaccines",
+          "teeth",
+          "leaps",
           "health",
           "growth",
           "sleep",
@@ -929,6 +947,8 @@ export function ModuleJournal({ moduleId }: { moduleId: string }) {
 
       {/* У трекеров свой таймлайн, общий список не дублируем */}
       {moduleId !== "vaccines" &&
+        moduleId !== "teeth" &&
+        moduleId !== "leaps" &&
         !isDietPage &&
         ![
           "contractions",

@@ -81,7 +81,7 @@ export function grantPaidPlan(opts: {
   email: string;
   planId: PaidPlanId;
   orderId?: string;
-  source?: "prodamus" | "fake";
+  source?: "prodamus" | "yookassa" | "fake";
 }): ServerSubscription {
   const email = normalizeEmail(opts.email);
   const existing = readSubscriptionRow(email);

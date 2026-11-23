@@ -52,6 +52,7 @@ export default function ModulesPage() {
   const momMods = OPTIONAL_MODULES.filter(
     (m) => (m.id === "diet" || m.id === "cycle") && !isRetiredModuleId(m.id),
   );
+  const momVisible = momMods.filter((m) => (hasChild ? m.id === "cycle" : true));
 
   const [prompt, setPrompt] = useState("");
   const [blueprint, setBlueprint] = useState<ModuleBlueprint | null>(null);
@@ -484,13 +485,13 @@ export default function ModulesPage() {
         </>
       ) : null}
 
-      {!hasChild ? (
+      {momVisible.length > 0 ? (
         <>
       <p className="mb-3 mt-8 text-xs font-semibold text-muted">
         Маме
       </p>
       <ul className="space-y-3">
-        {momMods.map((mod, i) => {
+        {momVisible.map((mod, i) => {
           const on = enabledModules.includes(mod.id);
           const locked = !premium && !isFreeModuleId(mod.id);
           return (

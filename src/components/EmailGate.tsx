@@ -1,6 +1,7 @@
 "use client";
 
 import { restoreCloudBackup } from "@/components/CloudBackupSync";
+import { pullServerPremium } from "@/components/SubscriptionSync";
 import { authFetchErrorMessage } from "@/lib/auth-fetch-error";
 import Link from "next/link";
 import { useState } from "react";
@@ -126,6 +127,7 @@ export function EmailGate({ children }: { children: React.ReactNode }) {
       setAccountEmail(data.email || trimmed);
       trackEvent("login");
       await restoreCloudBackup({ force: true });
+      await pullServerPremium();
       completeOnboarding();
       if (
         PAID_ONLY &&
@@ -180,6 +182,7 @@ export function EmailGate({ children }: { children: React.ReactNode }) {
       }
       if (authMode !== "register") {
         await restoreCloudBackup({ force: true });
+        await pullServerPremium();
         completeOnboarding();
         if (
           PAID_ONLY &&

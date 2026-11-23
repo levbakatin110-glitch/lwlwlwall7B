@@ -26,6 +26,7 @@ import {
   saveOnboardingProgress,
 } from "@/lib/onboarding-progress";
 import { restoreCloudBackup } from "@/components/CloudBackupSync";
+import { pullServerPremium } from "@/components/SubscriptionSync";
 import {
   isSubscriptionActive,
   PAID_ONLY,
@@ -34,6 +35,7 @@ import {
 import { getValuePitch } from "@/lib/value-pitch";
 import { MayaIcon } from "@/components/icons/MayaIcon";
 import { ValuePitchVisual } from "@/components/ValuePitchVisual";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 type FlowStep =
@@ -161,6 +163,8 @@ export function OnboardingFlow({
   const [isPregnant, setIsPregnant] = useState(false);
   const [hasChild, setHasChild] = useState(mode === "add");
   const [trackCycle, setTrackCycle] = useState(false);
+  const [feeding, setFeeding] = useState<"breast" | "formula" | "mixed" | "">("");
+  const [focus, setFocus] = useState<"sleep" | "feeding" | "anxiety" | "routine" | "">("");
   const [pregDue, setPregDue] = useState("");
   const [pregLmp, setPregLmp] = useState("");
   const [pregStartWeight, setPregStartWeight] = useState("");
@@ -183,10 +187,27 @@ export function OnboardingFlow({
   const [emailError, setEmailError] = useState<string | null>(null);
   const [emailOk, setEmailOk] = useState(false);
   const [password, setPassword] = useState("");
+  const [consentPrivacy, setConsentPrivacy] = useState(false);
+  const [consentMarketing, setConsentMarketing] = useState(false);
+  const [consentRequired, setConsentRequired] = useState(false);
   /** register | login | recover */
   const [authMode, setAuthMode] = useState<"register" | "login" | "recover">(
     "register",
   );
+  const needConsents = authMode === "register" || consentRequired;
+  const consentsOk = !needConsents || consentPrivacy;
+  const consentsBody = needConsents
+    ? { consents: { pd: consentPrivacy, marketing: consentMarketing } }
+    : {};
+
+  function onConsentRequired(data: { code?: string }): boolean {
+    if (data.code !== "consent_required") return false;
+    setConsentRequired(true);
+    setEmailError(
+      "Отметьте согласие на обработку персональных данных ниже",
+    );
+    return true;
+  }
   const fileRef = useRef<HTMLInputElement>(null);
   const isFirstSave = useRef(mode === "first");
   const babySaved = useRef(false);
@@ -359,6 +380,8 @@ export function OnboardingFlow({
       city: "",
       birthHeightCm: parseRuNumber(draft.birthHeight) ?? undefined,
       birthWeightKg: parseRuNumber(draft.birthWeight) ?? undefined,
+      feeding: feeding || undefined,
+      focus: focus || undefined,
     });
   }
 
@@ -458,6 +481,10 @@ export function OnboardingFlow({
       setEmailError("Укажите нормальную почту");
       return;
     }
+    if (!consentsOk) {
+      setEmailError("Отметьте обязательные согласия под формой");
+      return;
+    }
     setEmailBusy(true);
     try {
       const res = await fetch("/api/auth/send-code", {
@@ -477,6 +504,10 @@ export function OnboardingFlow({
 
   async function verifyCode() {
     setEmailError(null);
+    if (!consentsOk) {
+      setEmailError("Отметьте обязательные согласия под формой");
+      return;
+    }
     const trimmed = email.trim().toLowerCase();
     setEmailBusy(true);
     try {
@@ -484,9 +515,14 @@ export function OnboardingFlow({
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: trimmed, code }),
+        body: JSON.stringify({ email: trimmed, code, ...consentsBody }),
       });
-      const data = (await res.json()) as { error?: string; email?: string };
+      const data = (await res.json()) as {
+        error?: string;
+        email?: string;
+        code?: string;
+      };
+      if (!res.ok && onConsentRequired(data)) return;
       if (!res.ok) throw new Error(data.error || "Неверный код");
       setAccountEmail(data.email || trimmed);
       setEmailOk(true);
@@ -501,6 +537,7 @@ export function OnboardingFlow({
       }
       if (authMode === "login" || authMode === "recover") {
         await restoreCloudBackup({ force: true });
+        await pullServerPremium();
         completeOnboarding();
         onClose?.();
         if (
@@ -526,6 +563,7 @@ export function OnboardingFlow({
     setCode("");
     setPassword("");
     setEmailError(null);
+    setConsentRequired(false);
   }
 
   async function loginPassword() {
@@ -533,6 +571,10 @@ export function OnboardingFlow({
     const trimmed = email.trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
       setEmailError("Укажите почту");
+      return;
+    }
+    if (!consentsOk) {
+      setEmailError("Отметьте обязательные согласия под формой");
       return;
     }
     setEmailBusy(true);
@@ -545,14 +587,21 @@ export function OnboardingFlow({
           action: "login",
           email: trimmed,
           password,
+          ...consentsBody,
         }),
       });
-      const data = (await res.json()) as { error?: string; email?: string };
+      const data = (await res.json()) as {
+        error?: string;
+        email?: string;
+        code?: string;
+      };
+      if (!res.ok && onConsentRequired(data)) return;
       if (!res.ok) throw new Error(data.error || "Неверный пароль");
       setAccountEmail(data.email || trimmed);
       setEmailOk(true);
       trackEvent("login");
       await restoreCloudBackup({ force: true });
+      await pullServerPremium();
       completeOnboarding();
       onClose?.();
       if (
@@ -631,7 +680,7 @@ export function OnboardingFlow({
         className="pointer-events-none absolute inset-0 opacity-80"
         style={{
           background:
-            "radial-gradient(ellipse at 30% 0%, rgba(50,215,175,0.16), transparent 50%), radial-gradient(ellipse at 90% 20%, rgba(64,120,255,0.12), transparent 45%)",
+            "radial-gradient(ellipse at 30% 0%, color-mix(in oklab, var(--accent) 20%, transparent), transparent 50%), radial-gradient(ellipse at 90% 20%, color-mix(in oklab, var(--accent) 10%, transparent), transparent 45%)",
         }}
       />
 
@@ -735,6 +784,57 @@ export function OnboardingFlow({
                   )}
                 </button>
               ))}
+              {hasChild ? (
+                <div className="space-y-3 rounded-2xl border border-line bg-card/50 p-3">
+                  <p className="text-sm font-medium">Как кормите?</p>
+                  <div className="flex flex-wrap gap-2">
+                    {(
+                      [
+                        ["breast", "Грудью"],
+                        ["formula", "Смесь"],
+                        ["mixed", "И так, и так"],
+                      ] as const
+                    ).map(([id, label]) => (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => setFeeding(id)}
+                        className={`rounded-full border px-3 py-1.5 text-xs ${
+                          feeding === id
+                            ? "border-accent bg-accent-soft text-accent"
+                            : "border-line text-muted"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-sm font-medium">Что сейчас тяжелее?</p>
+                  <div className="flex flex-wrap gap-2">
+                    {(
+                      [
+                        ["sleep", "Сон"],
+                        ["feeding", "Кормление"],
+                        ["anxiety", "Тревога"],
+                        ["routine", "Режим"],
+                      ] as const
+                    ).map(([id, label]) => (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => setFocus(id)}
+                        className={`rounded-full border px-3 py-1.5 text-xs ${
+                          focus === id
+                            ? "border-accent bg-accent-soft text-accent"
+                            : "border-line text-muted"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
               {errors.who && (
                 <p className="text-sm text-blush">{errors.who}</p>
               )}
@@ -985,10 +1085,7 @@ export function OnboardingFlow({
           {flowStep === "value" && (
             <div className="maya-rise space-y-4 py-1">
               <div className="text-center">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-accent">
-                  {valuePitch.eyebrow}
-                </p>
-                <h1 className="font-display mt-1.5 text-3xl font-semibold tracking-tight">
+                <h1 className="font-display text-3xl font-semibold tracking-tight">
                   {valuePitch.title}
                 </h1>
               </div>
@@ -1016,14 +1113,7 @@ export function OnboardingFlow({
 
           {flowStep === "email" && (
             <div className="maya-rise flex h-full flex-col justify-center py-6">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-accent">
-                {authMode === "register"
-                  ? "Регистрация"
-                  : authMode === "login"
-                    ? "Вход"
-                    : "Восстановление"}
-              </p>
-              <h1 className="font-display mt-3 text-3xl font-semibold tracking-tight">
+              <h1 className="font-display text-3xl font-semibold tracking-tight">
                 {authMode === "register"
                   ? "Ваша почта"
                   : authMode === "login"
@@ -1048,9 +1138,7 @@ export function OnboardingFlow({
               {!(emailOk || emailVerified) && (
                 <div className="mt-6 space-y-3">
                   <label className="block">
-                    <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
-                      Email
-                    </span>
+                    <span className="text-sm font-medium text-muted">Почта</span>
                     <input
                       type="email"
                       autoComplete="email"
@@ -1062,9 +1150,7 @@ export function OnboardingFlow({
                   </label>
 
                   <label className="block">
-                    <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
-                      Пароль
-                    </span>
+                    <span className="text-sm font-medium text-muted">Пароль</span>
                     <input
                       type="password"
                       autoComplete={
@@ -1083,9 +1169,7 @@ export function OnboardingFlow({
 
                   {codeSent && (
                     <label className="block">
-                      <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
-                        Код из письма
-                      </span>
+                      <span className="text-sm font-medium text-muted">Код из письма</span>
                       <input
                         inputMode="numeric"
                         autoComplete="one-time-code"
@@ -1105,12 +1189,73 @@ export function OnboardingFlow({
                     </p>
                   )}
 
+                  {needConsents && (
+                    <div className="space-y-2.5 rounded-xl border border-line bg-card/50 px-3 py-3 text-[11px] leading-snug text-muted">
+                      <label className="flex gap-2">
+                        <input
+                          type="checkbox"
+                          className="mt-0.5 shrink-0"
+                          checked={consentPrivacy}
+                          onChange={(e) => setConsentPrivacy(e.target.checked)}
+                        />
+                        <span>
+                          Соглашаюсь с{" "}
+                          <Link
+                            href="/legal/privacy"
+                            target="_blank"
+                            className="text-accent underline"
+                          >
+                            политикой персональных данных
+                          </Link>{" "}
+                          и даю{" "}
+                          <Link
+                            href="/legal/consent"
+                            target="_blank"
+                            className="text-accent underline"
+                          >
+                            согласие на обработку персональных данных
+                          </Link>
+                          , в том числе{" "}
+                          <Link
+                            href="/legal/telegram-consent"
+                            target="_blank"
+                            className="text-accent underline"
+                          >
+                            для Telegram-бота
+                          </Link>
+                          <span className="text-foreground"> (обязательно)</span>
+                        </span>
+                      </label>
+                      <label className="flex gap-2">
+                        <input
+                          type="checkbox"
+                          className="mt-0.5 shrink-0"
+                          checked={consentMarketing}
+                          onChange={(e) =>
+                            setConsentMarketing(e.target.checked)
+                          }
+                        />
+                        <span>
+                          Я согласен получать новости и рекламные рассылки (
+                          <Link
+                            href="/legal/marketing"
+                            target="_blank"
+                            className="text-accent underline"
+                          >
+                            согласие на рассылку
+                          </Link>
+                          ), по желанию
+                        </span>
+                      </label>
+                    </div>
+                  )}
+
                   {!codeSent ? (
                     <div className="space-y-2">
                       {authMode === "login" && password.length >= 6 && (
                         <button
                           type="button"
-                          disabled={emailBusy}
+                          disabled={emailBusy || !consentsOk}
                           onClick={() => void loginPassword()}
                           className="w-full rounded-2xl bg-accent py-3.5 text-sm font-semibold text-[#ffffff] disabled:opacity-50"
                         >
@@ -1119,7 +1264,7 @@ export function OnboardingFlow({
                       )}
                       <button
                         type="button"
-                        disabled={emailBusy}
+                        disabled={emailBusy || !consentsOk}
                         onClick={() => void sendCode()}
                         className="w-full rounded-2xl bg-accent py-3.5 text-sm font-semibold text-[#ffffff] disabled:opacity-50"
                       >
@@ -1134,7 +1279,7 @@ export function OnboardingFlow({
                     <div className="space-y-2">
                       <button
                         type="button"
-                        disabled={emailBusy || code.length < 6}
+                        disabled={emailBusy || code.length < 6 || !consentsOk}
                         onClick={() => void verifyCode()}
                         className="w-full rounded-2xl bg-accent py-3.5 text-sm font-semibold text-[#ffffff] disabled:opacity-50"
                       >
@@ -1208,10 +1353,7 @@ export function OnboardingFlow({
 
           {flowStep === "finish" && (
             <div className="maya-rise flex h-full flex-col justify-center py-6">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-accent">
-                Готово
-              </p>
-              <h1 className="font-display mt-3 text-3xl font-semibold tracking-tight">
+              <h1 className="font-display text-3xl font-semibold tracking-tight">
                 {isPregnant && !hasChild
                   ? "Беременность в Мае"
                   : trackCycle && !hasChild && !isPregnant

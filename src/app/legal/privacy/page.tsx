@@ -21,11 +21,9 @@ export default function PrivacyPage() {
     <LegalShell
       title="Политика обработки персональных данных"
       edition={LEGAL_PD_EDITION}
-      pdfHref="/docs/privacy-policy.pdf"
     >
       <p className="text-muted">
-        Российская Федерация, Волгоградская область — г. Волгоград, редакция от{" "}
-        {LEGAL_PD_EDITION} г.
+        Российская Федерация, редакция от {LEGAL_PD_EDITION} г.
       </p>
 
       <p>
@@ -34,7 +32,8 @@ export default function PrivacyPage() {
         27.07.2006 № 152-ФЗ «О персональных данных» (далее — Закон о
         персональных данных) и определяет порядок обработки персональных данных
         и меры по обеспечению безопасности персональных данных,
-        предпринимаемые {o.fullName} (ИНН: {o.inn}, ОГРНИП: {o.ogrnip}).
+        предпринимаемые {o.fullName} (ИНН: {o.inn}
+        {o.ogrnip ? `, ОГРНИП: ${o.ogrnip}` : ""}).
       </p>
       <p>
         1.1. Оператор ставит своей важнейшей целью и условием осуществления
@@ -292,8 +291,8 @@ export default function PrivacyPage() {
       </h2>
       <p>{o.fullName}</p>
       <p>ИНН: {o.inn}</p>
-      <p>ОГРНИП: {o.ogrnip}</p>
-      <p>Адрес: {o.address}</p>
+      {o.ogrnip ? <p>ОГРНИП: {o.ogrnip}</p> : null}
+      {o.address ? <p>Адрес: {o.address}</p> : null}
       <p>Электронная почта: {o.email}</p>
     </LegalShell>
   );

@@ -4,6 +4,29 @@ import { useEffect } from "react";
 import { useAppStore } from "@/lib/store";
 import type { PaidPlanId } from "@/lib/subscription";
 
+/** Подтягивает Premium с сервера. Нужен сразу после входа, до проверки оплаты. */
+export async function pullServerPremium(): Promise<boolean> {
+  try {
+    const res = await fetch("/api/subscription/status", { credentials: "include" });
+    if (!res.ok) return false;
+    const data = (await res.json()) as {
+      active?: boolean;
+      planId?: string;
+      expiresAt?: string | null;
+    };
+    if (!data.active || !data.planId || data.planId === "free") return false;
+    useAppStore.setState({
+      subscription: {
+        planId: data.planId as PaidPlanId,
+        expiresAt: data.expiresAt ?? null,
+      },
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** Подтягивает Premium с сервера после оплаты Prodamus */
 export function SubscriptionSync() {
   const email = useAppStore((s) => s.accountEmail);

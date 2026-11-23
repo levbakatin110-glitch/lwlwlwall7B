@@ -26,7 +26,7 @@ type Playing = {
   paused: boolean;
 };
 
-const SW_URL = "/sw.js?v=17";
+const SW_URL = "/sw.js?v=18";
 
 class TimerIsland {
   private el: HTMLAudioElement | null = null;

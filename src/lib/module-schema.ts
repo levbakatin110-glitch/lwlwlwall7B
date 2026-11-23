@@ -186,6 +186,8 @@ export function detectBuiltinSuggestion(text: string): string | undefined {
   if (/сон|режим сна/i.test(t)) return "sleep";
   if (/рост|вес малыш|вес ребён/i.test(t)) return "growth";
   if (/прививк|вакцин/i.test(t)) return "vaccines";
+  if (/зуб|прорез/i.test(t)) return "teeth";
+  if (/скачк/i.test(t)) return "leaps";
   if (/температур|симптом|болезн/i.test(t)) return "health";
   return undefined;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   DiaryPage,
   DiaryPrimaryButton,
@@ -17,6 +17,7 @@ import {
   formatDuration,
   formatHumanDuration,
 } from "@/lib/diary-day";
+import { forgotHint, forgotTimer, LIVE_FORGOT_SEC } from "@/lib/live-limits";
 import { liveGet, liveSet } from "@/lib/live-session";
 import { ISLAND_EVENT, notifyIslandChanged } from "@/lib/live-timer-actions";
 import { timerIsland } from "@/lib/timer-island";
@@ -126,7 +127,7 @@ export function BreastfeedingTracker() {
     tickAt: null,
   });
   const [now, setNow] = useState(() => Date.now());
-  const hydrated = useRef(false);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     const pull = () => {
@@ -136,16 +137,16 @@ export function BreastfeedingTracker() {
       );
     };
     pull();
-    hydrated.current = true;
+    setReady(true);
     window.addEventListener(ISLAND_EVENT, pull);
     return () => window.removeEventListener(ISLAND_EVENT, pull);
   }, []);
 
   useEffect(() => {
-    if (!hydrated.current) return;
+    if (!ready) return;
     saveSession(session);
     notifyIslandChanged();
-  }, [session]);
+  }, [session, ready]);
 
   useEffect(() => {
     if (!session.active) return;
@@ -325,7 +326,21 @@ export function BreastfeedingTracker() {
       ) : null}
 
       <DiaryStickyCta>
-        {total >= 5 ? (
+        {total >= 5 && forgotTimer(total, LIVE_FORGOT_SEC.bf) ? (
+          <div className="flex flex-col gap-2">
+            <p className="text-center text-xs text-muted">
+              {forgotHint(LIVE_FORGOT_SEC.bf)} В дневник само не пишется.
+            </p>
+            <DiaryPrimaryButton onClick={reset}>Сбросить</DiaryPrimaryButton>
+            <button
+              type="button"
+              onClick={save}
+              className="w-full rounded-2xl border border-line bg-card px-5 py-3.5 text-sm font-semibold text-foreground"
+            >
+              Всё же записать {formatDuration(total)}
+            </button>
+          </div>
+        ) : total >= 5 ? (
           <div className="flex gap-2">
             <DiaryPrimaryButton onClick={save}>
               <span className="tabular-nums">{formatDuration(total)}</span>

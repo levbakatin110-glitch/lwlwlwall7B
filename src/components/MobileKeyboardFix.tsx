@@ -10,27 +10,44 @@ function isFormField(el: EventTarget | null): el is HTMLInputElement | HTMLTextA
   );
 }
 
+/** Высота оболочки = видимый экран. Иначе снизу остаётся полоса, и список выезжает из-под неё. */
+function syncVisibleHeight() {
+  const vv = window.visualViewport;
+  const vh = Math.round(vv?.height ?? window.innerHeight);
+  const ih = Math.round(window.innerHeight);
+  // Клавиатура сильно ниже экрана. Сдвиг меню и адресной строки — нет, его не запираем.
+  const keyboard = ih - vh > 160;
+  const h = keyboard ? vh : Math.max(vh, ih);
+  const root = document.documentElement;
+  const nextH = `${h}px`;
+  if (root.style.getPropertyValue("--app-vh") !== nextH) {
+    root.style.setProperty("--app-vh", nextH);
+  }
+  root.style.setProperty("--vv-top", "0px");
+}
+
 /** Сбрасывает сдвиг/зум iOS после закрытия клавиатуры на телефоне. */
 export function MobileKeyboardFix() {
   useEffect(() => {
     const vv = window.visualViewport;
-    if (!vv) return;
+    let lastHeight = vv?.height ?? window.innerHeight;
 
-    let lastHeight = vv.height;
+    const pin = () => {
+      syncVisibleHeight();
+      if (window.scrollY !== 0 || window.scrollX !== 0) {
+        window.scrollTo(0, 0);
+      }
+    };
 
     const resetScroll = () => {
-      requestAnimationFrame(() => {
-        window.scrollTo(0, 0);
-        document.documentElement.scrollTop = 0;
-        document.documentElement.scrollLeft = 0;
-        document.body.scrollTop = 0;
-        document.body.scrollLeft = 0;
-      });
+      requestAnimationFrame(pin);
     };
 
     const onResize = () => {
-      const keyboardClosed = vv.height > lastHeight + 48;
-      lastHeight = vv.height;
+      const height = vv?.height ?? window.innerHeight;
+      const keyboardClosed = height > lastHeight + 48;
+      lastHeight = height;
+      pin();
       if (keyboardClosed) resetScroll();
     };
 
@@ -39,10 +56,25 @@ export function MobileKeyboardFix() {
       window.setTimeout(resetScroll, 80);
     };
 
-    vv.addEventListener("resize", onResize);
+    const onResync = () => {
+      pin();
+      window.setTimeout(pin, 60);
+      window.setTimeout(pin, 280);
+    };
+
+    pin();
+    vv?.addEventListener("resize", onResize);
+    vv?.addEventListener("scroll", pin);
+    window.addEventListener("resize", onResize);
+    window.addEventListener("orientationchange", pin);
+    window.addEventListener("maya-frame-resync", onResync);
     document.addEventListener("focusout", onFocusOut);
     return () => {
-      vv.removeEventListener("resize", onResize);
+      vv?.removeEventListener("resize", onResize);
+      vv?.removeEventListener("scroll", pin);
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("orientationchange", pin);
+      window.removeEventListener("maya-frame-resync", onResync);
       document.removeEventListener("focusout", onFocusOut);
     };
   }, []);

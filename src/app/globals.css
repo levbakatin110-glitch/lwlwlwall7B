@@ -81,7 +81,8 @@ html {
   background: var(--background);
   color: var(--foreground);
   color-scheme: var(--scheme);
-  height: 100%;
+  height: var(--app-vh, 100%);
+  max-height: var(--app-vh, 100dvh);
   overflow: hidden;
   overscroll-behavior: none;
 }
@@ -98,9 +99,16 @@ body {
   /* Без position:fixed — на iOS/Android иначе «тупят» клики по кнопкам */
   width: 100%;
   height: 100%;
-  max-height: 100dvh;
+  max-height: 100%;
   overflow: hidden;
   overscroll-behavior: none;
+}
+
+/* Оболочка на высоту видимого экрана. Без margin-top: после меню сдвиг залипал и снизу снова была полоса. */
+.maya-app-frame {
+  height: var(--app-vh, 100dvh);
+  max-height: var(--app-vh, 100dvh);
+  margin-top: 0;
 }
 
 /* Бумажная зернистость поверх фона */
@@ -130,8 +138,33 @@ body::before {
   box-sizing: border-box;
 }
 
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 70%, transparent);
+  outline-offset: 2px;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]):not([type="color"]):not([type="submit"]):not([type="button"]):focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+  border-color: color-mix(in oklab, var(--accent) 55%, var(--line));
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 18%, transparent);
+}
+
+button:focus:not(:focus-visible),
+a:focus:not(:focus-visible) {
+  outline: none;
+}
+
+button.bg-accent:hover:not(:disabled),
+a.bg-accent:hover {
+  background-color: var(--accent-hot);
+}
+
 ::selection {
-  background: rgba(50, 215, 175, 0.35);
+  background: color-mix(in oklab, var(--accent) 32%, transparent);
 }
 
 ::-webkit-scrollbar {
@@ -904,6 +937,13 @@ select {
   padding: 0;
 }
 
+.maya-surface {
+  border-radius: 1.5rem;
+  border: 1px solid color-mix(in oklab, var(--line) 88%, transparent);
+  background: color-mix(in oklab, var(--card) 88%, transparent);
+  box-shadow: 0 16px 40px -30px color-mix(in oklab, var(--foreground) 22%, transparent);
+}
+
 .maya-diary-panel {
   border-radius: 1.5rem;
   border: 1px solid color-mix(in oklab, var(--line) 85%, transparent);
@@ -938,9 +978,17 @@ select {
   box-shadow: 0 10px 28px -12px color-mix(in oklab, var(--accent) 70%, transparent);
 }
 
+.maya-diary-cta:hover:not(:disabled) {
+  background: var(--accent-hot);
+}
+
 .maya-diary-cta-danger {
   background: color-mix(in oklab, var(--blush) 88%, var(--accent));
   box-shadow: 0 10px 28px -12px color-mix(in oklab, var(--blush) 55%, transparent);
+}
+
+.maya-diary-cta-danger:hover:not(:disabled) {
+  filter: brightness(0.96);
 }
 
 @keyframes maya-circle-pulse {

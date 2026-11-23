@@ -56,7 +56,6 @@ export function DiaperTracker() {
   const removeJournalEntry = useAppStore((s) => s.removeJournalEntry);
   const entries = useAppStore((s) => s.journals.diaper ?? []);
   const birthDate = useAppStore((s) => s.profile?.birthDate);
-  const [rashNext, setRashNext] = useState(false);
   const [flashKind, setFlashKind] = useState<KindId | null>(null);
 
   const todayEntries = useMemo(
@@ -89,19 +88,15 @@ export function DiaperTracker() {
 
   function log(kind: KindId) {
     const meta = KINDS.find((k) => k.id === kind)!;
-    const parts: string[] = [meta.label];
-    if (rashNext) parts.push("раздражение");
     addJournalEntry("diaper", {
       date: todayYmd(),
-      value: parts.join(" · "),
+      value: meta.label,
       note: "",
       fields: {
         kind,
-        rash: rashNext ? 1 : 0,
         startMs: Date.now(),
       },
     });
-    setRashNext(false);
     setFlashKind(kind);
     window.setTimeout(() => setFlashKind(null), 600);
   }
@@ -126,20 +121,6 @@ export function DiaperTracker() {
 
       <DiaryInsightCard view={insight} />
 
-      <button
-          type="button"
-          onClick={() => setRashNext((v) => !v)}
-          className={`mt-4 w-full rounded-xl border px-3 py-2.5 text-left text-sm transition ${
-            rashNext
-              ? "border-blush/40 bg-blush-soft text-foreground"
-              : "border-line text-muted hover:border-accent/25"
-          }`}
-        >
-          {rashNext
-            ? "Следующая запись, с раздражением"
-            : "Отметить раздражение на следующую смену"}
-        </button>
-
         <div className="mt-3 grid grid-cols-2 gap-2">
           {KINDS.map((k) => (
             <button
@@ -154,7 +135,7 @@ export function DiaperTracker() {
             >
               <span className={`flex items-center gap-1 ${k.tone}`}>
                 {k.icons.map((name) => (
-                  <MayaIcon key={name} name={name as IconName} size={26} />
+                  <MayaIcon key={name} name={name as IconName} size={name === "poop" ? 34 : 26} />
                 ))}
               </span>
               <p className="mt-1.5 text-sm font-semibold">{k.label}</p>
@@ -168,12 +149,7 @@ export function DiaperTracker() {
             icon="diaper"
             iconTone={DIARY_ICON_TONE.diaper}
             titleOf={(e) => kindLabel(String(e.fields?.kind || ""))}
-            metaOf={(e) => {
-              const time = formatClock(entryTimeMs(e));
-              return Number(e.fields?.rash) === 1
-                ? `${time} · раздражение`
-                : time;
-            }}
+            metaOf={(e) => formatClock(entryTimeMs(e))}
             confirmText="Удалить эту запись из дневника?"
             onRemove={(id) => removeJournalEntry("diaper", id)}
             empty={<DiaryEmpty>Тип смены, в историю</DiaryEmpty>}

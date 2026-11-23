@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { useAppStore } from "@/lib/store";
 import { IconBadge, MayaIcon } from "@/components/icons/MayaIcon";
 import { RecipeOfDayCard } from "@/components/RecipeOfDayCard";
 import {
@@ -30,6 +31,8 @@ function isRecipeTag(value: string): value is RecipeTag {
 
 export default function RecipesPage() {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>("all");
+  const [hideAllergens, setHideAllergens] = useState(true);
+  const allergies = useAppStore((s) => s.profile?.allergies || "");
   const ofDay = useMemo(() => getRecipeOfDay(), []);
 
   useEffect(() => {
@@ -38,9 +41,19 @@ export default function RecipesPage() {
   }, []);
 
   const list = useMemo(() => {
-    if (filter === "all") return RECIPES;
-    return RECIPES.filter((r) => r.tags.includes(filter));
-  }, [filter]);
+    const byTag =
+      filter === "all" ? RECIPES : RECIPES.filter((r) => r.tags.includes(filter));
+    const banned = allergies
+      .toLowerCase()
+      .split(/[,;]+/)
+      .map((s) => s.trim())
+      .filter((s) => s.length >= 3);
+    if (!hideAllergens || banned.length === 0) return byTag;
+    return byTag.filter((r) => {
+      const blob = `${r.title} ${r.ingredients.join(" ")}`.toLowerCase();
+      return !banned.some((word) => blob.includes(word));
+    });
+  }, [filter, hideAllergens, allergies]);
 
   function pickFilter(id: (typeof FILTERS)[number]["id"]) {
     setFilter(id);
@@ -59,6 +72,16 @@ export default function RecipesPage() {
         Каталог блюд для мамы и семьи, просто смотрите и готовьте. Записи вести не
         нужно; в чате можно спросить Маю про замены и прикорм.
       </p>
+      {allergies.trim() ? (
+        <label className="mt-3 flex items-center gap-2 text-sm text-muted">
+          <input
+            type="checkbox"
+            checked={hideAllergens}
+            onChange={(e) => setHideAllergens(e.target.checked)}
+          />
+          Скрыть блюда со словами из аллергий профиля ({allergies.trim()})
+        </label>
+      ) : null}
 
       <div className="mt-6">
         <RecipeOfDayCard />
@@ -105,7 +128,7 @@ export default function RecipesPage() {
                       {recipe.title}
                     </h2>
                     {isToday && (
-                      <span className="rounded-md bg-accent-soft px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent">
+                      <span className="rounded-md bg-accent-soft px-1.5 py-0.5 text-[11px] font-semibold text-accent">
                         сегодня
                       </span>
                     )}

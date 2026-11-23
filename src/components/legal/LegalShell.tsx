@@ -59,8 +59,7 @@ export function LegalShell({
 
         {incomplete && (
           <p className="mt-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-950 dark:text-amber-100">
-            Черновик: в реквизитах Исполнителя ещё стоят заглушки. Укажите ФИО
-            ИП, ИНН, ОГРНИП и адрес.
+            Черновик: в реквизитах ещё стоят заглушки. Укажите ФИО, ИНН и адрес.
           </p>
         )}
 
@@ -76,9 +75,10 @@ export function LegalShell({
             {LEGAL_OPERATOR.fullName}
           </p>
           <p>
-            ИНН {LEGAL_OPERATOR.inn} · ОГРНИП {LEGAL_OPERATOR.ogrnip}
+            ИНН {LEGAL_OPERATOR.inn}
+            {LEGAL_OPERATOR.ogrnip ? ` · ОГРНИП ${LEGAL_OPERATOR.ogrnip}` : ""}
           </p>
-          <p>{LEGAL_OPERATOR.address}</p>
+          {LEGAL_OPERATOR.address ? <p>{LEGAL_OPERATOR.address}</p> : null}
           <p>
             <a
               className="text-accent underline"

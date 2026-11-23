@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "ru.heymaya.app",
+      "sha256_cert_fingerprints": [
+        "CE:CC:5B:EB:AE:38:4E:B3:6E:02:B1:06:41:67:41:F0:42:97:C0:14:A4:3C:6D:06:96:5E:A6:BC:AF:45:DC:CD"
+      ]
+    }
+  }
+]

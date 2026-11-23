@@ -57,7 +57,7 @@ export function ChatNewsFeed({
 
   return (
     <section
-      className="maya-rise relative overflow-hidden rounded-[1.5rem] border border-accent/20 bg-gradient-to-br from-accent-soft/50 via-card/90 to-[color-mix(in_oklab,var(--accent)_8%,transparent)] px-3.5 py-4 pb-8"
+      className="maya-surface px-3.5 py-4"
       aria-label="Лента"
     >
       <div className="mb-4 px-0.5">
@@ -72,7 +72,7 @@ export function ChatNewsFeed({
             <>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-accent">
+                  <p className="text-xs font-medium text-accent">
                     {item.eyebrow}
                   </p>
                   <h3 className="font-display mt-1 text-lg font-semibold leading-tight tracking-tight">
@@ -96,12 +96,14 @@ export function ChatNewsFeed({
               </p>
 
               {item.href && item.kind !== "empty" && (
-                <p className="mt-3 text-sm font-semibold text-accent">Открыть</p>
+                <p className="mt-3 text-sm font-semibold text-accent group-hover:underline">
+                  Открыть
+                </p>
               )}
             </>
           );
 
-          const className = `block w-full rounded-[1.25rem] border p-4 text-left transition hover:border-accent/35 sm:p-5 ${toneBorder(item)}`;
+          const className = `group block w-full rounded-[1.25rem] border p-4 text-left transition hover:border-accent/35 hover:shadow-sm sm:p-5 ${toneBorder(item)}`;
 
           if (item.href) {
             return (

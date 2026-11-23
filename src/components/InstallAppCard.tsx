@@ -57,7 +57,7 @@ export function InstallAppCard() {
 
       <div className="mt-3 space-y-3 text-sm leading-relaxed text-foreground/90">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+          <p className="text-sm font-semibold text-foreground">
             iPhone / iPad
           </p>
           <p className="mt-1">
@@ -67,7 +67,7 @@ export function InstallAppCard() {
           </p>
         </div>
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+          <p className="text-sm font-semibold text-foreground">
             Android
           </p>
           <p className="mt-1">
@@ -86,7 +86,7 @@ export function InstallAppCard() {
             setDeferred(null);
             setInstalled(isStandalone());
           }}
-          className="mt-3 w-full rounded-xl bg-accent py-2.5 text-sm font-semibold text-white"
+          className="mt-3 w-full rounded-xl bg-accent py-2.5 text-sm font-semibold text-on-accent"
         >
           Установить Маю
         </button>

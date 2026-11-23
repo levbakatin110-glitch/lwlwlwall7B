@@ -3,7 +3,7 @@ import { CHAT_TOPUP_RUB } from "@/lib/chat-quota";
 import { isSubscriptionActive, planById, type PaidPlanId } from "@/lib/subscription";
 
 export type SaleKind = "subscription" | "chat_topup";
-export type SaleSource = "prodamus" | "fake";
+export type SaleSource = "prodamus" | "yookassa" | "fake";
 
 export type SaleRow = {
   id: string;

@@ -20,21 +20,14 @@ export function RemindersPeek() {
   return (
     <Link
       href="/reminders"
-      className="group relative flex min-h-[11.5rem] flex-col overflow-hidden rounded-2xl border border-amber-600/20 bg-white/70 p-4 shadow-sm transition hover:border-amber-600/40 dark:bg-card/80"
+      className="group relative flex min-h-[11.5rem] flex-col overflow-hidden rounded-2xl border border-line bg-card p-4 shadow-sm transition hover:border-accent/35 hover:shadow-md"
     >
-      <div
-        className="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full bg-amber-400/20 blur-2xl"
-        aria-hidden
-      />
       <div className="relative flex items-start gap-3">
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-600 text-white">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-accent text-on-accent">
           <MayaIcon name="bell" size={20} />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-800 dark:text-amber-300">
-            Режим дня
-          </p>
-          <p className="font-display mt-0.5 text-lg font-semibold leading-snug text-foreground">
+          <p className="font-display text-lg font-semibold leading-snug text-foreground">
             {on.length > 0
               ? `Включено: ${on.length}`
               : "Пока всё выключено"}
@@ -44,18 +37,18 @@ export function RemindersPeek() {
       <ul className="relative mt-3 flex-1 space-y-1.5">
         {on.length === 0 ? (
           <li className="text-sm leading-relaxed text-muted">
-            Кормление, укладывание, прогулка, нажмите, чтобы включить.
+            Кормление, укладывание, прогулка — откройте, чтобы включить.
           </li>
         ) : (
           on.slice(0, 4).map((p) => (
             <li key={p.kind} className="flex items-center gap-2 text-sm text-foreground">
-              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-600" />
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
               {p.label}
             </li>
           ))
         )}
       </ul>
-      <p className="relative mt-2 text-sm font-semibold text-amber-800 group-hover:underline dark:text-amber-300">
+      <p className="relative mt-2 text-sm font-semibold text-accent group-hover:underline">
         Настроить →
       </p>
     </Link>

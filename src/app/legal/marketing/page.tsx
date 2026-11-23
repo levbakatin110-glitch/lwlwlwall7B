@@ -18,7 +18,6 @@ export default function MarketingConsentPage() {
     <LegalShell
       title="Согласие на получение новостной и рекламной рассылки и на связанную с ней обработку персональных данных"
       edition={LEGAL_MARKETING_EDITION}
-      pdfHref="/docs/consent-marketing.pdf"
     >
       <p className="text-muted">в редакции от {LEGAL_MARKETING_EDITION} года</p>
 
@@ -32,9 +31,9 @@ export default function MarketingConsentPage() {
         следующему рекламораспространителю и оператору персональных данных:
       </p>
       <p>
-        ИНДИВИДУАЛЬНЫЙ ПРЕДПРИНИМАТЕЛЬ КОВАЛЕВА ПОЛИНА АНДРЕЕВНА, ИНН {o.inn},
-        ОГРНИП {o.ogrnip}, дата регистрации в качестве индивидуального
-        предпринимателя: «19» декабря 2025 г. (далее — «Оператор»).
+        {o.fullName}, ИНН {o.inn}
+        {o.ogrnip ? `, ОГРНИП ${o.ogrnip}` : ""}, плательщик налога на
+        профессиональный доход (далее — «Оператор»).
       </p>
       <p>
         Настоящее согласие дано с целью оперативного получения новостей о

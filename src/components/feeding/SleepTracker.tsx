@@ -36,6 +36,7 @@ import {
   sleepStartMs,
   type SleepKind,
 } from "@/lib/sleep-day";
+import { forgotHint, forgotTimer, LIVE_FORGOT_SEC } from "@/lib/live-limits";
 import { liveGet, liveSet } from "@/lib/live-session";
 import { ISLAND_EVENT, notifyIslandChanged } from "@/lib/live-timer-actions";
 import { timerIsland } from "@/lib/timer-island";
@@ -72,6 +73,7 @@ export function SleepTracker({ journalId = "sleep" }: { journalId?: string }) {
   const isMomSleep = journalId === "preg_sleep";
 
   const [live, setLive] = useState<SleepLive | null>(null);
+  const [ready, setReady] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const [period, setPeriod] = useState<7 | 14>(7);
 
@@ -88,11 +90,13 @@ export function SleepTracker({ journalId = "sleep" }: { journalId?: string }) {
       }
     };
     pull();
+    setReady(true);
     window.addEventListener(ISLAND_EVENT, pull);
     return () => window.removeEventListener(ISLAND_EVENT, pull);
   }, [storageKey]);
 
   useEffect(() => {
+    if (!ready) return;
     try {
       if (!live) liveSet(storageKey, null);
       else liveSet(storageKey, JSON.stringify(live));
@@ -100,7 +104,7 @@ export function SleepTracker({ journalId = "sleep" }: { journalId?: string }) {
     } catch {
       /* */
     }
-  }, [live, storageKey]);
+  }, [live, storageKey, ready]);
 
   useEffect(() => {
     if (!live) return;
@@ -232,6 +236,7 @@ export function SleepTracker({ journalId = "sleep" }: { journalId?: string }) {
 
       {insight ? <DiaryInsightCard view={insight} /> : null}
 
+      {hasJournal ? (
       <div className="mt-3">
       <DiaryStats
         items={[
@@ -277,8 +282,9 @@ export function SleepTracker({ journalId = "sleep" }: { journalId?: string }) {
         ]}
       />
       </div>
+      ) : null}
 
-      <DiaryDayStrip now={now} spans={sleepSpans} />
+      {hasJournal ? <DiaryDayStrip now={now} spans={sleepSpans} /> : null}
 
       {live ? (
         <div className="mt-6 text-center">
@@ -352,7 +358,21 @@ export function SleepTracker({ journalId = "sleep" }: { journalId?: string }) {
       )}
 
       <DiaryStickyCta>
-        {live ? (
+        {live && forgotTimer(elapsed, LIVE_FORGOT_SEC.sleep) ? (
+          <div className="flex flex-col gap-2">
+            <p className="text-center text-xs text-muted">
+              {forgotHint(LIVE_FORGOT_SEC.sleep)} В дневник само не пишется.
+            </p>
+            <DiaryPrimaryButton onClick={() => setLive(null)}>Сбросить</DiaryPrimaryButton>
+            <button
+              type="button"
+              onClick={stop}
+              className="w-full rounded-2xl border border-line bg-card px-5 py-3.5 text-sm font-semibold text-foreground"
+            >
+              Всё же записать {formatDuration(elapsed)}
+            </button>
+          </div>
+        ) : live ? (
           <div className="flex gap-2">
             <DiaryPrimaryButton onClick={stop}>
               <span className="tabular-nums">{formatDuration(elapsed)}</span>

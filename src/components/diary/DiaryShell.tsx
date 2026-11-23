@@ -25,9 +25,9 @@ export function DiaryStats({ items }: { items: DiaryStat[] }) {
       {items.map((it) => (
         <div
           key={it.label}
-          className="min-w-0 rounded-2xl border border-line bg-card/70 px-2 py-2.5 text-center"
+          className="min-w-0 rounded-2xl border border-line bg-card/80 px-2.5 py-3 text-center"
         >
-          <p className="text-[10px] font-medium tracking-wide text-muted">
+          <p className="text-xs font-medium text-muted">
             {it.label}
           </p>
           <p className="font-display mt-1 text-xl font-semibold tabular-nums tracking-tight sm:text-2xl">

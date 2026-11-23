@@ -318,6 +318,58 @@ export function buildDaySummary(input: {
   return { totals, events };
 }
 
+export type WeekFacts = {
+  from: string;
+  to: string;
+  sleepSec: number;
+  sleepDays: number;
+  bfCount: number;
+  bfSec: number;
+  formulaMl: number;
+  formulaCount: number;
+  solidsCount: number;
+  diaperWet: number;
+  diaperDirty: number;
+};
+
+/** Семь дней, кончаясь выбранной датой. Только то, что есть в дневнике. */
+export function weekFacts(
+  journals: Record<string, JournalEntry[]>,
+  endDate: string,
+): WeekFacts {
+  const facts: WeekFacts = {
+    from: shiftIsoDate(endDate, -6),
+    to: endDate,
+    sleepSec: 0,
+    sleepDays: 0,
+    bfCount: 0,
+    bfSec: 0,
+    formulaMl: 0,
+    formulaCount: 0,
+    solidsCount: 0,
+    diaperWet: 0,
+    diaperDirty: 0,
+  };
+  for (let i = 6; i >= 0; i--) {
+    const { totals } = buildDaySummary({
+      date: shiftIsoDate(endDate, -i),
+      journals,
+    });
+    if (totals.sleepSec > 0) {
+      facts.sleepSec += totals.sleepSec;
+      facts.sleepDays += 1;
+    }
+    facts.bfCount += totals.bfCount;
+    facts.bfSec += totals.bfSec;
+    facts.formulaMl += totals.formulaMl;
+    facts.formulaCount += totals.formulaCount;
+    facts.solidsCount += totals.solidsCount;
+    facts.diaperWet += totals.diaperWet;
+    facts.diaperDirty += totals.diaperDirty;
+  }
+  return facts;
+}
+
 /** Грубые ориентиры по возрасту. Не диагноз и не замена педиатру. */
 export function dayNormHints(input: {
   birthDate?: string | null;

@@ -1,12 +1,15 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { DiaryHowTo } from "@/components/DiaryHowTo";
 import { MayaIcon } from "@/components/icons/MayaIcon";
+import { OfflineNotice } from "@/components/OfflineNotice";
 import { WARDROBE_HINT } from "@/lib/diary-hints";
 import { compressImageFile } from "@/lib/image";
 import { useAppStore } from "@/lib/store";
 import type { ClothingAnalysis, WardrobeItem } from "@/lib/types";
+import { OFFLINE_MESSAGE, useOnline } from "@/lib/use-online";
 
 type AnalysisResult = ClothingAnalysis & {
   tempFromUser?: boolean;
@@ -56,6 +59,9 @@ export default function WardrobePage() {
   const addWardrobeItem = useAppStore((s) => s.addWardrobeItem);
   const updateWardrobeItem = useAppStore((s) => s.updateWardrobeItem);
   const removeWardrobeItem = useAppStore((s) => s.removeWardrobeItem);
+  const setPendingChatPrompt = useAppStore((s) => s.setPendingChatPrompt);
+  const router = useRouter();
+  const online = useOnline();
 
   const clothingRef = useRef<HTMLInputElement>(null);
   const labelRef = useRef<HTMLInputElement>(null);
@@ -90,6 +96,10 @@ export default function WardrobePage() {
 
   async function runAnalyze(clothing: string, label: string, hint: string) {
     if (!clothing) return null;
+    if (!online) {
+      setError(OFFLINE_MESSAGE);
+      return null;
+    }
     setAnalyzing(true);
     setError(null);
     try {
@@ -246,12 +256,28 @@ export default function WardrobePage() {
     <div className="maya-page mx-auto w-full max-w-2xl px-4 py-8">
       <h1 className="font-display text-3xl font-semibold">Одежда малыша</h1>
 
+      {!online ? <OfflineNotice className="mt-4" /> : null}
+
       <div className="mt-4 rounded-2xl border border-accent/20 bg-accent-soft/35 px-4 py-3.5">
         <p className="text-[13px] leading-relaxed text-foreground/90">
           Когда в чате спросите,{" "}
           <span className="font-medium text-foreground">что надеть на прогулку</span>, Мая
           подберёт подходящую одежду по погоде из того, что вы сохраните здесь.
         </p>
+        {wardrobe.length > 0 ? (
+          <button
+            type="button"
+            onClick={() => {
+              setPendingChatPrompt(
+                "Во что одеть малыша сегодня по погоде? Подбери из моего гардероба.",
+              );
+              router.push("/");
+            }}
+            className="mt-3 rounded-xl bg-accent px-3 py-2 text-sm font-semibold text-[var(--on-accent,#fff)]"
+          >
+            Что надеть сегодня
+          </button>
+        ) : null}
       </div>
 
       {wardrobe.length === 0 && (
@@ -267,7 +293,7 @@ export default function WardrobePage() {
             <button
               type="button"
               onClick={() => clothingRef.current?.click()}
-              disabled={analyzing}
+              disabled={!online || analyzing}
               className="group relative flex h-44 w-full items-center justify-center overflow-hidden rounded-2xl border border-dashed border-line bg-accent-soft/30"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -299,7 +325,7 @@ export default function WardrobePage() {
             <button
               type="button"
               onClick={() => labelRef.current?.click()}
-              disabled={analyzing || !imageData}
+              disabled={!online || analyzing || !imageData}
               className="group relative flex h-44 w-full items-center justify-center overflow-hidden rounded-2xl border border-dashed border-line bg-card disabled:cursor-not-allowed"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}

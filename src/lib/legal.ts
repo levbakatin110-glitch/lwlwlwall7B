@@ -1,6 +1,6 @@
 /**
  * Реквизиты Исполнителя / Оператора ПДн для hey-maya.ru.
- * Те же, что у ИП Ковалевой на lollypollya.ru (пакет документов в папке «Евгений»).
+ * Самозанятый: ОГРНИП нет, адрес дописывается, когда будет.
  */
 export type LegalOperator = {
   fullName: string;
@@ -20,19 +20,16 @@ function env(name: string, fallback: string): string {
 export const LEGAL_OPERATOR: LegalOperator = {
   fullName: env(
     "NEXT_PUBLIC_LEGAL_OPERATOR_NAME",
-    "Индивидуальный предприниматель Ковалева Полина Андреевна",
+    "Самозанятый Бакатин Лев Николаевич",
   ),
   shortName: env(
     "NEXT_PUBLIC_LEGAL_OPERATOR_SHORT",
-    "ИП Ковалева Полина Андреевна",
+    "Бакатин Лев Николаевич",
   ),
-  inn: env("NEXT_PUBLIC_LEGAL_INN", "344107729380"),
-  ogrnip: env("NEXT_PUBLIC_LEGAL_OGRNIP", "325344300155000"),
-  address: env(
-    "NEXT_PUBLIC_LEGAL_ADDRESS",
-    "400120, Волгоградская обл., г. Волгоград, ул. Елецкая, 91, Российская Федерация",
-  ),
-  email: env("NEXT_PUBLIC_LEGAL_EMAIL", "pollilollipop@yandex.ru"),
+  inn: env("NEXT_PUBLIC_LEGAL_INN", "263412410319"),
+  ogrnip: env("NEXT_PUBLIC_LEGAL_OGRNIP", ""),
+  address: env("NEXT_PUBLIC_LEGAL_ADDRESS", ""),
+  email: env("NEXT_PUBLIC_LEGAL_EMAIL", "levprogrammist@gmail.com"),
   supportEmail: env(
     "NEXT_PUBLIC_LEGAL_SUPPORT_EMAIL",
     "levprogrammist@gmail.com",
@@ -44,10 +41,10 @@ export const LEGAL_SITE_URL = env(
   "https://hey-maya.ru",
 ).replace(/\/$/, "");
 
-export const LEGAL_PD_EDITION = "10.09.2026";
+export const LEGAL_PD_EDITION = "10.11.2026";
 export const LEGAL_EDITION = LEGAL_PD_EDITION;
-export const LEGAL_TG_EDITION = "19.09.2026";
-export const LEGAL_MARKETING_EDITION = "19.09.2026";
+export const LEGAL_TG_EDITION = "10.11.2026";
+export const LEGAL_MARKETING_EDITION = "10.11.2026";
 
 export const LEGAL_BRAND = "Мая";
 export const LEGAL_PRODUCT = "Maya Premium";
@@ -71,7 +68,6 @@ export const LEGAL_DOCS: {
     href: "/legal/privacy",
     label: "Политика обработки персональных данных",
     fileName: "Политика_обработки_персональных_данных.pdf",
-    pdfHref: "/docs/privacy-policy.pdf",
     edition: LEGAL_PD_EDITION,
   },
   {
@@ -79,7 +75,6 @@ export const LEGAL_DOCS: {
     href: "/legal/consent",
     label: "Согласие на обработку персональных данных",
     fileName: "Согласие_на_обработку_ПДн.pdf",
-    pdfHref: "/docs/consent-pd.pdf",
     edition: LEGAL_PD_EDITION,
   },
   {
@@ -87,7 +82,6 @@ export const LEGAL_DOCS: {
     href: "/legal/telegram-consent",
     label: "Согласие на обработку персональных данных (Telegram-бот)",
     fileName: "Согласие_на_ОПД_телеграм-бот.pdf",
-    pdfHref: "/docs/consent-pd-telegram.pdf",
     edition: LEGAL_TG_EDITION,
   },
   {
@@ -95,7 +89,6 @@ export const LEGAL_DOCS: {
     href: "/legal/marketing",
     label: "Согласие на получение новостной и рекламной рассылки",
     fileName: "Согласие_на_получение_новостной_и_рекламной_рассылки.pdf",
-    pdfHref: "/docs/consent-marketing.pdf",
     edition: LEGAL_MARKETING_EDITION,
   },
 ];

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatDaySummaryBrief, type DayTotals } from "./day-summary";
+import { formatDaySummaryBrief, weekFacts, type DayTotals } from "./day-summary";
 
 const emptyTotals: DayTotals = {
   sleepSec: 0,
@@ -17,6 +17,22 @@ const emptyTotals: DayTotals = {
   diaperWet: 0,
   diaperDirty: 0,
 };
+
+describe("weekFacts", () => {
+  it("sums only logged sleep and does not invent a norm", () => {
+    const facts = weekFacts(
+      {
+        sleep: [
+          { id: "a", date: "2026-11-16", value: "4 ч", note: "", fields: { totalSec: 4 * 3600 } },
+          { id: "b", date: "2026-11-15", value: "4 ч", note: "", fields: { totalSec: 4 * 3600 } },
+        ],
+      },
+      "2026-11-16",
+    );
+    expect(facts.sleepSec).toBe(8 * 3600);
+    expect(facts.sleepDays).toBe(2);
+  });
+});
 
 describe("formatDaySummaryBrief", () => {
   it("for a pregnant mom skips baby sleep/feed and lists pregnancy diaries", () => {

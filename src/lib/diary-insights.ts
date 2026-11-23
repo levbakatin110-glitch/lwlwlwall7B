@@ -443,7 +443,7 @@ export function diaperInsight(
     insight: {
       tone: "ok",
       title: since != null ? `С последней смены ${formatMin(since)}` : "Смены идут",
-      detail: `Мокрых сегодня ${todayWet}. Это не лабораторный анализ, зато видно, не «засох» ли день. Сыпь в записях тоже имеет смысл копить, если повторяется.`,
+      detail: `Мокрых сегодня ${todayWet}.`,
     },
   };
 }

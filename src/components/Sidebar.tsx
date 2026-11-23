@@ -75,6 +75,8 @@ const BABY_PINNED: {
   { href: "/m/diaper", label: "Подгузник", icon: "diaper", moduleId: "diaper" },
   { href: "/m/health", label: "Здоровье", icon: "health", moduleId: "health" },
   { href: "/m/vaccines", label: "Прививки", icon: "vaccines", moduleId: "vaccines" },
+  { href: "/m/teeth", label: "Зубы", icon: "teeth", moduleId: "teeth" },
+  { href: "/m/leaps", label: "Скачки роста", icon: "leaps", moduleId: "leaps" },
   { href: "/m/solids", label: "Прикорм", icon: "solids", moduleId: "solids" },
   { href: "/m/water", label: "Вода", icon: "water", moduleId: "water" },
   { href: "/m/walk", label: "Прогулка", icon: "walk", moduleId: "walk" },
@@ -109,13 +111,8 @@ export function Sidebar({
       setCanCloseBackdrop(false);
       return;
     }
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     const t = window.setTimeout(() => setCanCloseBackdrop(true), 350);
-    return () => {
-      document.body.style.overflow = prev;
-      window.clearTimeout(t);
-    };
+    return () => window.clearTimeout(t);
   }, [mobileOpen]);
 
   useEffect(() => {
@@ -208,7 +205,7 @@ export function Sidebar({
         <button
           type="button"
           onClick={close}
-          className="flex h-9 w-9 items-center justify-center rounded-full text-muted transition hover:bg-accent-soft hover:text-foreground"
+          className="flex h-11 w-11 items-center justify-center rounded-xl text-muted transition hover:bg-accent-soft hover:text-foreground"
           aria-label="Закрыть"
         >
           <MayaIcon name="close" size={18} />
@@ -219,7 +216,7 @@ export function Sidebar({
 
   function sectionLabel(text: string) {
     return (
-      <p className="mb-1.5 px-2.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">
+      <p className="mb-1.5 px-2.5 text-xs font-semibold text-muted">
         {text}
       </p>
     );
@@ -331,7 +328,7 @@ export function Sidebar({
           </Link>
           {myDiaries.length > 0 ? (
             <>
-              <p className="mb-1 mt-1 px-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
+              <p className="mb-1 mt-1 px-2.5 text-xs font-semibold text-muted">
                 Мои
               </p>
               {myDiaries.map((mod) => {
@@ -352,7 +349,7 @@ export function Sidebar({
           ) : null}
           {babyRows.length > 0 ? (
             <>
-              <p className="mb-1 mt-1 px-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
+              <p className="mb-1 mt-1 px-2.5 text-xs font-semibold text-muted">
                 Малыш
               </p>
               {babyRows.map((item) => (
@@ -372,7 +369,7 @@ export function Sidebar({
           ) : null}
           {pregnancyRows.length > 0 ? (
             <>
-              <p className="mb-1 mt-3 px-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
+              <p className="mb-1 mt-3 px-2.5 text-xs font-semibold text-muted">
                 Беременность
               </p>
               {pregnancyRows.map((item) => (
@@ -412,7 +409,7 @@ export function Sidebar({
         onClick={(e) => onNavClick(e, "/legal")}
         className="mt-5 px-2.5 text-[11px] text-muted underline underline-offset-2 hover:text-foreground"
       >
-        Документы · оферта
+        Документы
       </Link>
     </nav>
   );
@@ -422,8 +419,8 @@ export function Sidebar({
     mobileOpen &&
     createPortal(
       <div
-        className="fixed inset-0"
-        style={{ zIndex: 99999 }}
+        className="fixed left-0 top-0 w-full"
+        style={{ zIndex: 99999, height: "var(--app-vh, 100dvh)" }}
         role="dialog"
         aria-modal="true"
         aria-label="Меню"

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { CustomModule, JournalEntry, SmartPanel } from "@/lib/types";
+import { forgotHint, forgotTimer, LIVE_FORGOT_SEC } from "@/lib/live-limits";
 import { LIVE_KEYS, liveParse, liveSet } from "@/lib/live-session";
 import {
   ISLAND_EVENT,
@@ -206,6 +207,24 @@ export function CustomSmartPanel({
               >
                 Старт
               </button>
+            ) : forgotTimer(elapsed, LIVE_FORGOT_SEC.timer) ? (
+              <div className="flex w-full flex-col gap-2">
+                <p className="text-xs text-muted">{forgotHint(LIVE_FORGOT_SEC.timer)}</p>
+                <button
+                  type="button"
+                  onClick={() => stopTimer(false)}
+                  className="rounded-2xl bg-accent py-3 text-sm font-semibold text-[var(--on-accent)]"
+                >
+                  Сбросить
+                </button>
+                <button
+                  type="button"
+                  onClick={() => stopTimer(true)}
+                  className="rounded-2xl border border-line py-3 text-sm font-semibold"
+                >
+                  Всё же записать
+                </button>
+              </div>
             ) : (
               <>
                 <button

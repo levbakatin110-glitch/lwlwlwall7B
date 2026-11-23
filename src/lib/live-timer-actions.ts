@@ -1,4 +1,5 @@
 import { formatDuration, todayYmd } from "@/lib/diary-day";
+import { forgotTimer, LIVE_FORGOT_SEC } from "@/lib/live-limits";
 import {
   LIVE_KEYS,
   liveParse,
@@ -150,7 +151,7 @@ export function stopSleepLive(
   const live = liveParse<SleepLive>(key);
   if (!live) return false;
   const elapsed = Math.max(0, Math.floor((Date.now() - live.startedAt) / 1000));
-  if (elapsed < 15) {
+  if (elapsed < 15 || forgotTimer(elapsed, LIVE_FORGOT_SEC.sleep)) {
     persist(key, null);
     return true;
   }
@@ -182,7 +183,7 @@ export function stopWalkLive(addJournalEntry: AddEntry): boolean {
   if (!live) return false;
   const endMs = Date.now();
   const totalSec = Math.floor((endMs - live.startMs) / 1000);
-  if (totalSec < 30) {
+  if (totalSec < 30 || forgotTimer(totalSec, LIVE_FORGOT_SEC.walk)) {
     persist(LIVE_KEYS.walk, null);
     return true;
   }
@@ -243,7 +244,7 @@ export function saveBfLive(addJournalEntry: AddEntry): boolean {
   const R = settled.rightSec;
   const sum = L + R;
   persist(LIVE_KEYS.bf, null);
-  if (sum < 5) return true;
+  if (sum < 5 || forgotTimer(sum, LIVE_FORGOT_SEC.bf)) return true;
   const endMs = Date.now();
   const startMs = endMs - sum * 1000;
   const parts: string[] = [];
@@ -271,6 +272,10 @@ export function stopContractionLive(addJournalEntry: AddEntry): boolean {
   if (!live?.startMs) return false;
   const endMs = Date.now();
   const durationSec = Math.max(1, Math.floor((endMs - live.startMs) / 1000));
+  if (forgotTimer(durationSec, LIVE_FORGOT_SEC.contractions)) {
+    persist(LIVE_KEYS.contractions, null);
+    return true;
+  }
   addJournalEntry("contractions", {
     date: localToday(),
     value: `${formatSec(durationSec)} · сила 3/5`,
@@ -305,7 +310,7 @@ export function stopCustomTimerLive(addJournalEntry: AddEntry): boolean {
   if (!live?.startedAt) return false;
   const elapsed = Math.max(0, Math.floor((Date.now() - live.startedAt) / 1000));
   persist(LIVE_KEYS.customTimer, null);
-  if (elapsed < 5) return true;
+  if (elapsed < 5 || forgotTimer(elapsed, LIVE_FORGOT_SEC.timer)) return true;
   const mins = Math.max(1, Math.round(elapsed / 60));
   addJournalEntry(live.moduleId, {
     date: todayYmd(),

@@ -115,7 +115,11 @@ export function refundChatQuota(email: string): ChatQuotaView {
   }
 }
 
-export function grantChatTopup(email: string, orderId?: string): ChatQuotaView {
+export function grantChatTopup(
+  email: string,
+  orderId?: string,
+  source?: "prodamus" | "yookassa" | "fake",
+): ChatQuotaView {
   const month = chatMonthKey();
   const key = quotaKey(email);
   if (orderId && !claimPaymentRef(orderId, "chat_topup", key)) {
@@ -135,7 +139,8 @@ export function grantChatTopup(email: string, orderId?: string): ChatQuotaView {
       email,
       kind: "chat_topup",
       amountRub: saleAmountForTopup(),
-      source: orderId?.startsWith("fake-") ? "fake" : "prodamus",
+      source:
+        source ?? (orderId?.startsWith("fake-") ? "fake" : "prodamus"),
       orderId: orderId || null,
     });
     return viewFrom(key, month, next);

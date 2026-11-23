@@ -23,6 +23,7 @@ import {
   formatHumanDuration,
   todayYmd,
 } from "@/lib/diary-day";
+import { forgotHint, forgotTimer, LIVE_FORGOT_SEC } from "@/lib/live-limits";
 import { liveParse, liveSet } from "@/lib/live-session";
 import { ISLAND_EVENT, notifyIslandChanged } from "@/lib/live-timer-actions";
 import { timerIsland } from "@/lib/timer-island";
@@ -64,6 +65,7 @@ export function WalkTracker() {
   const removeJournalEntry = useAppStore((s) => s.removeJournalEntry);
   const entries = useAppStore((s) => s.journals.walk ?? []);
   const [live, setLive] = useState<LiveSession | null>(null);
+  const [ready, setReady] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
@@ -78,11 +80,13 @@ export function WalkTracker() {
       if (s?.to) setTo(s.to);
     };
     pull();
+    setReady(true);
     window.addEventListener(ISLAND_EVENT, pull);
     return () => window.removeEventListener(ISLAND_EVENT, pull);
   }, []);
 
   useEffect(() => {
+    if (!ready) return;
     try {
       if (!live) liveSet(SS_KEY, null);
       else liveSet(SS_KEY, JSON.stringify(live));
@@ -90,7 +94,7 @@ export function WalkTracker() {
     } catch {
       /* */
     }
-  }, [live]);
+  }, [live, ready]);
 
   useEffect(() => {
     if (!live) return;
@@ -128,6 +132,7 @@ export function WalkTracker() {
   const liveSec = live
     ? Math.max(0, Math.floor((now - live.startMs) / 1000))
     : 0;
+  const forgot = live ? forgotTimer(liveSec, LIVE_FORGOT_SEC.walk) : false;
 
   function start() {
     const startMs = Date.now();
@@ -260,7 +265,28 @@ export function WalkTracker() {
       )}
 
       <DiaryStickyCta>
-        {live ? (
+        {live && forgot ? (
+          <div className="flex flex-col gap-2">
+            <p className="text-center text-xs text-muted">
+              {forgotHint(LIVE_FORGOT_SEC.walk)} В дневник само не пишется.
+            </p>
+            <DiaryPrimaryButton
+              onClick={() => {
+                liveSet(SS_KEY, null);
+                setLive(null);
+              }}
+            >
+              Сбросить
+            </DiaryPrimaryButton>
+            <button
+              type="button"
+              onClick={stopAndSave}
+              className="w-full rounded-2xl border border-line bg-card px-5 py-3.5 text-sm font-semibold text-foreground"
+            >
+              Всё же записать {formatDuration(liveSec)}
+            </button>
+          </div>
+        ) : live ? (
           <DiaryPrimaryButton onClick={stopAndSave}>
             <span className="tabular-nums">{formatDuration(liveSec)}</span>
             <span>· Закончить</span>

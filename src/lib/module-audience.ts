@@ -101,7 +101,9 @@ export function shouldShowModule(
 ): boolean {
   if (isRetiredModuleId(id)) return false;
   if (isPregnancyModuleId(id)) return ctx.pregnant;
-  if (id === "diet" || id === "cycle") return !ctx.hasChild;
+  if (id === "diet") return !ctx.hasChild;
+  // Цикл у мамы с малышом не прячем: после родов его тоже ведут. В меню попадёт, только если включён.
+  if (id === "cycle") return true;
   if (isBabyModuleId(id)) return ctx.hasChild;
   return true;
 }

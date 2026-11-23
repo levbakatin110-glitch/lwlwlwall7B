@@ -19,6 +19,8 @@ import type { CustomModule, ModuleId } from "@/lib/types";
 /** Приоритет в шапке: сначала эти, потом остальные включённые */
 const PRIORITY_ORDER: ModuleId[] = [
   ...STARTER_ENABLED_MODULES,
+  "teeth",
+  "leaps",
   "solids",
   "water",
   "walk",
@@ -40,6 +42,8 @@ const PRIORITY_ORDER: ModuleId[] = [
 const NAV_LABEL: Partial<Record<ModuleId, string>> = {
   growth: "Рост малыша",
   vaccines: "Прививки",
+  teeth: "Зубы",
+  leaps: "Скачки",
   sleep: "Сон",
   breastfeeding: "ГВ",
   formula: "Смеси",
@@ -179,21 +183,21 @@ export function QuickNavCarousel({ className = "" }: { className?: string }) {
               aria-label={item.label}
               aria-current={active ? "page" : undefined}
               onClick={(e) => onNavClick(e, item.href)}
-              className={`flex w-[3.35rem] shrink-0 snap-start flex-col items-center gap-0.5 rounded-xl px-0.5 py-0.5 transition ${
+              className={`flex w-[3.55rem] shrink-0 snap-start flex-col items-center gap-0.5 rounded-xl px-0.5 py-1 transition ${
                 active ? "bg-accent/10" : "hover:bg-accent-soft/50"
               }`}
             >
               <span
-                className={`flex h-8 w-8 items-center justify-center rounded-xl transition ${
+                className={`flex h-9 w-9 items-center justify-center rounded-xl transition ${
                   active
-                    ? "bg-accent text-white shadow-sm"
+                    ? "bg-accent text-on-accent shadow-sm"
                     : "bg-accent-soft/80 text-foreground ring-1 ring-line"
                 }`}
               >
                 <MayaIcon name={item.icon} size={18} />
               </span>
               <span
-                className={`w-full truncate text-center text-[9px] font-semibold leading-tight tracking-tight ${
+                className={`w-full truncate text-center text-[10px] font-semibold leading-tight ${
                   active ? "text-accent" : "text-muted"
                 }`}
               >

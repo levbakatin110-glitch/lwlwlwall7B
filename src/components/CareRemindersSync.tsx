@@ -12,6 +12,7 @@ import {
   type ScheduledPushItem,
 } from "@/lib/care-reminders";
 import { childDisplayName } from "@/lib/children";
+import { leapPushText, upcomingLeapPushes } from "@/lib/leaps";
 import { useAppStore } from "@/lib/store";
 
 const FIRED_KEY = "maya-reminders-fired-v1";
@@ -51,7 +52,7 @@ export function collectScheduledPushes(now = Date.now()): ScheduledPushItem[] {
       .filter((row): row is CareReminder => Boolean(row));
     reminders.push(...spaceReminders);
     for (const r of spaceReminders) {
-      if (r.kind !== "custom" || !r.enabled) continue;
+      if (!r.enabled) continue;
       const last = lastLogMs(journals, LOG_MODULES[r.kind] ?? []);
       items.push({
         id: `${childId}:${r.id}`,
@@ -108,6 +109,25 @@ export function collectScheduledPushes(now = Date.now()): ScheduledPushItem[] {
     });
   }
 
+  for (const child of s.children) {
+    if (!child.birthDate) continue;
+    const childName = childDisplayName(child);
+    for (const push of upcomingLeapPushes(child.birthDate, new Date(now))) {
+      const text = leapPushText(push.kind, push.leap);
+      const id = `leap:${child.id}:${push.id}`;
+      items.push({
+        id,
+        title: s.children.length > 1 ? `${text.title} · ${childName}` : text.title,
+        body: text.body,
+        url: "/m/leaps",
+        tag: id,
+        nextAt: push.at.getTime(),
+        mode: "once",
+        tzOffsetMin: tz,
+      });
+    }
+  }
+
   const oneShotMods: { id: string; href: string }[] = [
     { id: "preg_meds", href: "/m/preg_meds" },
   ];
@@ -158,6 +178,7 @@ export function CareRemindersSync() {
   const childSpaces = useAppStore((s) => s.childSpaces);
   const momJournals = useAppStore((s) => s.momJournals);
   const journals = useAppStore((s) => s.journals);
+  const children = useAppStore((s) => s.children);
   const timer = useRef<number | null>(null);
 
   useEffect(() => {
@@ -174,7 +195,7 @@ export function CareRemindersSync() {
       if (timer.current) window.clearTimeout(timer.current);
       window.removeEventListener("maya-push-ready", onReady);
     };
-  }, [emailVerified, childSpaces, momJournals, journals]);
+  }, [emailVerified, childSpaces, momJournals, journals, children]);
 
   return null;
 }

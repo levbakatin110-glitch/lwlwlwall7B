@@ -16,6 +16,10 @@ export type ChildProfile = {
   birthHeightCm?: number;
   /** Вес при рождении, кг */
   birthWeightKg?: number;
+  /** ГВ, смесь или смешанное. Спрашиваем в анкете. */
+  feeding?: "breast" | "formula" | "mixed";
+  /** Что сейчас тяжелее всего. */
+  focus?: "sleep" | "feeding" | "anxiety" | "routine";
 };
 
 export type WardrobeItem = {
@@ -191,6 +195,8 @@ export type ChatMessage = {
   };
   /** Снимок погоды для iOS-виджета в чате */
   weather?: WeatherSnapshot;
+  /** Фото, которое мама приложила к сообщению */
+  photoData?: string;
 };
 
 export type ModuleId =
@@ -200,6 +206,8 @@ export type ModuleId =
   | "solids"
   | "sleep"
   | "vaccines"
+  | "teeth"
+  | "leaps"
   | "health"
   | "diet"
   | "water"

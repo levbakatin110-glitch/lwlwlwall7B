@@ -139,28 +139,34 @@ export function GrowthTracker() {
       <DiaryInsightCard view={insight} />
 
       <div className="mt-5 grid grid-cols-2 gap-3">
-        <div className="flex flex-col items-center rounded-3xl border border-line bg-gradient-to-b from-card to-[color-mix(in_oklab,var(--accent)_6%,var(--card))] py-8 shadow-sm">
+        <label className="flex flex-col items-center rounded-3xl border border-line bg-card px-3 py-4">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+            Вес, кг
+          </span>
           <input
             type="text"
             inputMode="decimal"
             value={weight}
             onChange={(e) => setWeight(e.target.value)}
-            placeholder="0.0"
-            className="w-full border-0 bg-transparent text-center font-display text-4xl font-semibold tabular-nums tracking-tight text-accent outline-none placeholder:text-muted/30"
+            placeholder="8.2"
+            aria-label="Вес, кг"
+            className="mt-2 w-full border-0 bg-transparent text-center font-display text-3xl font-semibold tabular-nums tracking-tight text-foreground outline-none placeholder:text-muted/50"
           />
-          <span className="mt-1 text-sm font-medium text-muted">кг</span>
-        </div>
-        <div className="flex flex-col items-center rounded-3xl border border-line bg-gradient-to-b from-card to-[color-mix(in_oklab,var(--accent)_6%,var(--card))] py-8 shadow-sm">
+        </label>
+        <label className="flex flex-col items-center rounded-3xl border border-line bg-card px-3 py-4">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+            Рост, см
+          </span>
           <input
             type="text"
             inputMode="decimal"
             value={height}
             onChange={(e) => setHeight(e.target.value)}
-            placeholder="0"
-            className="w-full border-0 bg-transparent text-center font-display text-4xl font-semibold tabular-nums tracking-tight text-accent outline-none placeholder:text-muted/30"
+            placeholder="68"
+            aria-label="Рост, см"
+            className="mt-2 w-full border-0 bg-transparent text-center font-display text-3xl font-semibold tabular-nums tracking-tight text-foreground outline-none placeholder:text-muted/50"
           />
-          <span className="mt-1 text-sm font-medium text-muted">см</span>
-        </div>
+        </label>
       </div>
       {(weightOutOfRange || heightOutOfRange) && (
         <p className="mt-2 text-center text-xs text-blush">

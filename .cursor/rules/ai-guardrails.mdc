@@ -28,4 +28,7 @@ alwaysApply: true
 - Production uses **webhook** (`/api/telegram/webhook`). Do not run `scripts/telegram-bot.mjs` polling on the same bot — it deletes webhook.
 
 ## Deploy
-- After live fixes: commit → push `main` → owner runs `bash scripts/deploy-vps.sh` on VPS.
+- Full recipe: `docs/DEPLOY.md`
+- After live fixes: commit → push `main` → on VPS: `cd /var/www/maya && bash scripts/deploy-vps.sh`
+- Do not claim the site is updated until that VPS command finished (`OK: BUILD_ID=...`).
+- Windows agents cannot build App Store IPA; see `docs/IOS_APP_STORE.md`.

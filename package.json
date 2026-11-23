@@ -9,9 +9,15 @@
     "lint": "eslint",
     "test": "vitest run",
     "check": "npm run test && npm run build",
-    "bot": "node scripts/telegram-bot.mjs"
+    "bot": "node scripts/telegram-bot.mjs",
+    "cap:sync": "npx cap sync",
+    "cap:ios": "npx cap open ios",
+    "cap:add:ios": "npx cap add ios"
   },
   "dependencies": {
+    "@capacitor/core": "^7.6.10",
+    "@capacitor/ios": "^7.6.10",
+    "@capacitor/splash-screen": "^7.0.5",
     "@sentry/browser": "^10.73.0",
     "@sentry/node": "^10.73.0",
     "@types/pdfkit": "^0.17.6",
@@ -26,6 +32,7 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
+    "@capacitor/cli": "^7.6.10",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^22.20.1",
     "@types/react": "^19",

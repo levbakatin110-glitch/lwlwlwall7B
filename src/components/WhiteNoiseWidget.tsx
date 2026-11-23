@@ -145,15 +145,17 @@ export function WhiteNoiseWidget({
       role="region"
       aria-label="Шум для сна, виджет"
     >
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-center justify-between gap-3">
         {!compact ? (
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <h3 className="font-display text-lg font-semibold tracking-tight text-foreground">
               Шум для сна
             </h3>
           </div>
         ) : (
-          <p className="min-w-0 text-sm text-muted">Выберите звук и таймер</p>
+          <p className="font-display text-base font-semibold tracking-tight text-foreground">
+            {playing ? "Играет" : "Выключен"}
+          </p>
         )}
         <span
           className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${
@@ -215,7 +217,7 @@ export function WhiteNoiseWidget({
                 onClick={() => onTimer(t.minutes)}
                 className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold transition ${
                   active
-                    ? "bg-accent text-[#ffffff]"
+                    ? "bg-accent text-on-accent"
                     : "border border-line bg-background/50 text-muted hover:text-foreground"
                 }`}
               >
@@ -238,7 +240,7 @@ export function WhiteNoiseWidget({
         className={`mt-3.5 flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-semibold transition disabled:opacity-50 ${
           playing
             ? "bg-user-bubble text-foreground ring-1 ring-line"
-            : "bg-accent text-[#ffffff] hover:bg-accent-hot"
+            : "bg-accent text-on-accent hover:bg-accent-hot"
         }`}
       >
         <NoiseWaveIcon playing={playing} size={18} />

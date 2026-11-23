@@ -15,6 +15,7 @@ import {
 import { localToday } from "@/lib/local-date";
 import { breathGuide } from "@/lib/contraction-breath";
 import { formatSec } from "@/lib/pregnancy";
+import { forgotHint, forgotTimer, LIVE_FORGOT_SEC } from "@/lib/live-limits";
 import { liveGet, liveSet } from "@/lib/live-session";
 import { ISLAND_EVENT, notifyIslandChanged } from "@/lib/live-timer-actions";
 import { timerIsland } from "@/lib/timer-island";
@@ -102,6 +103,7 @@ export function ContractionsTracker() {
   const removeJournalEntry = useAppStore((s) => s.removeJournalEntry);
   const entries = useAppStore((s) => getJournalEntries(s, "contractions"));
   const [live, setLive] = useState<LiveRow | null>(null);
+  const [ready, setReady] = useState(false);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -118,11 +120,13 @@ export function ContractionsTracker() {
       }
     };
     pull();
+    setReady(true);
     window.addEventListener(ISLAND_EVENT, pull);
     return () => window.removeEventListener(ISLAND_EVENT, pull);
   }, []);
 
   useEffect(() => {
+    if (!ready) return;
     try {
       if (!live) liveSet(SESSION_KEY, null);
       else liveSet(SESSION_KEY, JSON.stringify(live));
@@ -130,7 +134,7 @@ export function ContractionsTracker() {
     } catch {
       /* */
     }
-  }, [live]);
+  }, [live, ready]);
 
   useEffect(() => {
     if (!live) return;
@@ -337,7 +341,21 @@ export function ContractionsTracker() {
       )}
 
       <DiaryStickyCta>
-        {live ? (
+        {live && forgotTimer(liveDurationSec, LIVE_FORGOT_SEC.contractions) ? (
+          <div className="flex flex-col gap-2">
+            <p className="text-center text-xs text-muted">
+              {forgotHint(LIVE_FORGOT_SEC.contractions)} В дневник само не пишется.
+            </p>
+            <DiaryPrimaryButton onClick={cancel}>Сбросить</DiaryPrimaryButton>
+            <button
+              type="button"
+              onClick={stopAndSave}
+              className="w-full rounded-2xl border border-line bg-background px-5 py-3.5 text-sm font-semibold text-foreground"
+            >
+              Всё же записать {formatSec(liveDurationSec)}
+            </button>
+          </div>
+        ) : live ? (
           <div className="flex gap-2">
             <DiaryPrimaryButton onClick={stopAndSave}>
               <span className="tabular-nums">{formatSec(liveDurationSec)}</span>

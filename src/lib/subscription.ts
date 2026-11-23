@@ -1,4 +1,4 @@
-/** Тарифы Маи. Оплата через Prodamus. */
+/** Тарифы Маи. Оплата через ЮKassa. */
 
 import { CHAT_INCLUDED_MSGS, CHAT_TOPUP_RUB } from "@/lib/chat-quota";
 
@@ -11,10 +11,10 @@ export { SKIP_ONBOARDING_TO_PRICING } from "./temp-flags";
 export const TEMP_UNLOCK_ALL = false;
 
 /**
- * ВРЕМЕННО: кнопка «Оплатить» сразу выдаёт Premium (без Prodamus).
- * Перед боем с реальными деньгами, выключить.
+ * true — кнопка «Оплатить» выдаёт Premium без списания.
+ * Боевая оплата идёт через ЮKassa, заглушка выключена.
  */
-export const FAKE_PAYMENTS = true;
+export const FAKE_PAYMENTS = false;
 
 /**
  * Без бесплатной пробной: чат, дневники и функции, только с Premium.

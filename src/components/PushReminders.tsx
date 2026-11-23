@@ -95,7 +95,7 @@ export function PushReminders() {
   );
 }
 
-const SW_URL = "/sw.js?v=17";
+const SW_URL = "/sw.js?v=18";
 
 export async function showLocalNotice(
   title: string,

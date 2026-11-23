@@ -137,7 +137,7 @@ export function InstallHint() {
               <button
                 type="button"
                 onClick={() => void install()}
-                className="rounded-xl bg-accent px-3 py-1.5 text-xs font-semibold text-white"
+                className="rounded-xl bg-accent px-3 py-1.5 text-xs font-semibold text-on-accent"
               >
                 Установить
               </button>

@@ -135,6 +135,10 @@ type AppState = {
   modulesAudienceFillV2?: boolean;
   /** одноразовая: здоровье не включаем сами */
   healthDiaryOptInV1?: boolean;
+  /** одноразовая: дневник зубов у тех, у кого уже есть малыш */
+  teethDiaryV1?: boolean;
+  /** одноразовая: скачки роста у тех, у кого уже есть малыш */
+  leapsDiaryV1?: boolean;
   /** одноразовая: кормление и укладывание включены сами */
   careCorePushesV1?: boolean;
   /** План диеты мамы (общий) */
@@ -1056,6 +1060,8 @@ export const useAppStore = create<AppState>()(
         modulesPayStarterV1: state.modulesPayStarterV1,
         modulesAudienceFillV2: state.modulesAudienceFillV2,
         healthDiaryOptInV1: state.healthDiaryOptInV1,
+        teethDiaryV1: state.teethDiaryV1,
+        leapsDiaryV1: state.leapsDiaryV1,
         careCorePushesV1: state.careCorePushesV1,
         dietPlan: state.dietPlan,
         opsErrors: (state.opsErrors ?? []).slice(0, 30),
@@ -1457,6 +1463,54 @@ export const useAppStore = create<AppState>()(
             space.enabledModules = fill(space.enabledModules ?? []);
           }
           state.modulesAudienceFillV2 = true;
+        }
+
+        if (state.onboardingDone && !state.teethDiaryV1) {
+          const teethCtx = audienceFromState({
+            pregnancy: state.pregnancy,
+            children: state.children,
+            enabledModules: next,
+            careHasChild: state.careHasChild,
+          });
+          if (teethCtx.hasChild) {
+            if (!next.includes("teeth")) {
+              next.push("teeth");
+              seededDefaults = true;
+            }
+            for (const sid of Object.keys(state.childSpaces ?? {})) {
+              const space = state.childSpaces[sid];
+              if (!space) continue;
+              const list = [...(space.enabledModules ?? [])];
+              if (!list.includes("teeth")) list.push("teeth");
+              space.enabledModules = list;
+              space.journals = { ...(space.journals ?? {}), teeth: space.journals?.teeth ?? [] };
+            }
+            state.teethDiaryV1 = true;
+          }
+        }
+
+        if (state.onboardingDone && !state.leapsDiaryV1) {
+          const leapsCtx = audienceFromState({
+            pregnancy: state.pregnancy,
+            children: state.children,
+            enabledModules: next,
+            careHasChild: state.careHasChild,
+          });
+          if (leapsCtx.hasChild) {
+            if (!next.includes("leaps")) {
+              next.push("leaps");
+              seededDefaults = true;
+            }
+            for (const sid of Object.keys(state.childSpaces ?? {})) {
+              const space = state.childSpaces[sid];
+              if (!space) continue;
+              const list = [...(space.enabledModules ?? [])];
+              if (!list.includes("leaps")) list.push("leaps");
+              space.enabledModules = list;
+              space.journals = { ...(space.journals ?? {}), leaps: space.journals?.leaps ?? [] };
+            }
+            state.leapsDiaryV1 = true;
+          }
         }
 
         if (!state.healthDiaryOptInV1) {

@@ -40,6 +40,13 @@ yarn-error.log*
 # vercel
 .vercel
 
+# Android upload key. Do not commit.
+/android-signing/
+
+# iOS CocoaPods (ставится на Mac: cd ios/App && pod install)
+ios/App/Pods/
+ios/DerivedData/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

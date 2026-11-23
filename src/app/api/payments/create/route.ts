@@ -1,11 +1,10 @@
 import { CHAT_TOPUP_MSGS, CHAT_TOPUP_RUB } from "@/lib/chat-quota";
 import { grantChatTopup } from "@/lib/chat-quota-store";
-import { fetchWithTimeout } from "@/lib/fetch-timeout";
-import { planPaymentsBypass } from "@/lib/plan-products";
-import { prodamusConfig, prodamusSign } from "@/lib/prodamus";
 import { hitRateLimit, tooManyRequests } from "@/lib/rate-limit";
 import { readSessionFromRequest } from "@/lib/session";
 import { FAKE_PAYMENTS, planById, type PaidPlanId } from "@/lib/subscription";
+import { rememberYookassaPayment } from "@/lib/yookassa-payments";
+import { yookassaCreatePayment, yookassaReady, yookassaSite } from "@/lib/yookassa";
 
 export const runtime = "nodejs";
 
@@ -26,13 +25,20 @@ export async function POST(req: Request) {
     return Response.json({ error: "Некорректный запрос" }, { status: 400 });
   }
 
+  if (!yookassaReady()) {
+    return Response.json(
+      { error: "Оплата ещё не настроена на сервере." },
+      { status: 503 },
+    );
+  }
+
   /** Доплата за пакет чата */
   if (body.kind === "chat_boost") {
-    const orderId = `maya-chatboost-${Date.now()}`;
-    if (FAKE_PAYMENTS || planPaymentsBypass()) {
+    if (FAKE_PAYMENTS) {
+      const orderId = `fake-chatboost-${Date.now()}`;
       const limit = hitRateLimit(`fake-topup:${email}`, 1, 86_400);
       if (!limit.ok) return tooManyRequests(limit);
-      const quota = grantChatTopup(email, orderId);
+      const quota = grantChatTopup(email, orderId, "fake");
       return Response.json({
         ok: true,
         bypass: true,
@@ -41,145 +47,69 @@ export async function POST(req: Request) {
         message: `Добавлено +${CHAT_TOPUP_MSGS} сообщений`,
       });
     }
-
-    const { secret, payform, site } = prodamusConfig();
-    if (!secret || !payform) {
-      return Response.json(
-        {
-          error:
-            "Оплата ещё не настроена на сервере (PRODAMUS_SECRET_KEY / PRODAMUS_PAYFORM_URL).",
-        },
-        { status: 503 },
-      );
-    }
-
-    const data: Record<string, unknown> = {
-      order_id: orderId,
-      customer_email: email,
-      customer_extra: `chat_boost:${orderId}`,
-      products: [
-        {
-          name: `Maya · пакет чата +${CHAT_TOPUP_MSGS} сообщ.`,
-          price: String(CHAT_TOPUP_RUB),
-          quantity: "1",
-        },
-      ],
-      do: "link",
-      urlSuccess: `${site}/?chatTopup=1`,
-      urlReturn: `${site}/`,
-      urlNotification: `${site}/api/payments/prodamus`,
-    };
-    data.signature = prodamusSign(data, secret);
-
-    try {
-      const res = await fetchWithTimeout(payform + "/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-        },
-        body: toFormBody(data),
-        timeoutMs: 10_000,
-      });
-      const text = (await res.text()).trim();
-      if (text.startsWith("http")) {
-        return Response.json({ url: text, orderId });
-      }
-    } catch {
-      /* fail closed */
-    }
-    return Response.json(
-      { error: "Не удалось создать ссылку на оплату. Попробуйте ещё раз." },
-      { status: 502 },
-    );
-  }
-
-  const { secret, payform, site } = prodamusConfig();
-  if (!secret || !payform) {
-    return Response.json(
-      {
-        error:
-          "Оплата ещё не настроена на сервере (PRODAMUS_SECRET_KEY / PRODAMUS_PAYFORM_URL).",
-      },
-      { status: 503 },
-    );
+    return startCheckout({
+      email,
+      kind: "chat_boost",
+      planId: null,
+      amountRub: CHAT_TOPUP_RUB,
+      description: `Мая · пакет чата +${CHAT_TOPUP_MSGS} сообщ.`,
+      returnUrl: `${yookassaSite()}/?chatTopup=1`,
+    });
   }
 
   const planId = body.planId as PaidPlanId;
   const plan = planById(planId);
-
   if (!plan) {
-    return Response.json(
-      { error: "Нужны тариф и почта аккаунта" },
-      { status: 400 },
-    );
+    return Response.json({ error: "Нужен тариф" }, { status: 400 });
   }
 
-  const orderId = `maya-${planId}-${Date.now()}`;
-  const data: Record<string, unknown> = {
-    order_id: orderId,
-    customer_email: email,
-    customer_extra: planId,
-    products: [
-      {
-        name: `Maya Premium · ${plan.label}`,
-        price: String(plan.priceRub),
-        quantity: "1",
-      },
-    ],
-    do: "link",
-    urlSuccess: `${site}/pricing?paid=1`,
-    urlReturn: `${site}/pricing`,
-    urlNotification: `${site}/api/payments/prodamus`,
-  };
-
-  data.signature = prodamusSign(data, secret);
-
-    try {
-      const res = await fetchWithTimeout(payform + "/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-        },
-        body: toFormBody(data),
-        timeoutMs: 10_000,
-      });
-      const text = (await res.text()).trim();
-      if (text.startsWith("http")) {
-        return Response.json({ url: text, orderId });
-      }
-    } catch {
-      /* fail closed */
-    }
-
-    return Response.json(
-      { error: "Не удалось создать ссылку на оплату. Попробуйте ещё раз." },
-      { status: 502 },
-    );
+  return startCheckout({
+    email,
+    kind: "subscription",
+    planId,
+    amountRub: plan.priceRub,
+    description: `Мая Premium · ${plan.label}`,
+    returnUrl: `${yookassaSite()}/pricing?paid=1`,
+  });
 }
 
-function toFormBody(data: Record<string, unknown>, prefix = ""): string {
-  const parts: string[] = [];
-  for (const [key, value] of Object.entries(data)) {
-    const name = prefix ? `${prefix}[${key}]` : key;
-    if (Array.isArray(value)) {
-      value.forEach((item, i) => {
-        if (item && typeof item === "object") {
-          parts.push(
-            toFormBody(item as Record<string, unknown>, `${name}[${i}]`),
-          );
-        } else {
-          parts.push(
-            `${encodeURIComponent(`${name}[${i}]`)}=${encodeURIComponent(String(item))}`,
-          );
-        }
-      });
-    } else if (value && typeof value === "object") {
-      parts.push(toFormBody(value as Record<string, unknown>, name));
-    } else if (value != null) {
-      parts.push(
-        `${encodeURIComponent(name)}=${encodeURIComponent(String(value))}`,
-      );
-    }
+async function startCheckout(opts: {
+  email: string;
+  kind: "subscription" | "chat_boost";
+  planId: PaidPlanId | null;
+  amountRub: number;
+  description: string;
+  returnUrl: string;
+}) {
+  try {
+    const payment = await yookassaCreatePayment({
+      amountRub: opts.amountRub,
+      description: opts.description,
+      returnUrl: opts.returnUrl,
+      email: opts.email,
+      metadata: {
+        email: opts.email,
+        kind: opts.kind,
+        planId: opts.planId ?? "",
+      },
+    });
+    rememberYookassaPayment({
+      paymentId: payment.id,
+      email: opts.email,
+      kind: opts.kind,
+      planId: opts.planId,
+      amountRub: opts.amountRub,
+    });
+    return Response.json({ url: payment.url, orderId: payment.id });
+  } catch (err) {
+    return Response.json(
+      {
+        error:
+          err instanceof Error
+            ? err.message
+            : "Не удалось создать ссылку на оплату. Попробуйте ещё раз.",
+      },
+      { status: 502 },
+    );
   }
-  return parts.filter(Boolean).join("&");
 }

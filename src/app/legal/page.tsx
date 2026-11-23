@@ -26,9 +26,10 @@ export default function LegalIndexPage() {
       <div className="rounded-xl border border-line bg-card/60 px-3 py-3 text-xs leading-relaxed text-muted">
         <p className="font-medium text-foreground">{LEGAL_OPERATOR.fullName}</p>
         <p>
-          ИНН {LEGAL_OPERATOR.inn} · ОГРНИП {LEGAL_OPERATOR.ogrnip}
+          ИНН {LEGAL_OPERATOR.inn}
+          {LEGAL_OPERATOR.ogrnip ? ` · ОГРНИП ${LEGAL_OPERATOR.ogrnip}` : ""}
         </p>
-        <p>{LEGAL_OPERATOR.address}</p>
+        {LEGAL_OPERATOR.address ? <p>{LEGAL_OPERATOR.address}</p> : null}
         <p>
           <a
             className="text-accent underline"
@@ -68,6 +69,14 @@ export default function LegalIndexPage() {
             ) : null}
           </li>
         ))}
+        <li>
+          <Link
+            href="/legal/delete-account"
+            className="font-medium text-accent underline underline-offset-2"
+          >
+            Удаление аккаунта
+          </Link>
+        </li>
       </ul>
     </LegalShell>
   );

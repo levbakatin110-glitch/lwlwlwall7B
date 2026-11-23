@@ -170,6 +170,16 @@ function migrateSchema(db: DatabaseSync) {
       email TEXT,
       created_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS yookassa_payments (
+      payment_id TEXT PRIMARY KEY,
+      email TEXT NOT NULL,
+      kind TEXT NOT NULL,
+      plan_id TEXT,
+      amount_rub INTEGER NOT NULL,
+      status TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
   `);
   const cols = db.prepare("PRAGMA table_info(plan_orders)").all() as {
     name: string;

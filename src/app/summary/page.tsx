@@ -14,6 +14,7 @@ import {
   formatDurationRu,
   shiftIsoDate,
   todayIso,
+  weekFacts,
   type DayEventKind,
 } from "@/lib/day-summary";
 import { buildDayRhythm } from "@/lib/day-rhythm";
@@ -327,7 +328,7 @@ ${brief}`;
 
       {hasChild && isToday && (rhythm.nextFeed || rhythm.nextSleep) ? (
         <div className="mt-5 rounded-2xl border border-accent/25 bg-accent-soft/40 px-4 py-3">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-accent">
+          <p className="text-xs font-medium text-accent">
             По вашему ритму
           </p>
           {rhythm.nextFeed ? (
@@ -408,6 +409,8 @@ ${brief}`;
           icon="diaper"
         />
       </div>
+
+      <WeekFactsCard journals={journals} endDate={date} />
 
       {(totals.bfSec > 0 || totals.sleepNapSec > 0 || totals.sleepNightSec > 0) && (
         <p className="mt-3 text-xs leading-relaxed text-muted">
@@ -521,9 +524,7 @@ ${brief}`;
       ) : null}
 
       <div className="mt-6 rounded-2xl border border-accent/25 bg-accent-soft/40 p-4">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-accent">
-          Мнение Маи
-        </p>
+        <p className="text-xs font-medium text-accent">Мнение Маи</p>
         <button
           type="button"
           onClick={askMayaVerdict}
@@ -544,47 +545,11 @@ ${brief}`;
         )}
       </div>
 
-      <div className="mt-8 flex items-end justify-between gap-3">
-        <p className="font-display text-xl font-semibold">Лента</p>
-        <Link
-          href={hasChild ? "/m/sleep" : "/m/preg_symptoms"}
-          className="text-xs font-medium text-accent underline"
-        >
-          + запись
-        </Link>
-      </div>
+      <p className="font-display mt-8 text-xl font-semibold">Лента</p>
 
       {events.length === 0 ? (
         <div className="mt-4 rounded-2xl border border-dashed border-line bg-card/40 px-4 py-8 text-center">
           <p className="text-sm text-muted">За этот день записей пока нет.</p>
-          <div className="mt-3 flex flex-wrap justify-center gap-2">
-            {(hasChild || !pregnant
-              ? [
-                  { href: "/m/sleep", label: "Сон", primary: true },
-                  { href: "/m/breastfeeding", label: "ГВ" },
-                  { href: "/m/formula", label: "Смесь" },
-                  { href: "/m/diaper", label: "Подгузник" },
-                ]
-              : [
-                  { href: "/m/preg_sleep", label: "Сон мамы", primary: true },
-                  { href: "/m/preg_symptoms", label: "Самочувствие" },
-                  { href: "/m/preg_pressure", label: "Давление" },
-                  { href: "/m/preg_visits", label: "Визиты" },
-                ]
-            ).map((chip) => (
-              <Link
-                key={chip.href}
-                href={chip.href}
-                className={
-                  chip.primary
-                    ? "rounded-xl bg-accent px-3 py-2 text-xs font-semibold text-white"
-                    : "rounded-xl border border-line bg-card px-3 py-2 text-xs font-semibold"
-                }
-              >
-                {chip.label}
-              </Link>
-            ))}
-          </div>
         </div>
       ) : (
         <ul className="mt-4 space-y-2.5">
@@ -625,6 +590,59 @@ ${brief}`;
           ? "Ориентиры по возрасту, очень приблизительные и не заменяют педиатра. Смотрите на вес, подгузники и самочувствие малыша."
           : "Это не замена врачу. Смотрите на самочувствие и то, что сказал ваш доктор."}
       </p>
+    </div>
+  );
+}
+
+function WeekFactsCard({
+  journals,
+  endDate,
+}: {
+  journals: Record<string, JournalEntry[]>;
+  endDate: string;
+}) {
+  const facts = weekFacts(journals, endDate);
+  const lines: string[] = [];
+  if (facts.sleepSec > 0 && facts.sleepDays > 0) {
+    lines.push(
+      `Сон в дневнике: ${formatDurationRu(facts.sleepSec)} за 7 дней. В дни, где он отмечен, около ${formatDurationRu(facts.sleepSec / facts.sleepDays)} за день.`,
+    );
+  }
+  if (facts.bfCount > 0) {
+    lines.push(
+      `ГВ: ${facts.bfCount} раз${facts.bfSec > 0 ? `, ${formatDurationRu(facts.bfSec)}` : ""}.`,
+    );
+  }
+  if (facts.formulaMl > 0 || facts.formulaCount > 0) {
+    const bits = [
+      facts.formulaMl > 0 ? `${facts.formulaMl} мл` : "",
+      facts.formulaCount > 0 ? `${facts.formulaCount} раз` : "",
+    ].filter(Boolean);
+    lines.push(`Смесь: ${bits.join(", ")}.`);
+  }
+  if (facts.solidsCount > 0) {
+    lines.push(`Прикорм: ${facts.solidsCount} записей.`);
+  }
+  if (facts.diaperWet + facts.diaperDirty > 0) {
+    lines.push(`Подгузники: мокрых ${facts.diaperWet}, грязных ${facts.diaperDirty}.`);
+  }
+  return (
+    <div className="mt-4 rounded-2xl border border-line bg-card/50 px-4 py-3">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
+        7 дней по дневнику
+      </p>
+      <p className="mt-1 text-[12px] text-muted">
+        {formatDayLabel(facts.from)} — {formatDayLabel(facts.to)}. Только записи, без норм.
+      </p>
+      {lines.length === 0 ? (
+        <p className="mt-2 text-sm text-muted">За эти дни в дневниках пусто.</p>
+      ) : (
+        <ul className="mt-2 space-y-1.5 text-sm leading-relaxed">
+          {lines.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

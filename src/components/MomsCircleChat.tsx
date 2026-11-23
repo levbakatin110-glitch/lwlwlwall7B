@@ -691,6 +691,9 @@ export function MomsCircleChat() {
     }
   }
 
+  const sendRef = useRef(send);
+  sendRef.current = send;
+
   const needSetup = ready && canPost && (!commProfile || editingProfile);
   const myAvatarUrl = usableAvatarUrl(commProfile?.avatar)
     ? commProfile?.avatar
@@ -1253,13 +1256,10 @@ export function MomsCircleChat() {
             setCircleStream(null);
           }}
           onReady={(file, previewUrl) => {
+            if (previewUrl) URL.revokeObjectURL(previewUrl);
             setCircleOpen(false);
             setCircleStream(null);
-            clearPendingMedia();
-            setPendingFile(file);
-            setPendingKind("circle");
-            setPendingPreview(previewUrl);
-            setError(null);
+            void sendRef.current(undefined, { file, kind: "circle" });
           }}
         />
       )}
@@ -1273,11 +1273,7 @@ export function MomsCircleChat() {
           onReady={(file) => {
             setVoiceOpen(false);
             setVoiceStream(null);
-            clearPendingMedia();
-            setPendingFile(file);
-            setPendingKind("voice");
-            setPendingPreview(null);
-            setError(null);
+            void sendRef.current(undefined, { file, kind: "voice" });
           }}
         />
       )}

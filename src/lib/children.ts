@@ -74,6 +74,8 @@ export const BABY_MODULE_IDS: ModuleId[] = [
   "formula",
   "diaper",
   "vaccines",
+  "teeth",
+  "leaps",
   "solids",
   "water",
   "walk",

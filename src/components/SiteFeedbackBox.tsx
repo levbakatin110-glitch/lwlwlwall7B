@@ -89,14 +89,11 @@ export function SiteFeedbackBox() {
 
   return (
     <section
-      className="rounded-[1.5rem] border border-line/80 bg-card/80 px-4 py-5 shadow-sm"
+      className="maya-surface px-4 py-5"
       aria-label="Предложить улучшение"
     >
       <div className="mb-3">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
-          Обратная связь
-        </p>
-        <h2 className="font-display mt-1 text-xl font-semibold tracking-tight text-foreground">
+        <h2 className="font-display text-xl font-semibold tracking-tight text-foreground">
           Что улучшить на сайте?
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-muted">
@@ -127,7 +124,7 @@ export function SiteFeedbackBox() {
         <button
           type="submit"
           disabled={busy || message.trim().length < 4}
-          className="w-full rounded-2xl bg-accent py-3.5 text-sm font-semibold text-[#ffffff] transition enabled:hover:bg-accent-hot disabled:opacity-45"
+          className="w-full rounded-2xl bg-accent py-3.5 text-sm font-semibold text-on-accent transition enabled:hover:bg-accent-hot disabled:opacity-45"
         >
           {busy ? "Отправляю…" : "Отправить разработчику"}
         </button>
