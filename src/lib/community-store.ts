@@ -7,6 +7,10 @@ import {
   unlinkSync,
 } from "fs";
 import { join } from "path";
+import {
+  quarantineCorruptFile,
+  writeFileAtomic,
+} from "@/lib/atomic-file";
 import { moderateCommunityPost } from "@/lib/community-moderation";
 import { resolveUploadMime } from "@/lib/media-mime";
 import { ensureSafariFriendlyBuffer } from "@/lib/transcode-media";
@@ -110,74 +114,98 @@ function seedStore(): Store {
   };
 }
 
-function load(): Store {
+/** Запись «для красоты» (первичный сид): не критично, если не вышло. */
+function trySave(store: Store) {
   try {
-    ensureDirs();
-    if (!existsSync(DATA_FILE)) {
-      const seeded = seedStore();
-      save(seeded);
-      return seeded;
-    }
-    const raw = readFileSync(DATA_FILE, "utf8");
-    // Старый гигантский JSON с data-URL аватарами, вычищаем
-    if (raw.length > 1_500_000) {
-      const parsed = JSON.parse(raw) as Store;
-      const cleaned: Store = {
-        messages: (parsed.messages || []).slice(-MAX_MESSAGES).map((m) => {
-          const { avatar: _a, ...rest } = m as CommunityMessage & {
-            avatar?: string;
-          };
-          return rest;
-        }),
-      };
-      save(cleaned);
-      return cleaned;
-    }
-    const data = JSON.parse(raw) as Store;
-    if (!Array.isArray(data.messages)) return seedStore();
-    if (data.messages.length === 0) {
-      const seeded = seedStore();
-      save(seeded);
-      return seeded;
-    }
-    // Убираем legacy avatar fields из памяти при чтении
-    data.messages = data.messages.map((m) => {
-      const row = { ...m } as CommunityMessage & { avatar?: string };
-      delete row.avatar;
-      return row;
-    });
-    return data;
+    save(store);
   } catch {
-    return seedStore();
+    /* сид пересоздастся при следующем чтении */
   }
 }
 
+/**
+ * Ошибки чтения диска (права, I/O) пробрасываем: иначе следующая запись
+ * затёрла бы реальные сообщения «заготовками».
+ * Файл есть, но не JSON: копируем его в *.corrupt-* и начинаем с сида.
+ */
+function load(): Store {
+  ensureDirs();
+  if (!existsSync(DATA_FILE)) {
+    const seeded = seedStore();
+    trySave(seeded);
+    return seeded;
+  }
+  const raw = readFileSync(DATA_FILE, "utf8");
+  let data: Store;
+  try {
+    data = JSON.parse(raw) as Store;
+  } catch {
+    quarantineCorruptFile(DATA_FILE);
+    return seedStore();
+  }
+  if (!data || !Array.isArray(data.messages)) {
+    quarantineCorruptFile(DATA_FILE);
+    return seedStore();
+  }
+  // Старый гигантский JSON с data-URL аватарами, вычищаем
+  if (raw.length > 1_500_000) {
+    const cleaned: Store = {
+      messages: data.messages.slice(-MAX_MESSAGES).map((m) => {
+        const { avatar: _a, ...rest } = m as CommunityMessage & {
+          avatar?: string;
+        };
+        return rest;
+      }),
+    };
+    trySave(cleaned);
+    return cleaned;
+  }
+  if (data.messages.length === 0) {
+    const seeded = seedStore();
+    trySave(seeded);
+    return seeded;
+  }
+  // Убираем legacy avatar fields из памяти при чтении
+  data.messages = data.messages.map((m) => {
+    const row = { ...m } as CommunityMessage & { avatar?: string };
+    delete row.avatar;
+    return row;
+  });
+  return data;
+}
+
+/** Атомарная запись. Ошибку пробрасываем: пользователь не должен видеть «отправлено», если не сохранилось. */
 function save(store: Store) {
   try {
     ensureDirs();
-    writeFileSync(DATA_FILE, JSON.stringify(store, null, 2), "utf8");
-  } catch {
-    /* ignore */
+    writeFileAtomic(DATA_FILE, JSON.stringify(store, null, 2));
+  } catch (e) {
+    console.error("[community] save failed", e);
+    throw e;
   }
 }
 
 function loadProfiles(): Profiles {
+  ensureDirs();
+  if (!existsSync(PROFILES_FILE)) return {};
+  const raw = readFileSync(PROFILES_FILE, "utf8");
   try {
-    ensureDirs();
-    if (!existsSync(PROFILES_FILE)) return {};
-    const data = JSON.parse(readFileSync(PROFILES_FILE, "utf8")) as Profiles;
-    return data && typeof data === "object" ? data : {};
+    const data = JSON.parse(raw) as Profiles;
+    if (data && typeof data === "object" && !Array.isArray(data)) return data;
   } catch {
-    return {};
+    /* ниже */
   }
+  quarantineCorruptFile(PROFILES_FILE);
+  return {};
 }
 
 function saveProfiles(profiles: Profiles) {
   try {
     ensureDirs();
-    writeFileSync(PROFILES_FILE, JSON.stringify(profiles, null, 2), "utf8");
-  } catch {
-    /* ignore */
+    writeFileAtomic(PROFILES_FILE, JSON.stringify(profiles, null, 2));
+  } catch (e) {
+    console.error("[community] saveProfiles failed", e);
+    throw e;
   }
 }
 
@@ -474,8 +502,13 @@ export async function addCommunityMessage(input: {
     const ext = extFromMime(mime, input.media.kind);
     mediaFile = `${id}.${ext}`;
     mediaKind = input.media.kind;
-    writeFileSync(join(MEDIA_DIR, mediaFile), buffer);
+    writeFileAtomic(join(MEDIA_DIR, mediaFile), buffer);
   }
+
+  // Пока шла обработка медиа (await), другая мама могла дописать сообщение:
+  // перечитываем список прямо перед записью, иначе её сообщение затрётся.
+  const current = load();
+  store.messages = current.messages;
 
   const message: CommunityMessage = {
     id,
@@ -490,19 +523,19 @@ export async function addCommunityMessage(input: {
   };
 
   store.messages.push(message);
+  let dropped: CommunityMessage[] = [];
   if (store.messages.length > MAX_MESSAGES) {
-    const dropped = store.messages.slice(0, store.messages.length - MAX_MESSAGES);
+    dropped = store.messages.slice(0, store.messages.length - MAX_MESSAGES);
     store.messages = store.messages.slice(-MAX_MESSAGES);
-    for (const d of dropped) {
-      if (!d.mediaFile) continue;
-      try {
-        unlinkSync(join(MEDIA_DIR, d.mediaFile));
-      } catch {
-        /* ignore */
-      }
-    }
   }
-  save(store);
+  try {
+    save(store);
+  } catch {
+    unlinkMedia(mediaFile);
+    return { ok: false, error: "Не удалось сохранить, попробуйте ещё раз" };
+  }
+  // Старые файлы удаляем только после успешной записи списка
+  for (const d of dropped) unlinkMedia(d.mediaFile);
   return { ok: true, message: toDto(message, loadProfiles(), store.messages) };
 }
 

@@ -1,6 +1,7 @@
 import { createHash } from "crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, readFileSync } from "fs";
 import { join } from "path";
+import { quarantineCorruptFile, writeFileAtomic } from "@/lib/atomic-file";
 import { mergeBackupData } from "@/lib/backup-merge";
 import { normalizeEmail } from "@/lib/email-codes";
 import { readSessionFromRequest } from "@/lib/session";
@@ -51,12 +52,18 @@ export async function PUT(req: Request) {
   if (!session) {
     return Response.json({ error: "Войдите" }, { status: 401 });
   }
+  let incoming: Record<string, unknown>;
   try {
     const body = (await req.json()) as { backup?: unknown };
     if (!body.backup || typeof body.backup !== "object") {
       return Response.json({ error: "Нет данных" }, { status: 400 });
     }
-    const incoming = body.backup as Record<string, unknown>;
+    incoming = body.backup as Record<string, unknown>;
+  } catch {
+    return Response.json({ error: "Некорректный запрос" }, { status: 400 });
+  }
+
+  try {
     let data = incoming;
     const path = fileFor(session.email);
     if (existsSync(path)) {
@@ -68,6 +75,8 @@ export async function PUT(req: Request) {
           data = mergeBackupData(prev.data, incoming);
         }
       } catch {
+        // Старый файл битый: сохраняем его копию, а не затираем молча
+        quarantineCorruptFile(path);
         data = incoming;
       }
     }
@@ -84,9 +93,13 @@ export async function PUT(req: Request) {
       );
     }
     ensure();
-    writeFileSync(fileFor(session.email), json, "utf8");
+    writeFileAtomic(path, json);
     return Response.json({ ok: true });
-  } catch {
-    return Response.json({ error: "Некорректный запрос" }, { status: 400 });
+  } catch (e) {
+    console.error("[backup] save failed", e);
+    return Response.json(
+      { error: "Не удалось сохранить копию на сервере" },
+      { status: 500 },
+    );
   }
 }

@@ -6,7 +6,10 @@ import { createPortal } from "react-dom";
 import { InstallAppCard } from "@/components/InstallAppCard";
 import { MayaIcon } from "@/components/icons/MayaIcon";
 import { OnboardingFlow } from "@/components/OnboardingFlow";
-import { restoreCloudBackup } from "@/components/CloudBackupSync";
+import {
+  BACKUP_ERROR_KEY,
+  restoreCloudBackup,
+} from "@/components/CloudBackupSync";
 import { authFetchErrorMessage } from "@/lib/auth-fetch-error";
 import { childDisplayName } from "@/lib/children";
 import { compressImageFile } from "@/lib/image";
@@ -41,8 +44,15 @@ export default function ProfilePage() {
   const [emailMsg, setEmailMsg] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState("");
 
+  const [backupError, setBackupError] = useState<string | null>(null);
+
   useEffect(() => {
     setPortalReady(true);
+    try {
+      setBackupError(localStorage.getItem(BACKUP_ERROR_KEY));
+    } catch {
+      /* ignore */
+    }
   }, []);
 
   useEffect(() => {
@@ -191,6 +201,12 @@ export default function ProfilePage() {
             <p className="text-sm text-foreground">
               Привязана: <span className="font-medium">{accountEmail}</span>
             </p>
+            {backupError ? (
+              <p className="rounded-xl bg-accent-soft/50 px-3 py-2 text-xs text-foreground">
+                Облачная копия дневников не сохраняется: {backupError}. Данные
+                остаются на этом телефоне.
+              </p>
+            ) : null}
             <button
               type="button"
               onClick={() => void doLogout(true)}

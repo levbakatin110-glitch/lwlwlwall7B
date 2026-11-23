@@ -10,6 +10,9 @@ import {
 } from "@/lib/chat-persist";
 import { remirrorJournalsFromSpaces, useAppStore } from "@/lib/store";
 
+/** Последняя ошибка облачной копии (показываем в профиле). */
+export const BACKUP_ERROR_KEY = "maya-backup-error";
+
 function buildBackupPayload() {
   const s = useAppStore.getState();
   return {
@@ -187,14 +190,25 @@ async function pushBackup(): Promise<void> {
   const local = useAppStore.getState();
   if (isLocalStoreEmpty(local)) return;
   try {
-    await fetch("/api/backup", {
+    const res = await fetch("/api/backup", {
       method: "PUT",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ backup: buildBackupPayload() }),
     });
+    if (res.ok) {
+      localStorage.removeItem(BACKUP_ERROR_KEY);
+      return;
+    }
+    // 401: просто не вошла; остальное покажем в профиле
+    if (res.status === 401) return;
+    const data = (await res.json().catch(() => ({}))) as { error?: string };
+    localStorage.setItem(
+      BACKUP_ERROR_KEY,
+      data.error || "Не удалось сохранить копию на сервере",
+    );
   } catch {
-    /* ignore */
+    /* офлайн: попробуем в следующий раз */
   }
 }
 
